@@ -78,3 +78,56 @@ export function exerciseBoundary(type: OptionType, input: BinomialInput, points 
   }
   return out;
 }
+
+export interface TreeNode {
+  /** Time step (0 = today). */
+  i: number;
+  /** Number of up moves. */
+  j: number;
+  S: number;
+  value: number;
+  /** American only: exercising here is optimal (and strictly in the money). */
+  exercise: boolean;
+}
+
+/**
+ * Every node of a small CRR tree, values filled in by backward induction
+ * (Chapter 13). Returns columns from today (index 0) to expiry.
+ */
+export function binomialTree(type: OptionType, input: BinomialInput): TreeNode[][] {
+  const { S, K, steps, american = false } = input;
+  const { u, d, p, discount } = crrParameters(input);
+  const cols: TreeNode[][] = [];
+  const last: TreeNode[] = [];
+  for (let j = 0; j <= steps; j++) {
+    const s = S * u ** j * d ** (steps - j);
+    last.push({ i: steps, j, S: s, value: payoff(type, s, K), exercise: false });
+  }
+  cols[steps] = last;
+  for (let i = steps - 1; i >= 0; i--) {
+    const col: TreeNode[] = [];
+    for (let j = 0; j <= i; j++) {
+      const s = S * u ** j * d ** (i - j);
+      const cont = discount * (p * cols[i + 1][j + 1].value + (1 - p) * cols[i + 1][j].value);
+      const ex = payoff(type, s, K);
+      const exercise = american && ex > cont + 1e-12;
+      col.push({ i, j, S: s, value: exercise ? ex : cont, exercise });
+    }
+    cols[i] = col;
+  }
+  return cols;
+}
+
+/** Terminal stock prices of an n-step CRR tree and their risk-neutral probabilities. */
+export function terminalDistribution(input: BinomialInput): { S: number; prob: number }[] {
+  const { S, steps } = input;
+  const { u, d, p } = crrParameters(input);
+  const out: { S: number; prob: number }[] = [];
+  // log of binomial coefficient, computed incrementally to stay accurate for large n
+  let logC = 0;
+  for (let j = 0; j <= steps; j++) {
+    if (j > 0) logC += Math.log((steps - j + 1) / j);
+    out.push({ S: S * u ** j * d ** (steps - j), prob: Math.exp(logC + j * Math.log(p) + (steps - j) * Math.log(1 - p)) });
+  }
+  return out;
+}
