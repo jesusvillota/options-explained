@@ -380,22 +380,28 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price digital, gap, and power options. Replicate digitals with call spreads, and understand
   pin risk.
 - **Key math:** digital call $= e^{-r\tau}N(d_2)$; the limit of a call spread.
-- **Widgets:** a call spread narrowing into a digital, with its delta spiking near expiry.
+- **Widgets:** `DigitalSpread`: a call spread of adjustable width against the digital (payoffs at expiry) and their
+  deltas today; near expiry the digital's delta becomes a spike at the strike (pin risk). Library:
+  `src/lib/pricing/exotics.ts`.
 - **Prereqs:** 18, 21.
 
 ### 38. Path-dependent exotics
 - **Goals:** Price barrier options with the reflection principle. Price Asian and lookback options, and know
   which ones have closed forms.
 - **Key math:** the reflection principle; down-and-out call formula; the geometric Asian closed form.
-- **Widgets:** a path hitting a barrier, with its reflected twin drawn alongside. A Monte Carlo pricer for
-  arithmetic Asians.
+- **Widgets:** `BarrierReflection`: a driftless path touching the barrier and its mirror image after the first
+  touch, plus the down-and-out call's value for every barrier level. `AsianMC`: a path with its running average and
+  the arithmetic Asian by Monte Carlo, plain and with the geometric control variate, against the geometric closed
+  form and the vanilla.
 - **Prereqs:** 15, 33.
 
 ### 39. Multi-asset options
 - **Goals:** Price the option to exchange one asset for another by changing numeraire. See how correlation
   affects basket and spread options.
 - **Key math:** Margrabe's formula; correlated Brownian motions via the Cholesky factor.
-- **Widgets:** a slider for correlation $\rho$, showing joint paths and the basket's price.
+- **Widgets:** `CorrelationBasket`: a correlation slider with a scatter of simulated year-end prices, and the basket
+  call (Monte Carlo) and exchange option (Margrabe) priced against $\rho$. Library: `margrabe`, `twoAssetMC`,
+  `basketCallLevy`, `correlatedPaths` in `src/lib/pricing/exotics.ts`.
 - **Prereqs:** 18, 33.
 
 ---
@@ -432,7 +438,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 |---|---|---|
 | `OptionTimeline` | 1 | 3, 9 |
 | `PayoffTracer` | 2 | — |
-| `PayoffDiagram` | 2 | 3, 5, 8, 37 |
+| `PayoffDiagram` | 2 | 3, 5, 8 |
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
 | `OptionChain` | 4 | — |
@@ -450,7 +456,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16 |
 | `GBMHistogram` | 16 | — |
 | `ItoComparison` | 17 | — |
-| `BSIntegrand` | 18 | 37, 40 |
+| `BSIntegrand` | 18 | — |
 | `HeatDiffusion` | 19 | — |
 | `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
@@ -460,7 +466,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HedgeSimulator` | 24 | — |
 | `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
 | `SmileExplorer` | 26 | — |
-| `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
+| `ButterflyDensity`, `ImpliedDensity` | 27 | — |
 | `LogContractStrip`, `VixContributions` | 28 | — |
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
 | `HestonSmile`, `HestonPaths` | 30 | — |
@@ -470,6 +476,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `FDStability`, `FDConvergence` | 34 | — |
 | `CharFnArrows`, `COSReconstruction` | 35 | — |
 | `LSMScatter` | 36 | — |
+| `DigitalSpread` | 37 | — |
+| `BarrierReflection`, `AsianMC` | 38 | — |
+| `CorrelationBasket` | 39 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

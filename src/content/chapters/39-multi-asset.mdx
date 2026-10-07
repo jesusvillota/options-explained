@@ -1,0 +1,152 @@
+---
+title: "Multi-asset options"
+part: 9
+chapter: 39
+difficulty: 3
+prerequisites: [18, 33]
+summary: "Options on two or more assets add one new ingredient, correlation, and one elegant trick: measuring prices in units of another asset."
+---
+import CorrelationBasket from '../../components/plots/CorrelationBasket';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Swapping one stock for another
+
+In a stock-for-stock merger, shareholders of the target receive shares of the acquirer. An investor who wants the
+right, but not the obligation, to swap one company's shares for another's holds an **exchange option**: at expiry it
+pays $(\Spot{S}_1 - \Spot{S}_2)^+$. Fund managers buy calls on **baskets** of stocks; energy traders buy options on
+the **spread** between crude oil and refined products. All of these depend on how the assets move *together*.
+
+That makes **correlation** the new input. It isn't observed directly in any single option's price, and it can change
+the value of a multi-asset option enormously.
+
+## <span class="section-tag">Intuition</span>What correlation does
+
+Two stocks, each with the same volatility, simulated to the end of the year. Correlation controls the shape of the
+cloud of outcomes, and two very different options react to it in opposite directions:
+
+<CorrelationBasket client:visible />
+
+<p class="try-this"><strong>Try this:</strong> slide the correlation from −0.95 to +0.95. The cloud collapses from a
+wide blob onto the diagonal. The basket call (green) gets more expensive: when the stocks move together, the
+average is as volatile as each stock, but when they're independent, their moves partly cancel. The exchange option
+(purple) does the opposite: it pays on the <em>difference</em>, which vanishes when the stocks move in lockstep.</p>
+
+- **Basket options and diversification.** The average of two stocks with correlation $\rho$ has volatility of about
+  $\Vol{\sigma}\sqrt{(1 + \rho)/2}$. With $\rho = 0$ that's 71% of each stock's. So a call on a basket is cheaper
+  than a basket of calls: the option holder doesn't benefit from diversification.
+- **Exchange and spread options.** These depend on the ratio $\Spot{S}_1/\Spot{S}_2$, whose volatility is
+  $\sqrt{\Vol{\sigma}_1^2 + \Vol{\sigma}_2^2 - 2\rho\Vol{\sigma}_1\Vol{\sigma}_2}$: high when the stocks move
+  independently, zero when they're perfectly correlated with equal volatilities.
+
+<Callout type="key" title="Change the numeraire">
+Measure everything in units of stock 2 instead of dollars. Then the exchange option pays $(\Spot{S}_1/\Spot{S}_2 - 1)^+$
+shares of stock 2: a call with strike 1 on the ratio. And in these units stock 2 is the "risk-free" asset, so there's
+no interest rate at all. That's Margrabe's 1978 insight, and Chapter 40 shows it's a special case of a general
+principle.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Correlated assets
+
+**Correlated Brownian motions.** Two stocks follow GBMs with $d\langle W^1, W^2\rangle_t = \rho\,dt$. To simulate them,
+start from independent normals $Z_1, Z'$ and set
+
+$$
+Z_2 = \rho Z_1 + \sqrt{1 - \rho^2}\,Z' .
+$$
+
+For $n$ assets with correlation matrix $\Sigma$, write $\Sigma = LL^{\top}$ (the **Cholesky** factorisation) and use
+$L$ times a vector of independent normals.
+
+**Margrabe's formula.** With stock 2 as numeraire, the ratio $R = \Spot{S}_1/\Spot{S}_2$ is a driftless GBM with
+volatility
+
+$$
+\Vol{\sigma}_R = \sqrt{\Vol{\sigma}_1^2 + \Vol{\sigma}_2^2 - 2\rho\Vol{\sigma}_1\Vol{\sigma}_2},
+$$
+
+so the exchange option is Black's formula with no discounting, measured in stock 2:
+
+$$
+V = \Spot{S}_1e^{-q_1\Time{T}}N(d_1) - \Spot{S}_2e^{-q_2\Time{T}}N(d_2), \qquad
+d_{1,2} = \frac{\ln\big(\Spot{S}_1e^{-q_1\Time{T}}/\Spot{S}_2e^{-q_2\Time{T}}\big) \pm \tfrac12\Vol{\sigma}_R^2\Time{T}}{\Vol{\sigma}_R\sqrt{\Time{T}}} .
+$$
+
+The interest rate doesn't appear. Exchanging one asset for another involves no cash.
+
+**Baskets.** A basket $B = \sum w_i\Spot{S}_i$ is a sum of lognormals, with no closed-form distribution. Two practical
+routes:
+
+- **Monte Carlo** with correlated paths (the widget's green curve), using the geometric basket, which is lognormal,
+  as a control variate.
+- **Moment matching** (Levy, 1992): replace $B_{\Time{T}}$ by a lognormal with the same first two moments,
+  $$
+  \mathbb{E}[B_{\Time{T}}] = \sum_i w_iF_i, \qquad \mathbb{E}[B_{\Time{T}}^2] = \sum_{i,j} w_iw_jF_iF_j\,e^{\rho_{ij}\Vol{\sigma}_i\Vol{\sigma}_j\Time{T}},
+  $$
+  and use Black's formula. It's accurate when the components' volatilities are similar, which the test suite checks
+  against Monte Carlo.
+
+**Implied correlation.** An index is itself a basket, so its implied variance links to its members':
+$\Vol{\sigma}_{\text{index}}^2 \approx \sum_{i,j} w_iw_j\rho_{ij}\Vol{\sigma}_i\Vol{\sigma}_j$. Setting all
+$\rho_{ij}$ equal and solving gives the market's **implied correlation**. It rises sharply in crises, when everything
+falls together and diversification disappears just when it's needed.
+
+**Spread options** $(\Spot{S}_1 - \Spot{S}_2 - \Strike{K})^+$ with $\Strike{K} \ne 0$ have no exact closed form.
+Kirk's approximation treats $\Spot{S}_2 + \Strike{K}$ as approximately lognormal and applies Margrabe.
+
+## <span class="section-tag">Playground</span>Correlation trading
+
+<CorrelationBasket client:visible />
+
+<div class="try-this">
+
+- **Diversification in numbers.** At ρ = 0, what's the basket's effective volatility? How does the basket call
+  compare with a single-stock call (about \$12.30 at 25% volatility)?
+- **Free exchange.** At ρ close to 1 with equal volatilities, the exchange option is almost worthless. Why?
+- **Crisis.** Raise each stock's volatility to 40% and the correlation to 0.9, as in a crash. What happens to the
+  basket call?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Stock 1 has 30% volatility, stock 2 has 20%, and their correlation is 0.5. What volatility goes into Margrabe's formula, in %?"
+  answer={26.5}
+  tolerance={0.01}
+  explanation="$\sqrt{0.3^2 + 0.2^2 - 2 \times 0.5 \times 0.3 \times 0.2} = \sqrt{0.09 + 0.04 - 0.06} = \sqrt{0.07} \approx 26.5\%$."
+/>
+
+<Quiz
+  client:visible
+  question="As the correlation between two stocks rises, a call on their average..."
+  options={["gets cheaper", "gets more expensive", "doesn't change", "becomes an exchange option"]}
+  answer={1}
+  explanation="Higher correlation means less diversification inside the basket, so the average is more volatile and the call is worth more."
+/>
+
+<Quiz
+  client:visible
+  question="Which is worth more: a basket of calls on each stock, or a call on the basket (same weights and strike)?"
+  options={["The call on the basket", "The basket of calls", "Always equal", "It depends on interest rates"]}
+  answer={1}
+  explanation="Since $(\sum w_i\Spot{S}_i - \Strike{K})^+ \le \sum w_i(\Spot{S}_i - \Strike{K})^+$ when the weights sum to 1, the basket of calls pays at least as much in every scenario. They're equal only with perfect correlation and equal volatilities."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Multi-asset options depend on **correlation**. Simulate correlated assets with the **Cholesky** factor.
+- **Margrabe**: the exchange option is a call on the ratio, priced in units of the second asset, with volatility
+  $\sqrt{\Vol{\sigma}_1^2 + \Vol{\sigma}_2^2 - 2\rho\Vol{\sigma}_1\Vol{\sigma}_2}$ and no interest rate.
+- **Baskets** get more expensive as correlation rises. Price them by Monte Carlo or by lognormal moment matching.
+- Index and single-stock options together imply a market **correlation**.
+
+**Next up:** the change of numeraire in Margrabe's formula was no accident. Part X makes it a general principle:
+Chapter 40 covers martingale pricing, Girsanov's theorem, and why every trick in this course is one idea.
+
+### Further reading
+
+- W. Margrabe, "The value of an option to exchange one asset for another" (1978).
+- E. Levy, "Pricing European average rate currency options" (1992).
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 5 (two-asset options).
