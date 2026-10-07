@@ -87,8 +87,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 8. Put–call parity
 - **Goals:** Prove $C - P = S - Ke^{-rT}$ by replication. Build synthetic positions.
 - **Key math:** put–call parity, with and without dividends.
-- **Widgets:** stacked payoff diagrams: long call + short put = a forward. Drag the strike and the identity
-  still holds.
+- **Widgets:** `StrategyBuilder` preset *synthetic forward* (long call + short put = a forward), and `ParityLine`:
+  C − P across strikes is a straight line crossing zero at the forward price, with chain quotes and their
+  spreads, and a draggable quote that triggers a conversion or reversal.
 - **Prereqs:** 6, 7.
 
 ### 9. Early exercise
@@ -402,6 +403,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `CompoundingStaircase` | 6 | — |
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
+| `ParityLine` | 8 | 27 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |
