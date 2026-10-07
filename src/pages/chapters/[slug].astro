@@ -1,0 +1,137 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CourseNav from '../../components/layout/CourseNav.astro';
+import { parts, url } from '../../data/curriculum';
+
+export async function getStaticPaths() {
+  const chapters = (await getCollection('chapters')).sort((a, b) => a.data.chapter - b.data.chapter);
+  return chapters.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: { entry, prev: chapters[i - 1], next: chapters[i + 1] },
+  }));
+}
+
+const { entry, prev, next } = Astro.props;
+const { Content } = await render(entry);
+const { title, chapter, part, difficulty, prerequisites, summary } = entry.data;
+const partInfo = parts.find((p) => p.number === part)!;
+const allTitles = new Map(parts.flatMap((p) => p.chapters.map((c) => [c.number, c.title])));
+const all = await getCollection('chapters');
+const idOf = new Map(all.map((c) => [c.data.chapter, c.id]));
+const nextPlanned = parts.flatMap((p) => p.chapters).find((c) => c.number === chapter + 1);
+const dots = '●'.repeat(difficulty);
+const difficultyLabel = ['intro', 'intermediate', 'advanced'][difficulty - 1];
+---
+<BaseLayout title={title} description={summary}>
+  <details class="mobile-nav" slot="header-actions">
+    <summary>Contents</summary>
+    <div class="mobile-nav-panel"><CourseNav current={chapter} /></div>
+  </details>
+  <div class="page">
+    <aside class="sidebar"><CourseNav current={chapter} /></aside>
+    <main id="main">
+      <article class="prose">
+        <header class="chapter-header">
+          <p class="eyebrow">
+            Part {partInfo.roman} · {partInfo.title} — Chapter {chapter}
+          </p>
+          <h1>{title}</h1>
+          <p class="summary">{summary}</p>
+          <p class="meta">
+            <span class="difficulty" title={`Difficulty: ${difficultyLabel}`}>{dots} {difficultyLabel}</span>
+            {prerequisites.length > 0 && (
+              <span>
+                · Builds on{' '}
+                {prerequisites.map((n, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    {idOf.get(n) ? <a href={url(`chapters/${idOf.get(n)}/`)}>Ch. {n} {allTitles.get(n)}</a> : <span>Ch. {n}</span>}
+                  </>
+                ))}
+              </span>
+            )}
+          </p>
+        </header>
+        <Content />
+      </article>
+      <nav class="prev-next" aria-label="Chapter navigation">
+        {prev ? (
+          <a class="prev" href={url(`chapters/${prev.id}/`)}>
+            <span class="label">← Previous</span>
+            <span class="t">{prev.data.chapter}. {prev.data.title}</span>
+          </a>
+        ) : <span />}
+        {next ? (
+          <a class="next" href={url(`chapters/${next.id}/`)}>
+            <span class="label">Next →</span>
+            <span class="t">{next.data.chapter}. {next.data.title}</span>
+          </a>
+        ) : nextPlanned ? (
+          <div class="next soon">
+            <span class="label">Coming next</span>
+            <span class="t">{nextPlanned.number}. {nextPlanned.title}</span>
+          </div>
+        ) : <span />}
+      </nav>
+    </main>
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 3rem;
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  .sidebar {
+    position: sticky; top: 61px; align-self: start;
+    max-height: calc(100vh - 61px); overflow-y: auto;
+    padding: 1.5rem 0.5rem 2rem 0;
+  }
+  main { min-width: 0; padding: 2.5rem 0 4rem; }
+  .mobile-nav { display: none; font-family: var(--font-ui); }
+  .mobile-nav summary {
+    list-style: none; cursor: pointer; font-size: 0.85rem; color: var(--text-muted);
+    padding: 0 0.9rem; height: 44px; display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .mobile-nav summary::-webkit-details-marker { display: none; }
+  .mobile-nav-panel {
+    position: fixed; left: 0; right: 0; top: 61px; bottom: 0; overflow-y: auto;
+    background: var(--bg); padding: 1rem 1rem 3rem; border-top: 1px solid var(--border);
+  }
+  @media (max-width: 960px) {
+    .page { grid-template-columns: minmax(0, 1fr); padding: 0 1rem; gap: 0; }
+    .sidebar { display: none; }
+    .mobile-nav { display: block; }
+    main { padding-top: 1.5rem; }
+  }
+
+  .chapter-header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-family: var(--font-ui); font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--c-strike); margin: 0 0 0.5rem; }
+  .chapter-header h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin: 0 0 0.6rem; }
+  .summary { font-size: 1.2rem; color: var(--text-muted); margin: 0 0 0.8rem; font-style: italic; }
+  .meta { font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+  .difficulty { color: var(--c-time); }
+
+  .prev-next {
+    max-width: var(--measure); margin: 4rem auto 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    font-family: var(--font-ui);
+  }
+  .prev-next a, .prev-next .soon {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    padding: 1rem 1.2rem; border: 1px solid var(--border); border-radius: var(--radius);
+    text-decoration: none; color: var(--text);
+  }
+  .prev-next a:hover { border-color: var(--c-spot); }
+  .next { text-align: right; }
+  .soon { opacity: 0.6; }
+  .label { font-size: 0.78rem; color: var(--text-muted); }
+  .t { font-weight: 600; }
+  @media (max-width: 560px) { .prev-next { grid-template-columns: 1fr; } }
+</style>

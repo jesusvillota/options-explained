@@ -22,8 +22,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   buys options and why: to hedge, to speculate, or to earn income.
 - **Key math:** none. The payoffs are given in words: "at expiry, a call pays the amount by which $S$ exceeds
   $K$, or nothing."
-- **Widgets:** a story-style timeline (`Timeline`) showing a call: you pay a premium today, the stock moves, and
-  you decide at expiry.
+- **Widgets:** `OptionTimeline`: a stock path from today to expiry with a draggable end point. You pay a premium
+  today, the stock moves, and you decide at expiry whether to exercise the call or put.
 - **Prereqs:** none.
 
 ### 2. Payoff diagrams
@@ -387,6 +387,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 
 | Component | First used | Reused in |
 |---|---|---|
+| `OptionTimeline` | 1 | 3, 9 |
+| `PayoffTracer` | 2 | — |
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |

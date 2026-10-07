@@ -1,0 +1,229 @@
+---
+title: "Payoff diagrams"
+part: 1
+chapter: 2
+difficulty: 1
+prerequisites: [1]
+summary: "What an option is worth at expiry, for every possible stock price at once, in one picture."
+---
+import PayoffTracer from '../../components/plots/PayoffTracer';
+import PayoffDiagram from '../../components/plots/PayoffDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>All the scenarios at once
+
+In Chapter 1 we kept asking the same question: *if the stock ends at this price, what is the option worth?* Each
+time we picked a price, worked it out, and got one answer. For \$127, a call with strike \$100 is worth \$27.
+For \$80 it's worth nothing.
+
+Answering one scenario at a time is slow, and it hides the bigger picture. Nobody knows where the stock will
+end up, so what we really want is the answer for **every** possible price at once.
+
+Here's a way to get it. Take each possible stock price at expiry, work out the option's value, and plot the
+answer as a point. Then do it again for the next price, and the next.
+
+<PayoffTracer client:visible />
+
+Once you connect the dots, you get a flat line that suddenly bends upwards. Traders call this the
+**hockey stick**. It's the most important picture in this course, and you'll be looking at versions of it for the
+next 40 chapters.
+
+## <span class="section-tag">Intuition</span>Reading the hockey stick
+
+A **payoff diagram** has the stock price at expiry, $\Spot{S_T}$, on the horizontal axis. On the vertical axis
+is what the position is worth on that date. Here is the one for a call. Drag the blue point along it.
+
+<PayoffDiagram client:visible typeToggle={false} sideToggle={false} modeToggle={false} showSummary={false} initialSpot={125} title="The call's hockey stick" />
+
+The shape has three parts, and each one tells you something:
+
+1. **The flat part (left of the strike).** If the stock ends below $\Strike{K}$, you don't exercise, so the
+   call is worth \$0. It doesn't matter *how far* below: \$90 and \$45 give the same answer.
+2. **The kink (at the strike).** This is where exercising starts to make sense. The strike is the point
+   where the option's behaviour changes, which is why it gets its own colour, <span class="c-strike">yellow</span>.
+3. **The sloped part (right of the strike).** Every \$1 the stock rises above $\Strike{K}$ adds exactly \$1 to
+   the payoff, so the line rises at 45°. Its slope is 1.
+
+<p class="try-this"><strong>Try this:</strong> drag the yellow point at the kink to move the strike. The
+whole hockey stick slides sideways, but its shape never changes.</p>
+
+### The put's hockey stick
+
+A put is the same idea facing the other way. It's worth something only when the stock ends **below** the strike,
+and every \$1 the stock falls adds \$1 to its value. Switch between the two:
+
+<PayoffDiagram client:visible type="put" sideToggle={false} modeToggle={false} showSummary={false} initialSpot={75} title="Call and put, side by side" />
+
+The put's sloped part is on the left. There's one difference from the call. A stock price can't go below zero, so
+a put's payoff can never be bigger than $\Strike{K}$. A call has no such ceiling, because a stock price can keep
+going up.
+
+## <span class="section-tag">Intuition</span>From payoff to profit
+
+The hockey stick shows what the option is *worth* at expiry. But you didn't get the option for free. You paid
+the premium up front. Your **profit** is the payoff minus that premium.
+
+Subtracting the same number in every scenario moves the whole picture **down** by the premium. Flip between
+*Payoff* and *Profit* and watch it shift:
+
+<PayoffDiagram client:visible mode="profit" sideToggle={false} initialSpot={118} title="Payoff vs profit" />
+
+Three things to notice:
+
+- **The worst case is now a loss**, but it's a small, known one: the premium. You can never lose more than
+  you paid.
+- **There's a breakeven point**, where the profit line crosses zero. For a call, the stock has to rise above
+  the strike by enough to win back the premium. The breakeven is $\Strike{K}$ plus the premium. With
+  a \$100 strike and a \$10.45 premium, that's \$110.45.
+- **The premium changes when you move the strike.** A call with a higher strike is less likely to pay
+  anything, so it's cheaper. We'll take these premiums as given until Part III, where we'll work out where
+  they come from.
+
+<Callout type="note" title="Simplification">
+We're subtracting a premium paid <em>today</em> from a payoff received <em>in a year</em>, as if a dollar today
+and a dollar next year were the same thing. They aren't. At a 5% interest rate, the \$10.45 premium would have
+grown to about \$10.99 by expiry. This makes only a small difference to the diagram, and we'll ignore it until
+Chapter 6, where we'll treat the time value of money properly.
+</Callout>
+
+## <span class="section-tag">Intuition</span>The other side of the trade
+
+Every option you buy, someone else wrote. Whatever the holder gains, the writer loses, and the other way around.
+So the writer's diagram is the holder's **flipped upside down**. The dashed line below is the other side of
+your trade:
+
+<PayoffDiagram client:visible mode="profit" side="short" showMirror initialSpot={130} title="Long and short are mirror images" />
+
+<Callout type="key" title="Options are zero-sum">
+In every scenario, the holder's profit and the writer's profit add up to exactly zero. The two lines are
+reflections of each other across the horizontal axis. An option doesn't create money. It moves risk from one
+person to another, at a price.
+</Callout>
+
+Flipping the picture also flips best and worst cases. The writer of a call gains the premium at best, and has
+no limit on how much they can lose, because there's no limit on how high a stock can go.
+
+<Callout type="warning" title="Unlimited loss">
+"Selling options is free money" is a famous last thought. Most of the time a short call or a short put expires
+worthless and the writer keeps the premium. In a big move, the loss can be many times the premium collected. The
+writer's diagram makes the risk plain: a small, flat gain on one side and a steep loss on the other.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The diagrams as formulas
+
+Every diagram in this chapter is built from one small piece of notation. We write
+
+$$
+(x)^+ = \max(x, 0),
+$$
+
+read "*x* positive part". It keeps a number if it's positive and replaces it with zero otherwise. Its graph is the
+hockey stick itself, with the kink at zero.
+
+Write $\Call{C_0}$ and $\Put{P_0}$ for the premiums paid today, at time 0. The four basic positions are then:
+
+| Position | Payoff at expiry | Profit at expiry |
+|---|---|---|
+| Long call | $(\Spot{S_T} - \Strike{K})^+$ | $(\Spot{S_T} - \Strike{K})^+ - \Call{C_0}$ |
+| Short call | $-(\Spot{S_T} - \Strike{K})^+$ | $\Call{C_0} - (\Spot{S_T} - \Strike{K})^+$ |
+| Long put | $(\Strike{K} - \Spot{S_T})^+$ | $(\Strike{K} - \Spot{S_T})^+ - \Put{P_0}$ |
+| Short put | $-(\Strike{K} - \Spot{S_T})^+$ | $\Put{P_0} - (\Strike{K} - \Spot{S_T})^+$ |
+
+Writing the call's payoff piece by piece shows its two straight parts:
+
+$$
+(\Spot{S_T} - \Strike{K})^+ =
+\begin{cases}
+0 & \text{if } \Spot{S_T} \le \Strike{K} \quad\text{(flat: slope 0)},\\[4pt]
+\Spot{S_T} - \Strike{K} & \text{if } \Spot{S_T} > \Strike{K} \quad\text{(rising: slope 1)}.
+\end{cases}
+$$
+
+The slope tells you how much the payoff moves when the stock moves by \$1. At expiry, the slope is either 0 or 1,
+with nothing in between. Before expiry, the slope smooths out to a value in between. That value is called
+**delta**, and it's the subject of Chapter 21.
+
+**Breakeven.** A long call breaks even when its profit is zero. Above the strike, the profit is
+$\Spot{S_T} - \Strike{K} - \Call{C_0}$, so
+
+$$
+\Spot{S_T^{*}} = \Strike{K} + \Call{C_0} \quad\text{(call)}, \qquad\qquad \Spot{S_T^{*}} = \Strike{K} - \Put{P_0} \quad\text{(put)}.
+$$
+
+**Best and worst cases.** These come straight from the diagrams:
+
+| Position | Best case | Worst case | Breakeven |
+|---|---|---|---|
+| Long call | unlimited | $-\Call{C_0}$ | $\Strike{K} + \Call{C_0}$ |
+| Short call | $+\Call{C_0}$ | unlimited loss | $\Strike{K} + \Call{C_0}$ |
+| Long put | $\Strike{K} - \Put{P_0}$ (stock goes to 0) | $-\Put{P_0}$ | $\Strike{K} - \Put{P_0}$ |
+| Short put | $+\Put{P_0}$ | $-(\Strike{K} - \Put{P_0})$ | $\Strike{K} - \Put{P_0}$ |
+
+**Zero-sum.** For any stock price at expiry, the long and short profits cancel:
+
+$$
+\underbrace{\big[(\Spot{S_T} - \Strike{K})^+ - \Call{C_0}\big]}_{\text{holder}} + \underbrace{\big[\Call{C_0} - (\Spot{S_T} - \Strike{K})^+\big]}_{\text{writer}} = 0.
+$$
+
+## <span class="section-tag">Playground</span>All four positions
+
+Here is everything in one widget: call or put, long or short, payoff or profit, any strike.
+
+<PayoffDiagram client:visible mode="profit" initialSpot={112} title="Playground: the four basic positions" />
+
+<div class="try-this">
+
+- **Find the position with a limited gain and an unlimited loss.** Then find the only other one whose worst
+  case is bigger than its premium.
+- **Move a long call's strike from \$80 to \$120.** The kink slides right and the drop below zero (the
+  premium) shrinks. Why should a higher strike make a call cheaper?
+- **Compare a long call with a short put.** Both make money when the stock rises. How are their shapes
+  different, and which would you rather hold if you expected a crash?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="What is the payoff of a long put with strike $\Strike{K} = \$100$ if the stock ends at $\Spot{S_T} = \$70$?"
+  options={["\\$0", "\\$30", "−\\$30", "\\$70"]}
+  answer={1}
+  explanation="A put lets you sell at \$100 a share worth \$70, so it pays $(100 - 70)^+ = 30$. Payoffs of long positions are never negative."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A call with strike \$100 costs \$8. Ignoring interest, at what stock price at expiry does the holder break even?"
+  answer={108}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="The holder needs the payoff $\Spot{S_T} - 100$ to win back the \$8 premium, so the breakeven is $\Strike{K} + \Call{C_0} = 100 + 8 = 108$."
+/>
+
+<Quiz
+  client:visible
+  question="Which position has an unlimited potential loss?"
+  options={["Long call", "Short call", "Long put", "Short put"]}
+  answer={1}
+  explanation="The writer of a call must sell at $\Strike{K}$ however high the stock goes, so the loss $\Spot{S_T} - \Strike{K} - \Call{C_0}$ has no upper limit. A short put's loss is large but capped, because the stock can't fall below 0."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A **payoff diagram** shows what a position is worth at expiry for **every** stock price $\Spot{S_T}$ at once.
+- A call's payoff $(\Spot{S_T} - \Strike{K})^+$ is a **hockey stick**: flat below the strike, slope 1 above it.
+  A put's is the mirror image, and it can never exceed $\Strike{K}$.
+- **Profit = payoff − premium.** The diagram shifts down by the premium, and the breakeven is
+  $\Strike{K} \pm$ premium.
+- **Long and short are mirror images.** Options are zero-sum, and writing options can lead to large or unlimited
+  losses.
+
+**Next up:** these diagrams only show what happens *at expiry*. What is the option worth *before* then, while the
+stock can still move? In Chapter 3 the hockey stick becomes a smooth curve, and the gap between the two is
+called **time value**.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 10 (payoffs) and chapter 12 (strategies).

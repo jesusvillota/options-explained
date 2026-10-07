@@ -1,0 +1,47 @@
+---
+import { getCollection } from 'astro:content';
+import { parts, url } from '../../data/curriculum';
+
+interface Props {
+  current?: number;
+}
+const { current } = Astro.props;
+const available = new Map((await getCollection('chapters')).map((c) => [c.data.chapter, c.id]));
+---
+<nav class="course-nav" aria-label="Course contents">
+  {parts.map((part) => (
+    <section>
+      <h2><span class="roman">{part.roman}</span> {part.title}</h2>
+      <ol>
+        {part.chapters.map((ch) => {
+          const id = available.get(ch.number);
+          return (
+            <li class:list={[{ current: ch.number === current, soon: !id }]}>
+              <span class="num">{ch.number}</span>
+              {id ? (
+                <a href={url(`chapters/${id}/`)} aria-current={ch.number === current ? 'page' : undefined}>{ch.title}</a>
+              ) : (
+                <span title="Coming soon">{ch.title}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  ))}
+</nav>
+
+<style>
+  .course-nav { font-family: var(--font-ui); font-size: 0.86rem; line-height: 1.4; }
+  section + section { margin-top: 1.1rem; }
+  h2 { font-family: var(--font-ui); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 0.4rem; font-weight: 600; }
+  .roman { color: var(--c-strike); margin-right: 0.2rem; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 0.55rem; padding: 0.28rem 0.5rem; border-radius: 6px; }
+  .num { color: var(--text-muted); min-width: 1.4em; text-align: right; font-variant-numeric: tabular-nums; }
+  a { color: var(--text); text-decoration: none; }
+  a:hover { color: var(--c-spot); }
+  .current { background: var(--bg-raised); box-shadow: inset 2px 0 0 var(--c-spot); }
+  .current a { color: var(--c-spot); font-weight: 600; }
+  .soon { color: var(--text-muted); opacity: 0.6; }
+</style>

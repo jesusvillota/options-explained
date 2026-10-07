@@ -1,0 +1,31 @@
+---
+/**
+ * A boxed aside in the chapter text.
+ *   key     — the one idea to remember
+ *   note    — a side remark or a simplification being made
+ *   warning — a common misconception
+ */
+interface Props {
+  type?: 'key' | 'note' | 'warning';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props;
+const defaults = { key: 'Key idea', note: 'Note', warning: 'Common mistake' };
+---
+<aside class:list={['callout', type]}>
+  <p class="callout-title">{title ?? defaults[type]}</p>
+  <div class="callout-body"><slot /></div>
+</aside>
+
+<style>
+  .callout {
+    --accent: var(--c-spot);
+    margin: 1.75rem auto; padding: 0.9rem 1.2rem 0.2rem;
+    border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  }
+  .key { --accent: var(--c-strike); }
+  .warning { --accent: var(--c-put); }
+  .callout-title { font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.4rem; }
+  .callout-body :global(p) { margin-bottom: 0.8rem; }
+</style>

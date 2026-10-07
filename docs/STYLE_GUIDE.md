@@ -94,6 +94,10 @@ colours. For anything else, use the neutral palette.
 | Rate $r$ | `--c-rate` | `#FF862F` | `#C25E12` |
 | Probability / density | `--c-prob` | `#D7D7D7` (filled at 25% opacity) | `#555555` |
 
+Gains and losses in readouts (`.good` / `.bad`) reuse the call and put colours, following the usual
+green-is-up, red-is-down convention. Always pair them with a sign or a word ("+\$3", "loss") so colour is never the
+only cue.
+
 Neutral palette: background `#0F1117` (dark) / `#FAFAF7` (light), text `#E8E6E3` / `#1A1A1A`, axes and grid
 lines in the text colour at 30% / 10% opacity.
 
@@ -124,6 +128,23 @@ coloured is just as hard to read as one with no colour at all.
 - **Phone layout:** every widget works at 360px width. Stack the controls below the plot instead of beside it.
 - **Performance:** load widgets with `client:visible`, and lazy-load heavy libraries (three.js) only in the
   chapters that use them.
+
+### Writing widgets into a chapter
+
+```mdx
+import PayoffDiagram from '../../components/plots/PayoffDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+<PayoffDiagram client:visible mode="profit" initialSpot={118} title="Payoff vs profit" />
+
+<p class="try-this"><strong>Try this:</strong> drag the strike...</p>
+
+<Callout type="key">The one idea to remember.</Callout>
+```
+
+- Put a short "Try this" prompt after each widget, telling the reader what to do with it.
+- In MDX, write a literal dollar sign as `\$`, because `$…$` is math. Never write `\$` inside math.
 
 ## 6. Quizzes
 

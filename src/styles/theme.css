@@ -1,0 +1,83 @@
+/*
+ * Design tokens. Colour semantics are fixed across the whole course:
+ * see docs/STYLE_GUIDE.md §4. Dark is the default theme.
+ */
+:root {
+  --c-spot: #58c4dd;
+  --c-strike: #f4d345;
+  --c-call: #83c167;
+  --c-put: #fc6255;
+  --c-time: #5cd0b3;
+  --c-vol: #b189c6;
+  --c-rate: #ff862f;
+  --c-prob: #d7d7d7;
+
+  --bg: #0f1117;
+  --bg-raised: #171a23;
+  --bg-inset: #0b0d12;
+  --text: #e8e6e3;
+  --text-muted: #a3a8b4;
+  --border: rgba(232, 230, 227, 0.14);
+  --grid: rgba(232, 230, 227, 0.1);
+  --axis: rgba(232, 230, 227, 0.45);
+  --link: var(--c-spot);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+
+  --font-body: 'Source Serif 4 Variable', 'Source Serif Pro', Georgia, serif;
+  --font-ui: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --measure: 42rem;
+  --radius: 10px;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --c-spot: #1f7fa3;
+  --c-strike: #a8860b;
+  --c-call: #3e7f2a;
+  --c-put: #c0392b;
+  --c-time: #1e8c72;
+  --c-vol: #7a4e94;
+  --c-rate: #c25e12;
+  --c-prob: #555555;
+
+  --bg: #fafaf7;
+  --bg-raised: #ffffff;
+  --bg-inset: #f1f1ec;
+  --text: #1a1a1a;
+  --text-muted: #5b6070;
+  --border: rgba(26, 26, 26, 0.12);
+  --grid: rgba(26, 26, 26, 0.08);
+  --axis: rgba(26, 26, 26, 0.5);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+}
+
+/* KaTeX colour macros (\Spot, \Strike, ...) map to these classes. */
+.c-spot { color: var(--c-spot); }
+.c-strike { color: var(--c-strike); }
+.c-call { color: var(--c-call); }
+.c-put { color: var(--c-put); }
+.c-time { color: var(--c-time); }
+.c-vol { color: var(--c-vol); }
+.c-rate { color: var(--c-rate); }
+.c-prob { color: var(--c-prob); }
+
+/* Mafs picks up the site theme. */
+.MafsView {
+  --mafs-bg: var(--bg-inset); /* also the halo behind text labels */
+  --mafs-fg: var(--text);
+  --mafs-origin-color: var(--axis);
+  --mafs-line-color: var(--grid);
+  --mafs-blue: var(--c-spot);
+  --mafs-yellow: var(--c-strike);
+  --mafs-green: var(--c-call);
+  --mafs-red: var(--c-put);
+  --mafs-violet: var(--c-vol);
+  --mafs-orange: var(--c-rate);
+  font-family: var(--font-ui);
+}
+
+/* A thicker halo behind plot labels so they stay readable over lines. */
+.MafsView .mafs-shadow { stroke: var(--bg-inset); stroke-width: 5px; stroke-linejoin: round; }

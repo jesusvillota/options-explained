@@ -1,0 +1,95 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { parts, url } from '../data/curriculum';
+
+const available = new Map((await getCollection('chapters')).map((c) => [c.data.chapter, c]));
+const first = available.get(1);
+---
+<BaseLayout title="Options, Explained">
+  <main id="main" class="home">
+    <section class="hero">
+      <svg class="hero-art" viewBox="0 0 400 180" aria-hidden="true">
+        <line x1="20" y1="150" x2="380" y2="150" stroke="var(--axis)" stroke-width="1.5" />
+        <line x1="200" y1="20" x2="200" y2="160" stroke="var(--c-strike)" stroke-width="1.5" stroke-dasharray="5 5" opacity="0.7" />
+        <path d="M20 150 H200 L360 30" fill="none" stroke="var(--c-call)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M40 30 L200 150 H380" fill="none" stroke="var(--c-put)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55" />
+        <circle cx="200" cy="150" r="6" fill="var(--c-strike)" />
+      </svg>
+      <h1>Options, Explained</h1>
+      <p class="lede">
+        An interactive, visual course on financial options. It starts at <em>"what is a call?"</em> and works up to
+        Black–Scholes, the volatility surface, and stochastic volatility. You'll see the picture first, then the
+        formula, and you can move the sliders yourself.
+      </p>
+      {first && <a class="cta" href={url(`chapters/${first.id}/`)}>Start with Chapter 1 →</a>}
+      <ul class="legend" aria-label="Colour key used throughout the course">
+        <li><span class="sw" style="background: var(--c-spot)"></span>spot <i>S</i></li>
+        <li><span class="sw" style="background: var(--c-strike)"></span>strike <i>K</i></li>
+        <li><span class="sw" style="background: var(--c-call)"></span>call</li>
+        <li><span class="sw" style="background: var(--c-put)"></span>put</li>
+        <li><span class="sw" style="background: var(--c-time)"></span>time <i>T</i></li>
+        <li><span class="sw" style="background: var(--c-vol)"></span>volatility <i>σ</i></li>
+        <li><span class="sw" style="background: var(--c-rate)"></span>rate <i>r</i></li>
+      </ul>
+    </section>
+
+    <section class="map" aria-labelledby="map-title">
+      <h2 id="map-title">The course</h2>
+      <p class="map-intro">There are 42 chapters in ten parts. Part I needs no maths at all; by Part X you'll be reading graduate-level derivations.</p>
+      <div class="parts">
+        {parts.map((part) => (
+          <section class="part">
+            <header>
+              <span class="roman">{part.roman}</span>
+              <h3>{part.title}</h3>
+              <span class="diff" title="Difficulty">{part.difficulty}</span>
+            </header>
+            <ol>
+              {part.chapters.map((ch) => {
+                const entry = available.get(ch.number);
+                return (
+                  <li class:list={{ soon: !entry }}>
+                    <span class="n">{ch.number}</span>
+                    {entry ? <a href={url(`chapters/${entry.id}/`)}>{ch.title}</a> : <span>{ch.title}</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .home { max-width: 70rem; margin: 0 auto; padding: 0 1.5rem 5rem; }
+  .hero { max-width: 44rem; margin: 0 auto; padding: 3.5rem 0 3rem; text-align: center; }
+  .hero-art { width: min(100%, 360px); height: auto; margin-bottom: 1rem; }
+  .hero h1 { font-size: clamp(2.4rem, 7vw, 3.6rem); margin: 0 0 1rem; }
+  .lede { font-size: 1.25rem; color: var(--text-muted); margin: 0 0 2rem; }
+  .cta {
+    display: inline-block; padding: 0.8rem 1.6rem; border-radius: 999px;
+    background: var(--c-spot); color: var(--bg); font-family: var(--font-ui); font-weight: 600; text-decoration: none;
+  }
+  .cta:hover { filter: brightness(1.1); }
+  .legend { list-style: none; padding: 0; margin: 2.2rem 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem 1.1rem; font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-muted); }
+  .legend li { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .sw { width: 0.8rem; height: 0.8rem; border-radius: 3px; display: inline-block; }
+
+  .map h2 { text-align: center; font-size: 1.9rem; margin: 1rem 0 0.4rem; }
+  .map-intro { text-align: center; color: var(--text-muted); margin: 0 auto 2rem; max-width: 36rem; }
+  .parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 1rem; }
+  .part { background: var(--bg-raised); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.1rem; font-family: var(--font-ui); }
+  .part header { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .roman { color: var(--c-strike); font-weight: 700; font-size: 0.9rem; min-width: 2.2em; }
+  .part h3 { font-family: var(--font-ui); font-size: 1rem; margin: 0; flex: 1; }
+  .diff { color: var(--c-time); font-size: 0.7rem; letter-spacing: 0.1em; white-space: nowrap; }
+  ol { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; line-height: 1.4; }
+  li { display: flex; gap: 0.6rem; padding: 0.25rem 0; }
+  .n { color: var(--text-muted); min-width: 2.2em; font-variant-numeric: tabular-nums; }
+  li a { color: var(--text); font-weight: 600; text-decoration: none; }
+  li a:hover { color: var(--c-spot); }
+  .soon { color: var(--text-muted); opacity: 0.65; }
+</style>

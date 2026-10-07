@@ -4,7 +4,8 @@ An interactive, visual course on financial options. It runs from *"what is a cal
 volatility, numerical methods, and martingale pricing. The style is inspired by 3Blue1Brown: draw the picture
 first, then write down the formula, and let the reader move the sliders.
 
-> **Status:** planning. This repo has the curriculum and the style guide so far. The site scaffold comes next.
+> **Status:** the site is set up and Chapters 1–2 are written. The other 40 chapters are listed on the home page
+> as "coming soon".
 
 ## What you'll find here
 
@@ -29,24 +30,43 @@ first, then write down the formula, and let the reader move the sliders.
 Writing about 40 raw HTML pages by hand would mean copying layout and plotting code into every page. So chapters
 are written in MDX, and the site ships as static HTML. JavaScript only loads for the interactive widgets.
 
-## Planned layout
+## Layout
 
 ```
-docs/                 curriculum and style guide
-src/content/chapters/ one .mdx file per chapter
-src/components/       plots/, ui/, layout/
-src/lib/              math/ (normal cdf, rng, root finding) and pricing/ (Black–Scholes, binomial, MC, ...)
-src/styles/theme.css  colour tokens shared by plots and KaTeX
-tests/                Vitest checks of the pricing library against reference values
+docs/                    curriculum and style guide
+src/content/chapters/    one .mdx file per chapter (prose + TeX + widgets)
+src/components/plots/    interactive figures: PlotFrame, OptionTimeline, PayoffTracer, PayoffDiagram, ...
+src/components/ui/       Slider, Segmented, Quiz, Callout, Tex/RichText, WidgetFrame
+src/components/layout/   course navigation, theme toggle
+src/lib/math/            normal pdf/cdf/inverse, seeded RNG + Brownian bridge, root finding
+src/lib/pricing/         payoffs, Black–Scholes price and Greeks, CRR binomial tree
+src/data/curriculum.ts   the 42-chapter outline used by the navigation
+src/styles/              colour tokens (theme.css), prose, widgets
+tests/                   Vitest checks of the math and pricing library
+scripts/screenshots.mjs  visual check of every page (themes × desktop/phone)
 ```
 
 ## Roadmap
 
-1. ✅ Curriculum and style guide (this PR)
-2. ⬜ Scaffold: Astro, theme, core components, tested pricing library, Pages deployment
-3. ⬜ Chapters 1–2 as the reference implementation
+1. ✅ Curriculum and style guide
+2. ✅ Scaffold: Astro, theme, core components, tested pricing library, Pages deployment
+3. ✅ Chapters 1–2 as the reference implementation
 4. ⬜ The remaining chapters, roughly one per PR, in order
 
 ## Running locally
 
-Not available yet. The commands (`npm install`, `npm run dev`, `npm test`) arrive with the scaffold PR.
+Requires Node 22+.
+
+```sh
+npm install
+npm run dev            # http://localhost:4321/options-explained/
+npm test               # unit tests for src/lib
+npm run build          # type check (astro check) + static build into dist/
+npm run screenshots    # after a build: screenshots/ for every page, plus console/KaTeX/overflow checks
+```
+
+## Deployment
+
+`.github/workflows/ci.yml` runs the tests and the build on every pull request. On pushes to `main` it also
+deploys `dist/` to GitHub Pages at <https://jesusvillota.github.io/options-explained/>. This needs
+**Settings → Pages → Source: GitHub Actions** to be switched on once.
