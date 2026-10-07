@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { c } from '../src/lib/math/complex';
 import { price } from '../src/lib/pricing/blackScholes';
 import { blackScholesCF, lewisCallPrice, lewisCallPrices } from '../src/lib/models/fourier';
-import { fellerHolds, HESTON_DEFAULTS, hestonCallPrices, hestonCF, hestonPath, hestonSmile } from '../src/lib/models/heston';
+import { fellerHolds, HESTON_DEFAULTS, hestonCallPrices, hestonCF, hestonPath, hestonSmile, hestonVarianceSwap } from '../src/lib/models/heston';
 import { dupireForward, dupirePrice, localVolPath, ssviLocalVol } from '../src/lib/models/localVol';
 import { smilePrice } from '../src/lib/vol/density';
 import { EQUITY_SSVI, ssviVol } from '../src/lib/vol/smile';
@@ -145,5 +145,26 @@ describe('local volatility', () => {
     const se = Math.sqrt(pay.reduce((a, b) => a + (b - mean) ** 2, 0) / (N - 1) / N);
     const target = smilePrice('put', K, { S: 100, K, T: 1, r: 0.05 }, (k) => ssviVol(k, 1, EQUITY_SSVI));
     expect(Math.abs(mean - target)).toBeLessThan(3 * se + 0.05);
+  });
+});
+
+describe('Heston and variance swaps', () => {
+  it('the model-free strip of Heston option prices gives the expected average variance', () => {
+    const p = { v0: 0.06, kappa: 1.5, theta: 0.03, xi: 0.6, rho: -0.6 };
+    const T = 0.75, r = 0.02, S = 100, F = S * Math.exp(r * T);
+    // Strikes on a fine log grid; out-of-the-money prices from the Fourier pricer and parity.
+    const n = 1600, kMin = -3, kMax = 2;
+    const ks = Array.from({ length: n + 1 }, (_, i) => kMin + ((kMax - kMin) * i) / n);
+    const Ks = ks.map((k) => F * Math.exp(k));
+    const calls = hestonCallPrices(p, S, Ks, T, r);
+    let integral = 0;
+    ks.forEach((k, i) => {
+      const K = Ks[i];
+      const Q = k < 0 ? calls[i] - S + K * Math.exp(-r * T) : calls[i];
+      const w = i === 0 || i === n ? 0.5 : 1;
+      integral += (w * Q * Math.exp(-k)) / F; // dK/K² = e^{−k}dk/F
+    });
+    const kVar = ((2 * Math.exp(r * T)) / T) * integral * ((kMax - kMin) / n);
+    expect(kVar).toBeCloseTo(hestonVarianceSwap(p, T), 4);
   });
 });

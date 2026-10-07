@@ -78,3 +78,11 @@ export function hestonPath(seed: number, S0: number, mu: number, p: HestonParams
   }
   return { S, v };
 }
+
+/**
+ * Fair variance-swap strike under Heston: the expected average variance,
+ *   (1/T) E∫v dt = θ + (v₀ − θ)(1 − e^{−κT})/(κT).
+ */
+export function hestonVarianceSwap({ v0, kappa, theta }: HestonParams, T: number): number {
+  return theta + ((v0 - theta) * (1 - Math.exp(-kappa * T))) / (kappa * T);
+}

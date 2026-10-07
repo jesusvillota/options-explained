@@ -302,8 +302,11 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   creates smile. Price with the characteristic function.
 - **Key math:** $dv = \kappa(\theta - v)dt + \xi\sqrt{v}\,dW^v$ with $d\langle W^S, W^v\rangle = \rho\,dt$;
   the Feller condition; the semi-closed-form price.
-- **Widgets:** sliders for $\kappa, \theta, \xi, \rho$ that reshape the smile live. Paired price and variance
-  paths.
+- **Widgets:** `HestonSmile`: smiles at 1 month, 3 months and 1 year priced live from the characteristic function
+  (Lewis integral), with presets, sliders for $\rho, \xi, \kappa, \sqrt{v_0}, \sqrt\theta$, the 90–110 skew,
+  the variance-swap vol and the Feller condition. `HestonPaths`: one seeded path with its instantaneous
+  volatility, reusing the same random numbers as parameters change. Library: `src/lib/models/heston.ts`,
+  `src/lib/models/fourier.ts`.
 - **Prereqs:** 26. The pricing integral is used here as given; Ch. 35 explains the Fourier method behind it.
 
 ### 31. Jumps (Merton, Kou)
@@ -446,6 +449,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
 | `LogContractStrip`, `VixContributions` | 28 | — |
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
+| `HestonSmile`, `HestonPaths` | 30 | 31 |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
