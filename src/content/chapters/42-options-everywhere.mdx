@@ -1,0 +1,178 @@
+---
+title: "Options everywhere"
+part: 10
+chapter: 42
+difficulty: 3
+prerequisites: [18, 23]
+summary: "Shares are calls on a company, bonds hide a short put, investment decisions are options, and an options desk lives by its Greeks. A last look around."
+---
+import MertonCredit from '../../components/plots/MertonCredit';
+import PnLExplainWaterfall from '../../components/plots/PnLExplainWaterfall';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>You already own options
+
+Own a share in a company with debt? You own a **call option**. If the company does well, you keep everything above
+what it owes. If it fails, limited liability means you lose your stake but no more: your payoff has the hockey-stick
+shape of Chapter 2. Lend to that company and you've effectively **sold a put** on its assets. Decide whether to build
+a factory now or next year, and you're valuing an **option to wait**.
+
+Robert Merton saw this in 1974, a year after Black–Scholes, and turned it into a theory of credit risk. This last
+chapter looks at options outside the options market, and then at how a desk running thousands of real options keeps
+track of where its money goes each day.
+
+## <span class="section-tag">Intuition</span>Equity is a call on the firm
+
+A firm has assets worth $A$ that fluctuate, and owes $D$, due at time $\Time{T}$. At $\Time{T}$, if $A > D$ the
+shareholders pay the debt and keep $A - D$. If $A < D$ they walk away and the lenders take the assets. So
+
+$$
+\text{equity} = (A_{\Time{T}} - D)^+, \qquad \text{debt} = \min(A_{\Time{T}}, D) = D - (D - A_{\Time{T}})^+ .
+$$
+
+Equity is a call on the assets struck at the debt; risky debt is a safe bond minus a put. Black–Scholes prices both:
+
+<MertonCredit client:visible />
+
+<p class="try-this"><strong>Try this:</strong> lower the assets towards \$100. Paths start crossing the debt line, the
+default probability climbs, and the credit spread shoots up. Now raise the asset volatility at a fixed asset value:
+the equity gets <em>more</em> valuable and the debt less. Shareholders gain from risk, at the lenders' expense. That's
+why loan contracts restrict what a company may do with the money.</p>
+
+The bottom panel is a **term structure of credit spreads**. For a healthy firm, short-term debt is almost safe and
+spreads rise with maturity. For a firm near trouble, the curve is humped or falling: the danger is now.
+
+## <span class="section-tag">Intuition</span>Real options
+
+The same logic applies to investment decisions. Suppose a project would be worth $V$ = \$100 million today and costs
+$I$ = \$100 million to build. The textbook rule, invest when the net present value $V - I$ is positive, says it's a
+matter of indifference. But if you can wait a year and decide then, you hold a **call option** on the project: build
+only if $V$ has risen above $I$. With 30% uncertainty in $V$ and a 5% rate, Black–Scholes values that right at about
+\$14 million. The flexibility to wait, expand, switch or abandon is worth real money, and NPV ignores it.
+
+## <span class="section-tag">Intuition</span>Where did today's money go?
+
+Every evening an options desk must explain its P&L: how much came from the stock moving (delta and gamma), from
+volatility changing (vega), from time passing (theta), and how much nobody can explain. A large unexplained part
+means a risk the desk isn't measuring.
+
+<PnLExplainWaterfall client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with a 2% rally and a one-point rise in volatility, the Greek bars add up
+almost exactly to the actual P&L. Now make it a 10% crash: delta loses most, gamma claws some back, and the unexplained bar grows to almost a
+quarter of the total because third-order terms matter on big moves. Pass 10 days with no moves: only theta works,
+slowly.</p>
+
+<Callout type="key" title="The Greeks are the language of risk">
+Everything in this course ends up here. Prices come from models, but the daily business of options is managing
+sensitivities: delta hedged with the stock, gamma and vega with other options, theta paid or collected. A P&L explain
+is the check that the model's picture of risk matches what actually happened.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Credit, real options and P&L
+
+**Merton's model.** Let the assets follow GBM with volatility $\Vol{\sigma}_A$. With
+$d_{1,2} = \big[\ln(A/D) + (\Rate{r} \pm \tfrac12\Vol{\sigma}_A^2)\Time{T}\big]/(\Vol{\sigma}_A\sqrt{\Time{T}})$:
+
+$$
+E = A\,N(d_1) - De^{-\Rate{r}\Time{T}}N(d_2), \qquad B = A - E = De^{-\Rate{r}\Time{T}} - \Put{P}_{\text{BS}}(A, D) .
+$$
+
+- The **risk-neutral default probability** is $\mathbb{Q}(A_{\Time{T}} < D) = N(-d_2)$. Real-world default
+  probabilities are lower, because assets drift at more than $\Rate{r}$, which is why the widget's paths default less
+  often than $N(-d_2)$.
+- The **credit spread** is the debt's yield above the risk-free rate: $s = -\frac{1}{\Time{T}}\ln\frac{B}{D} - \Rate{r}$.
+- **Equity volatility** is leveraged: by Itô's lemma, $\Vol{\sigma}_E = \frac{A}{E}N(d_1)\Vol{\sigma}_A > \Vol{\sigma}_A$.
+
+$A$ and $\Vol{\sigma}_A$ aren't observable, but $E$ (market capitalisation) and $\Vol{\sigma}_E$ are. Solving the two
+equations above for $A$ and $\Vol{\sigma}_A$ is the KMV approach to measuring a firm's **distance to default**, $d_2$.
+Merton's model underestimates short-dated spreads, since a diffusion can't reach default quickly. Jumps (Chapter 31)
+and default barriers (Chapter 38, the Black–Cox model) are the classic fixes.
+
+**Real options.** The option to invest $I$ in a project worth $V$ within time $\Time{T}$ is a call:
+$\Call{C}(V, I, \Time{T}, \Vol{\sigma}_V, \Rate{r})$, with the project's cash flows playing the role of dividends. The
+optimal rule is to invest only when $V$ exceeds a threshold above $I$, the early-exercise boundary of an American call
+with dividends (Chapter 9). With $V = I = 100$, $\Vol{\sigma} = 30\%$, $\Rate{r} = 5\%$ and one year,
+$\Call{C} \approx 14.2$.
+
+**P&L explain.** For a book with value $V(\Spot{S}, \Vol{\sigma}, t)$, over one day,
+
+$$
+\Delta V \approx \Delta\,\delta\Spot{S} + \tfrac12\Gamma\,(\delta\Spot{S})^2 + \mathcal{V}\,\delta\Vol{\sigma} + \Theta\,\delta t + \text{vanna}\;\delta\Spot{S}\,\delta\Vol{\sigma} + \text{unexplained} .
+$$
+
+The unexplained part collects higher-order terms (speed, volga, …), moves in risk factors that aren't in the list
+(rates, dividends, the smile's shape), and errors in data or models. Desks track it as a health check on their
+risk systems.
+
+## <span class="section-tag">Playground</span>Running a firm, and a book
+
+<MertonCredit client:visible />
+
+<div class="try-this">
+
+- **Leverage.** With 25% asset volatility, find the asset value at which the 5-year spread is about 200 bp.
+- **Volatility transfers value.** At an asset value of \$120, raise the asset volatility from 20% to 40%. How much
+  value moves from lenders to shareholders?
+- **Distress.** Set the assets to \$105 and volatility to 35%. Which maturity has the highest spread? Why would
+  long-dated debt of a weak firm trade at a *lower* spread than its short-dated debt?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A project worth \$100m costs \$100m to build, and you can decide within one year. With 30% volatility and a 5% rate, what's the option to wait worth, in \$m? (Use Black–Scholes.)"
+  answer={14.23}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="It's an at-the-money one-year call: $d_1 = (0.05 + 0.045)/0.3 \approx 0.317$, $d_2 \approx 0.017$, so $\Call{C} \approx 100(0.6243) - 95.12(0.5068) \approx 14.23$ million."
+/>
+
+<Quiz
+  client:visible
+  question="Why might the shareholders of a firm close to default favour a very risky project, even one with a negative expected value?"
+  options={[
+    "Because shareholders are always risk-seeking",
+    "Because equity is a call on the firm's assets, and a call gains from volatility while lenders bear the downside",
+    "Because risky projects lower the credit spread",
+    "Because limited liability doesn't apply near default",
+  ]}
+  answer={1}
+  explanation="Equity has positive vega: more asset volatility raises its value, transferring wealth from lenders, who are short a put. This is the asset-substitution problem."
+/>
+
+<Quiz
+  client:visible
+  question="A desk's P&L explain shows a large, persistent unexplained P&L. What's the most likely cause?"
+  options={[
+    "The Greeks are being computed correctly",
+    "A risk factor or higher-order effect the explain doesn't measure, or a pricing/data error",
+    "Theta is too small",
+    "The stock didn't move",
+  ]}
+  answer={1}
+  explanation="Unexplained P&L is whatever the Taylor expansion in the measured risk factors misses: missing factors (rates, smile shape), big moves (higher-order terms), or errors."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Equity is a call** on the firm's assets struck at its debt; **debt is a bond minus a put**. Merton's model
+  gives default probabilities, credit spreads and leveraged equity volatility.
+- **Real options**: flexibility in investment decisions is valuable, and option pricing measures it.
+- **P&L explain** attributes daily P&L to the Greeks. A large unexplained part means unmeasured risk.
+
+## <span class="section-tag">Recap</span>The end of the course
+
+You started with a single call and a hockey stick. Along the way you've built prices from no-arbitrage, trees,
+Brownian motion and PDEs; learned to read the smile; met the models that explain it and the numerical methods that
+price them; and seen that martingales and numeraires tie it all together. The ideas reach well beyond options: into
+credit, corporate finance and every decision made under uncertainty with the right to choose later.
+
+### Further reading
+
+- R. C. Merton, "On the pricing of corporate debt: the risk structure of interest rates" (1974).
+- A. Dixit and R. Pindyck, *Investment under Uncertainty* (1994).
+- E. Derman and M. B. Miller, *The Volatility Smile* (2016).

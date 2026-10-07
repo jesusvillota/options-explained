@@ -76,6 +76,9 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $N_t$, $\lambda$, $J$, $\bar k$, $\mu_J$, $\delta$ | Jumps: Poisson counter, intensity, log jump size, mean relative jump $\mathbb{E}[e^J - 1]$, and Merton's jump mean and standard deviation (Chapter 31) |
 | $\alpha$, $\beta$, $\nu$ | SABR: volatility level, backbone exponent, vol of vol (Chapter 32) |
 | $H$, $B^H$ | Hurst exponent and fractional Brownian motion (Chapter 32) |
+| $P(t, T)$, $F_i$, $\tau$, $A$, $S$ (rates) | Zero-coupon bond price, forward rate for period $i$, accrual fraction, swap annuity and forward swap rate (Chapter 41). In Chapter 41, $S$ is a swap rate, not a stock price |
+| $Z_T$, $\theta$ (measure change) | Radon–Nikodym density $d\mathbb{Q}/d\mathbb{P}$ and market price of risk $(\mu - r)/\sigma$ (Chapter 40) |
+| $A$, $D$, $E$ (credit) | Firm asset value, face value of debt, equity value in Merton's model (Chapter 42) |
 | $\sigma_{\text{imp}}$, $\sigma_{\text{loc}}$ | Implied volatility and local (Dupire) volatility (Chapter 29) |
 | $k$, $w$ | Log-moneyness $k = \ln(K/F)$ and total implied variance $w = \sigma_{\text{imp}}^2 T$ (Part VI) |
 | $\theta_T$, $\rho$, $\eta$, $\psi$ | SSVI: at-the-money total variance, skew, wing level, and $\psi = \eta/\sqrt{\theta_T}$. In Part VI, $\rho$ is the smile's skew; in Parts VII and IX it's a correlation. Context always says which, and the Greek rho is written $\rho_{\text{call}}$ when ambiguous |
