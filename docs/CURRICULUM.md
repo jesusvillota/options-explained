@@ -338,8 +338,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price by simulation. Understand error of order $1/\sqrt{N}$. Use antithetic variates and control
   variates.
 - **Key math:** the estimator and its confidence interval; variance reduction formulas.
-- **Widgets:** a running estimate with a confidence band converging to the BS value, and a comparison with and
-  without variance reduction.
+- **Widgets:** `MCConvergence`: the running estimate on a log axis with its ±2 standard-error band against the
+  Black–Scholes value, for plain, antithetic and control-variate estimators. `MCErrorScaling`: standard error
+  against N on log–log axes for all three, with the variance-reduction factors. Library:
+  `src/lib/numerics/monteCarlo.ts`.
 - **Prereqs:** 18.
 
 ### 34. Finite differences
@@ -458,6 +460,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HestonSmile`, `HestonPaths` | 30 | — |
 | `JumpPaths`, `JumpSmile` | 31 | — |
 | `SABRSmileFit`, `RoughPaths` | 32 | 41 |
+| `MCConvergence`, `MCErrorScaling` | 33 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
