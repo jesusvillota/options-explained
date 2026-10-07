@@ -72,22 +72,24 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Discount cash flows with discrete and continuous compounding. Price a forward by cost of carry and
   explain why it doesn't depend on anyone's forecast.
 - **Key math:** $B(0,T) = e^{-rT}$; $F = S e^{(r-q)T}$; the cash-and-carry arbitrage argument.
-- **Widgets:** compounding frequency slider showing convergence to $e^{rT}$. An arbitrage "machine" in which the
-  reader sets a mispriced forward and the profitable trade appears.
+- **Widgets:** `CompoundingStaircase` (interest credited n times a year vs the smooth $e^{rt}$) and
+  `ForwardArbitrageMachine` (drag a mispriced forward and the cash-and-carry or reverse trade appears, with cash
+  flows).
 - **Prereqs:** 1.
 
 ### 7. Arbitrage bounds
 - **Goals:** Derive upper and lower bounds on call and put prices with no model at all.
 - **Key math:** $\max(S - Ke^{-rT}, 0) \le C \le S$; $\max(Ke^{-rT} - S, 0) \le P \le Ke^{-rT}$.
-- **Widgets:** the feasible region shaded in $(S, C)$ space. A draggable "market price" that triggers an
-  arbitrage explanation when it leaves the region.
+- **Widgets:** `BoundsRegion`: the arbitrage-free band in $(S, C)$ or $(S, P)$ space with Black–Scholes inside,
+  and a draggable market price that names the arbitrage trade when it leaves the band.
 - **Prereqs:** 6.
 
 ### 8. Put–call parity
 - **Goals:** Prove $C - P = S - Ke^{-rT}$ by replication. Build synthetic positions.
 - **Key math:** put–call parity, with and without dividends.
-- **Widgets:** stacked payoff diagrams: long call + short put = a forward. Drag the strike and the identity
-  still holds.
+- **Widgets:** `StrategyBuilder` preset *synthetic forward* (long call + short put = a forward), and `ParityLine`:
+  C − P across strikes is a straight line crossing zero at the forward price, with chain quotes and their
+  spreads, and a draggable quote that triggers a conversion or reversal.
 - **Prereqs:** 6, 7.
 
 ### 9. Early exercise
@@ -95,15 +97,18 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   American puts sometimes are.
 - **Key math:** $C^{Am} \ge S - Ke^{-rT} > S - K$; the put's early-exercise trade-off (interest on $K$ vs the
   insurance you give up).
-- **Widgets:** compare "exercise now" with "sell the option" as $S$ varies. Previews the early-exercise boundary.
+- **Widgets:** `EarlyExerciseValue` (American vs European vs payoff, with the exercise region and early-exercise
+  premium, for calls with dividends too) and `ExerciseBoundary` (the put's critical price $S^*(t)$ from the tree,
+  with a random path that triggers exercise). Formalisation includes optimal stopping, smooth pasting and the
+  perpetual put.
 - **Prereqs:** 7, 8.
 
 ### 10. Shape constraints
 - **Goals:** Show that the call price falls and is convex in $K$, and that the butterfly spread has
   non-negative value. Link this to probabilities (a preview of Ch. 27).
 - **Key math:** $-e^{-rT} \le \partial C/\partial K \le 0$; $\partial^2 C/\partial K^2 \ge 0$.
-- **Widgets:** a $C(K)$ curve the reader can edit by dragging control points. Any point where the curve is
-  non-convex lights up with the butterfly arbitrage that exploits it.
+- **Widgets:** `ConvexityEditor`: seven draggable call prices across strikes. A broken rule lights up with the
+  spread or butterfly arbitrage, and a second panel turns butterflies into implied probabilities.
 - **Prereqs:** 5, 7.
 
 ---
@@ -398,6 +403,13 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
 | `OptionChain` | 4 | 25, 26 |
+| `CompoundingStaircase` | 6 | — |
+| `ForwardArbitrageMachine` | 6 | 8 |
+| `BoundsRegion` | 7 | 9, 10 |
+| `ParityLine` | 8 | 27 |
+| `EarlyExerciseValue` | 9 | 13, 36 |
+| `ExerciseBoundary` | 9 | 13, 36 |
+| `ConvexityEditor` | 10 | 27 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

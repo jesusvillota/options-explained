@@ -47,3 +47,15 @@ export function brownianBridge(seed: number, n: number): number[] {
   const w1 = w[n];
   return w.map((wi, i) => wi - (i / n) * w1);
 }
+
+/**
+ * A seeded geometric Brownian motion path: n steps over [0, T] starting at S0,
+ * with drift mu and volatility sigma. Returns n + 1 prices.
+ */
+export function gbmPath(seed: number, S0: number, mu: number, sigma: number, T: number, n: number): number[] {
+  const z = normalRng(seed);
+  const dt = T / n;
+  const out = [S0];
+  for (let i = 1; i <= n; i++) out.push(out[i - 1] * Math.exp((mu - 0.5 * sigma * sigma) * dt + sigma * Math.sqrt(dt) * z()));
+  return out;
+}

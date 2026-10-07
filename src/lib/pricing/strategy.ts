@@ -109,6 +109,11 @@ export interface Preset {
 }
 
 export const PRESETS: Record<string, Preset> = {
+  'synthetic-forward': {
+    name: 'Synthetic forward',
+    view: 'The same as agreeing to buy the stock at the strike: profit moves one-for-one with the stock (Chapter 8).',
+    legs: () => [makeLeg('call', 'long', 100), makeLeg('put', 'short', 100)],
+  },
   'long-call': { name: 'Long call', view: 'The stock will rise.', legs: () => [makeLeg('call', 'long', 100)] },
   'long-put': { name: 'Long put', view: 'The stock will fall.', legs: () => [makeLeg('put', 'long', 100)] },
   'bull-call-spread': {

@@ -1,0 +1,218 @@
+---
+title: "Time value of money & forwards"
+part: 2
+chapter: 6
+difficulty: 1
+prerequisites: [1]
+summary: "A dollar today is worth more than a dollar tomorrow, and that alone pins down the price of a forward."
+---
+import CompoundingStaircase from '../../components/plots/CompoundingStaircase';
+import ForwardArbitrageMachine from '../../components/plots/ForwardArbitrageMachine';
+import PayoffDiagram from '../../components/plots/PayoffDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>What should it cost to buy later?
+
+A stock trades at \$100. You'd like to agree **today** on a price to buy it **in one year**, with no money
+changing hands until then. That's a **forward contract**, the "obligation" we compared options with in
+Chapter 1. What price should you agree on?
+
+The natural guess is "whatever we think the stock will be worth in a year." If analysts expect \$120, shouldn't
+the forward price be \$120?
+
+It isn't. The fair forward price is about **\$105.13**, whatever anyone expects. It's fixed by one fact about
+money: a dollar today is worth more than a dollar a year from now. This chapter is about that fact and its first
+big consequence. It also introduces the idea that drives all of Part II: *if a price allows a free lunch,
+someone will eat it.*
+
+## <span class="section-tag">Intuition</span>Money has a price, and it's interest
+
+If you put \$100 in the bank at 5% a year, you'll have \$105 in a year. Read the other way round, \$105 a year
+from now is worth \$100 today. Getting money **later** is worth less than getting it **now**, and the interest
+rate measures exactly how much less.
+
+Two operations go back and forth between today and the future:
+
+- **Growing** (compounding): \$100 today becomes \$100 × 1.05 = \$105 in a year.
+- **Discounting**: \$105 in a year is worth \$105 / 1.05 = \$100 today. This is its **present value**.
+
+But "5% a year" hides a detail: *how often* is the interest added? The bank might credit 5% once a year, or
+2.5% every six months, or a little every day. Interest earned early starts earning interest of its own, so more
+frequent crediting gives you slightly more:
+
+<CompoundingStaircase client:visible />
+
+<p class="try-this"><strong>Try this:</strong> step through the frequencies from <em>yearly</em> to <em>∞</em>.
+The staircase gets finer and finer and hugs the smooth curve. The year-end balance creeps up, but it never
+passes the continuous value: there's a ceiling.</p>
+
+That ceiling is **continuous compounding**, the limit where interest is credited every instant. One of the
+most famous numbers in mathematics comes from exactly this limit:
+
+$$
+\lim_{n \to \infty}\Big(1 + \frac{\Rate{r}}{n}\Big)^{n} = e^{\Rate{r}}, \qquad e = 2.71828\ldots
+$$
+
+From now on we use continuous compounding everywhere. It isn't how banks quote rates, but it makes the
+mathematics much cleaner. \$1 grows to $e^{\Rate{r}\Time{T}}$ after $\Time{T}$ years, and \$1 paid at time
+$\Time{T}$ is worth $e^{-\Rate{r}\Time{T}}$ today.
+
+## <span class="section-tag">Intuition</span>Pricing a forward without forecasting
+
+Back to the forward. You and a dealer agree today that you'll buy one share in a year at a price $F$, the
+**forward price**. Nothing is paid today.
+
+Look at it from the dealer's side. They've promised to deliver a share in a year, and they don't want to bet on
+where the stock goes. So they **hedge**:
+
+1. **Today:** borrow \$100 and buy one share. Their cash today: zero.
+2. **In a year:** hand you the share, receive $F$, and repay the loan, which has grown to
+   \$100 × $e^{0.05}$ = \$105.13.
+
+Their profit is $F - 105.13$, and it doesn't depend on where the stock went. They own the share the whole
+time, so its price doesn't matter to them. This trade is called **cash and carry**.
+
+- If $F$ were **higher** than \$105.13, the dealer, or anyone else, could run this trade and lock in a riskless
+  profit. Everyone would rush to sell forwards, and the price would fall.
+- If $F$ were **lower**, the trade runs in reverse: sell the share short, lend out the \$100, and agree to buy
+  the share back with the forward. That's also a riskless profit, which pushes the price back up.
+
+The only forward price with no free lunch is $F = 100\,e^{0.05} \approx 105.13$. Try to beat it below:
+
+<ForwardArbitrageMachine client:visible />
+
+<p class="try-this"><strong>Try this:</strong> set the market's forward price to \$105 or \$106 and read
+off the trade. Then raise the dividend yield to the interest rate. The fair forward price falls back to \$100.
+Can you see why from the cash flows?</p>
+
+<Callout type="key" title="Replication beats forecasting">
+If you can build a portfolio today that is guaranteed to end up worth exactly what a contract pays, the contract
+must cost the same as the portfolio. Otherwise there's a riskless profit, an <strong>arbitrage</strong>.
+Nobody's opinion about the future enters the price. This single idea, applied with more and more cleverness,
+will take us all the way to Black–Scholes.
+</Callout>
+
+The forecast of \$120 doesn't disappear entirely: it shows up in what people expect to *gain* from holding
+the stock, which is a different question. The forward *price* only depends on what it costs to hold the stock
+until delivery: the **cost of carry**.
+
+## <span class="section-tag">Intuition</span>When holding the asset pays you
+
+Some assets pay you while you hold them. Stocks pay **dividends**, and foreign currency earns foreign interest.
+That income lowers the cost of carrying the asset, so it lowers the forward price.
+
+We model it as a **continuous yield** $q$: holding the asset pays you a fraction $q$ of its value each year. To
+end up with exactly one share at delivery, the dealer buys only $e^{-q\Time{T}}$ shares today and reinvests the
+dividends into more shares. That costs $\Spot{S}e^{-q\Time{T}}$, which grows at the interest rate, so
+
+$$
+F = \Spot{S}\,e^{(\Rate{r} - q)\Time{T}} .
+$$
+
+When $q = \Rate{r}$, holding the share costs exactly as much in interest as it pays in dividends, and the
+forward price equals today's price. For a **currency**, $q$ is the foreign interest rate. For commodities that
+cost money to store, the "yield" is *negative*.
+
+## <span class="section-tag">Formalisation</span>Present values and forwards
+
+With a continuously compounded rate $\Rate{r}$, the value today of a payment $X$ at time $\Time{T}$ is
+
+$$
+\text{PV}(X) = X\,e^{-\Rate{r}\Time{T}}, \qquad B(0,\Time{T}) = e^{-\Rate{r}\Time{T}}.
+$$
+
+$B(0,\Time{T})$ is the **discount factor**: the price today of a riskless bond paying \$1 at $\Time{T}$. A rate
+$r_n$ compounded $n$ times a year is the same as a continuous rate $\Rate{r} = n \ln(1 + r_n/n)$.
+
+**Forward price.** A forward to buy one unit at time $\Time{T}$, on an asset with spot price $\Spot{S}$ and
+yield $q$, has the no-arbitrage price
+
+$$
+F_{0,T} = \Spot{S}\,e^{(\Rate{r} - q)\Time{T}} .
+$$
+
+**Proof by replication.** Buy $e^{-q\Time{T}}$ units of the asset, reinvest the income, and borrow the cost
+$\Spot{S}e^{-q\Time{T}}$. At $\Time{T}$ you hold exactly one unit and owe $\Spot{S}e^{-q\Time{T}}e^{\Rate{r}\Time{T}} = F_{0,T}$.
+That has the same payoff as a long forward at $F_{0,T}$, for zero cost today. Any other forward price lets you
+buy the cheaper of the two and sell the dearer.
+
+**Value of a forward already agreed.** The payoff of a long forward with delivery price $\Strike{K}$ is
+$\Spot{S_T} - \Strike{K}$, a straight line with slope 1. You can see it below, and it's exactly the "obligation"
+of Chapter 1. Its value today is the value of the replicating portfolio:
+
+<PayoffDiagram client:visible type="call" typeToggle={false} sideToggle={false} modeToggle={false} showSummary={false} strikeMovable={false} initialSpot={130} title="For comparison: the call's payoff, which cuts off the forward's downside" />
+
+$$
+f_0 = \Spot{S}\,e^{-q\Time{T}} - \Strike{K}\,e^{-\Rate{r}\Time{T}} = e^{-\Rate{r}\Time{T}}\big(F_{0,T} - \Strike{K}\big).
+$$
+
+When $\Strike{K} = F_{0,T}$ the value is zero. That's the precise sense in which "an agreement at the fair price
+costs nothing to enter," the claim we made in Chapter 1. A call has the forward's payoff with the downside cut
+off, so it must cost *more* than this. That's our first price bound, and Chapter 7 builds on it.
+
+## <span class="section-tag">Playground</span>Feel the rates
+
+<CompoundingStaircase client:visible initialRate={1} />
+
+<div class="try-this">
+
+- **At a 100% rate**, compare yearly compounding (\$200) with continuous compounding. The continuous value is
+  \$100 × $e$: you're looking at the number $e$ itself.
+- **In the arbitrage machine above**, set the rate to 10% and the time to 3 years. How much has the fair forward
+  price moved? How does that compare with $100 \times e^{0.3}$?
+- **Set the dividend yield above the interest rate.** The forward price is *below* today's price. Explain the
+  cash-and-carry trade in that case.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="At 5% continuously compounded, what is \$110 paid in 2 years worth today? (Round to the cent.)"
+  answer={99.53}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="Discount by $e^{-\Rate{r}\Time{T}} = e^{-0.10} \approx 0.9048$: $110 \times 0.9048 \approx 99.53$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A stock trades at \$50 and pays no dividends; the rate is 4%. What is the 6-month forward price? (Round to the cent.)"
+  answer={51.01}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="$F = 50\,e^{0.04 \times 0.5} = 50\,e^{0.02} \approx 51.01$."
+/>
+
+<Quiz
+  client:visible
+  question="Analysts raise their one-year forecast for the stock from \$110 to \$130. What happens to the fair one-year forward price?"
+  options={[
+    "It rises to about \$130.",
+    "It rises a little, halfway to the new forecast.",
+    "Nothing: it's still spot × e^{rT}, unless today's price itself moves.",
+    "It falls, because the forward is a bet against the forecast.",
+  ]}
+  answer={2}
+  explanation="The forward price comes from replication (buy now, carry until delivery), not from forecasts. If the news moves *today's* price, the forward moves with it, but only through $\Spot{S}$."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Money has a **time value**: \$1 at time $\Time{T}$ is worth $e^{-\Rate{r}\Time{T}}$ today. Continuous
+  compounding is the limit of compounding more and more often, and it gives us $e$.
+- A **forward** fixes today the price for trading later. Its fair price comes from **replication**
+  (cash and carry), not from forecasts: $F = \Spot{S}e^{(\Rate{r}-q)\Time{T}}$.
+- Any other forward price lets someone build a **riskless profit**. That's the arbitrage principle that runs
+  through all of Part II.
+- A forward agreed at delivery price $\Strike{K}$ is worth $\Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}$
+  today, which is zero exactly at the fair price.
+
+**Next up:** options can't be replicated as easily as forwards, at least not yet. But arbitrage still fences
+their prices in. In Chapter 7 we'll find the tightest fence we can build without any model at all.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapters 4 (interest rates) and 5 (forward prices).

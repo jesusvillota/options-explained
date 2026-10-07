@@ -8,7 +8,7 @@
 .widget .widget-title { font-weight: 600; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.6rem; }
 .widget-plot { position: relative; border-radius: 8px; background: var(--bg-inset); overflow: hidden; touch-action: none; }
 .widget-plot .MafsView { border-radius: 8px; }
-.widget-side { display: grid; gap: 0.9rem; margin-top: 0.9rem; }
+.widget-side { display: grid; gap: 0.9rem; margin-top: 0.9rem; min-width: 0; }
 .widget-controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
 .widget-controls > .ctl-slider { flex: 1 1 14rem; }
 .widget-readout { padding: 0.75rem 0.9rem; background: var(--bg-inset); border-radius: 8px; font-size: 0.95rem; }
@@ -53,7 +53,7 @@
 }
 
 /* Segmented control */
-.ctl-segmented { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--bg-inset); border: 1px solid var(--border); }
+.ctl-segmented { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; gap: 2px; border-radius: 22px; background: var(--bg-inset); border: 1px solid var(--border); }
 .ctl-segmented button {
   --accent: var(--c-spot);
   min-height: 38px; padding: 0 0.95rem; border: 0; border-radius: 999px; cursor: pointer;

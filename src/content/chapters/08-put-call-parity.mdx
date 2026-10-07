@@ -1,0 +1,219 @@
+---
+title: "Put–call parity"
+part: 2
+chapter: 8
+difficulty: 2
+prerequisites: [6, 7]
+summary: "Calls and puts aren't separate things: knowing one's price tells you the other's exactly."
+---
+import ParityLine from '../../components/plots/ParityLine';
+import StrategyBuilder from '../../components/plots/StrategyBuilder';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two coincidences
+
+Two things we noticed earlier looked like coincidences.
+
+- In **Chapter 3**, at every stock price, a call's time value was larger than the matching put's by exactly
+  \$4.88 (with a \$100 strike, 5% rates and one year).
+- In **Chapter 5**, a butterfly built from puts cost *exactly* the same as one built from calls: \$1.84 to the
+  cent.
+
+Neither is a coincidence. Both follow from a single identity that ties every call to the put with the same strike
+and expiry. Once you know it, you'll never need to price a put separately again. Calls and puts turn out to be
+two views of the same thing.
+
+## <span class="section-tag">Intuition</span>A call minus a put is a forward
+
+Buy a call and sell a put, both with strike $\Strike{K}$. At expiry:
+
+- if the stock is **above** $\Strike{K}$, your call pays $\Spot{S_T} - \Strike{K}$ and the put you sold expires
+  worthless;
+- if the stock is **below** $\Strike{K}$, your call expires worthless and you owe $\Strike{K} - \Spot{S_T}$ on
+  the put.
+
+Either way, you end up with $\Spot{S_T} - \Strike{K}$. The two kinks cancel and leave a perfectly straight line.
+That's the payoff of a **forward** to buy at $\Strike{K}$:
+
+<StrategyBuilder client:visible preset="synthetic-forward" presetPicker={false} editable={false} mode="payoff" initialSpot={125} title="Long call + short put = forward" />
+
+Two things with the same payoff in every future must have the same price today (Chapter 6). We already know
+what a forward with delivery price $\Strike{K}$ is worth, $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$, so
+
+$$
+\boxed{\;\Call{C} - \Put{P} = \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}\;}
+$$
+
+This is **put–call parity**. It holds for European options under *any* model of the stock, because it uses
+nothing but the payoffs and the arbitrage principle. Rearranged, it says the same thing as Chapter 5's Lego
+identity: **stock + put = call + cash**. Both portfolios pay $\max(\Spot{S_T}, \Strike{K})$.
+
+## <span class="section-tag">Intuition</span>Parity is a straight line
+
+Parity holds strike by strike. Plot $\Call{C} - \Put{P}$ against the strike, and every option on the same
+stock and expiry lands on **one straight line**: $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$. It slopes down
+at $e^{-\Rate{r}\Time{T}}$ and crosses zero at $\Strike{K} = \Spot{S}e^{\Rate{r}\Time{T}}$, the **forward price**.
+
+The grey bars show what you could actually trade $\Call{C} - \Put{P}$ for in our synthetic market from Chapter 4,
+after crossing the bid–ask spread. Every bar straddles the line. The blue point is a quote of your own: drag it.
+
+<ParityLine client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag your quote above the line and read the trade: a
+<strong>conversion</strong>. Then below it: a <strong>reversal</strong>. Raise the dividend yield and watch
+the zero crossing, the forward price, slide left.</p>
+
+If $\Call{C} - \Put{P}$ is above the line, calls are *rich* relative to puts. You sell the call, buy the put and
+buy the stock, which together pay exactly $\Strike{K}$ at expiry, and you borrow $\Strike{K}e^{-\Rate{r}\Time{T}}$
+against it. The difference is yours today, riskless. Market makers run these trades all day, which is why real
+quotes stay pinned to the line.
+
+<Callout type="key" title="One price, two options">
+A put is a call in disguise: $\Put{P} = \Call{C} - \Spot{S} + \Strike{K}e^{-\Rate{r}\Time{T}}$. Any model that
+prices calls automatically prices puts. From here on, we'll often derive only the call and get the put for
+free.
+</Callout>
+
+## <span class="section-tag">Intuition</span>The coincidences explained
+
+**The time-value gap.** A call's intrinsic value minus a put's is $(\Spot{S}-\Strike{K})^+ - (\Strike{K}-\Spot{S})^+ = \Spot{S} - \Strike{K}$.
+Subtract that from parity, and the difference in time values is
+$(\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}) - (\Spot{S} - \Strike{K}) = \Strike{K}(1 - e^{-\Rate{r}\Time{T}})$.
+That's \$4.88 for our numbers, whatever the stock price.
+
+**The butterflies.** Swap each call in a butterfly for the matching put. Parity says each swap changes the price
+by $\Spot{S} - \Strike{K_i}e^{-\Rate{r}\Time{T}}$. With weights $+1, -2, +1$ on strikes 90, 100, 110, the total
+change is
+
+$$
+(1 - 2 + 1)\,\Spot{S} \;-\; (90 - 200 + 110)\,e^{-\Rate{r}\Time{T}} = 0 .
+$$
+
+The weights sum to zero, and so do the weighted strikes, so the two butterflies cost the same.
+
+## <span class="section-tag">Formalisation</span>Parity, synthetics and boxes
+
+**Statement.** For European options with strike $\Strike{K}$ and expiry $\Time{T}$, on an asset with continuous
+yield $q$,
+
+$$
+\Call{C} - \Put{P} = \Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}} = e^{-\Rate{r}\Time{T}}\big(F - \Strike{K}\big).
+$$
+
+**Proof.** At expiry, $(\Spot{S_T}-\Strike{K})^+ - (\Strike{K}-\Spot{S_T})^+ = \Spot{S_T} - \Strike{K}$ for every
+$\Spot{S_T}$, because $x^+ - (-x)^+ = x$. The portfolio "$e^{-q\Time{T}}$ shares, dividends reinvested, minus a
+bond paying $\Strike{K}$" has the same payoff and costs $\Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}$.
+Equal payoffs mean equal prices.
+
+**Synthetic positions.** Solving parity for each term gives a recipe for replicating any one instrument from the
+other three:
+
+| To get… | combine… |
+|---|---|
+| a call | put + stock − bond paying $\Strike{K}$ |
+| a put | call − stock + bond paying $\Strike{K}$ |
+| the stock | call − put + bond paying $\Strike{K}$ |
+| a bond paying $\Strike{K}$ | stock + put − call |
+
+**Implied forward.** Rearranged, parity reads the market's forward price straight off option prices:
+$F = \Strike{K} + e^{\Rate{r}\Time{T}}(\Call{C} - \Put{P})$. Traders use this to infer dividend expectations and
+financing rates from liquid options.
+
+**Box spreads.** Buy a $\Strike{K_1}$/$\Strike{K_2}$ call spread and a $\Strike{K_2}$/$\Strike{K_1}$ put spread. By
+parity at each strike, the stock and the kinks cancel, and you're left with a riskless bond paying
+$\Strike{K_2} - \Strike{K_1}$:
+
+$$
+\big[\Call{C}(\Strike{K_1}) - \Call{C}(\Strike{K_2})\big] + \big[\Put{P}(\Strike{K_2}) - \Put{P}(\Strike{K_1})\big] = (\Strike{K_2} - \Strike{K_1})\,e^{-\Rate{r}\Time{T}}.
+$$
+
+**American options** can be exercised early, so parity becomes a pair of inequalities. For a stock with no
+dividends:
+
+$$
+\Spot{S} - \Strike{K} \;\le\; \Call{C}^{\text{Am}} - \Put{P}^{\text{Am}} \;\le\; \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}.
+$$
+
+<details>
+<summary>Sketch of the American inequalities</summary>
+
+*Right-hand side.* With no dividends, the American call is worth the same as the European one (Chapter 9), and
+the American put is worth at least the European put. So
+$\Call{C}^{\text{Am}} - \Put{P}^{\text{Am}} \le \Call{C} - \Put{P} = \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$.
+
+*Left-hand side.* Hold a call plus cash $\Strike{K}$, and be short a put and a share. If the put is exercised
+against you at time $t$, you pay $\Strike{K}$ for the share (closing the short) and keep the call plus
+$\Strike{K}(e^{\Rate{r}t} - 1) \ge 0$ of interest. If it never is, at expiry you close everything with
+$\max(\Spot{S_T}, \Strike{K}) \le \Strike{K}e^{\Rate{r}\Time{T}} + (\Spot{S_T} - \Strike{K})^+$ to spare. The
+position never loses, so its cost $\Call{C}^{\text{Am}} + \Strike{K} - \Put{P}^{\text{Am}} - \Spot{S}$ can't be
+negative.
+
+</details>
+
+## <span class="section-tag">Playground</span>Stay on the line
+
+<ParityLine client:visible />
+
+<div class="try-this">
+
+- **Set the rate to 0 and the dividend to 0.** Where does the line cross zero now? Why does that make sense
+  without any interest?
+- **Set the dividend yield above the rate.** The forward price drops below \$100, so at-the-money puts become
+  more expensive than calls. Check it with a grey bar at \$100.
+- **Shrink the time to expiry.** The line rotates towards slope $-1$ through \$100. What does parity become at
+  expiry?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Stock \$100, no dividends, rate 5%, one year. A \$100-strike European call costs \$10.45. What must the \$100 put cost? (Round to the cent.)"
+  answer={5.57}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="$\Put{P} = \Call{C} - \Spot{S} + \Strike{K}e^{-\Rate{r}\Time{T}} = 10.45 - 100 + 95.12 = 5.57$."
+/>
+
+<Quiz
+  client:visible
+  question="Which portfolio behaves exactly like owning one share (no dividends)?"
+  options={[
+    "Long call + long put",
+    "Long call + short put + a bond paying K",
+    "Short call + long put + a bond paying K",
+    "Long put + a bond paying K",
+  ]}
+  answer={1}
+  explanation="Call minus put pays $\Spot{S_T} - \Strike{K}$. Add a bond paying $\Strike{K}$ and you get exactly $\Spot{S_T}$: a synthetic share."
+/>
+
+<Quiz
+  client:visible
+  question="For which strike does a European call cost exactly the same as the put?"
+  options={["K = S (at the money)", "K = the forward price", "K = 0", "It never happens"]}
+  answer={1}
+  explanation="$\Call{C} - \Put{P} = e^{-\Rate{r}\Time{T}}(F - \Strike{K})$, which is zero exactly when $\Strike{K} = F$. With positive rates and no dividends, at-the-money calls are dearer than puts."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Put–call parity:** $\Call{C} - \Put{P} = \Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}$ for European
+  options, in any model. A call minus a put is a forward.
+- Across strikes it's a **straight line** that crosses zero at the **forward price**. Quotes off the line allow a
+  **conversion** or **reversal** arbitrage.
+- Parity builds **synthetics** (any one of call, put, stock, bond from the other three), reveals **implied
+  forwards**, and prices **box spreads** as bonds.
+- It explains Chapter 3's time-value gap $\Strike{K}(1 - e^{-\Rate{r}\Time{T}})$ and Chapter 5's equal-cost
+  butterflies.
+- For **American** options it becomes a pair of inequalities.
+
+**Next up:** we keep hinting that American calls on non-dividend stocks are never exercised early, but American
+puts sometimes are. Chapter 9 makes that precise.
+
+### Further reading
+
+- H. R. Stoll, "The relationship between put and call option prices" (1969), the original statement of parity.
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 11.
