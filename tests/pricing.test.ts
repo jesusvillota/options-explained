@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULTS, greeks, price } from '../src/lib/pricing/blackScholes';
+import { DEFAULTS, greeks, price, timeValue } from '../src/lib/pricing/blackScholes';
 import { binomialPrice } from '../src/lib/pricing/binomial';
-import { breakeven, legPayoff, legProfit, payoff } from '../src/lib/pricing/payoff';
+import { breakeven, legPayoff, legProfit, moneyness, payoff } from '../src/lib/pricing/payoff';
 
 describe('payoffs', () => {
   it('pays (S−K)⁺ for a call and (K−S)⁺ for a put', () => {
@@ -27,6 +27,17 @@ describe('payoffs', () => {
   });
 });
 
+describe('moneyness', () => {
+  it('classifies calls and puts', () => {
+    expect(moneyness('call', 120, 100)).toBe('ITM');
+    expect(moneyness('call', 80, 100)).toBe('OTM');
+    expect(moneyness('put', 80, 100)).toBe('ITM');
+    expect(moneyness('put', 120, 100)).toBe('OTM');
+    expect(moneyness('call', 100.5, 100)).toBe('ATM');
+    expect(moneyness('put', 99.5, 100)).toBe('ATM');
+  });
+});
+
 describe('Black–Scholes', () => {
   it('prices the default example', () => {
     expect(price('call', DEFAULTS)).toBeCloseTo(10.450583572185565, 10);
@@ -46,6 +57,18 @@ describe('Black–Scholes', () => {
       const rhs = input.S * Math.exp(-input.q * input.T) - K * Math.exp(-input.r * input.T);
       expect(lhs).toBeCloseTo(rhs, 10);
     }
+  });
+
+  it('splits the price into intrinsic and time value', () => {
+    // ATM: no intrinsic value, so all of the price is time value.
+    expect(timeValue('call', DEFAULTS)).toBeCloseTo(price('call', DEFAULTS), 12);
+    // Calls without dividends always have positive time value.
+    for (const S of [50, 80, 100, 130, 200]) expect(timeValue('call', { ...DEFAULTS, S })).toBeGreaterThan(0);
+    // A deep in-the-money European put is worth less than its intrinsic value.
+    expect(timeValue('put', { ...DEFAULTS, S: 60 })).toBeLessThan(0);
+    // Time value fades away as expiry approaches.
+    expect(timeValue('call', { ...DEFAULTS, S: 110, T: 1e-4 })).toBeCloseTo(0, 3); // just interest on K
+    expect(timeValue('call', { ...DEFAULTS, T: 1e-6 })).toBeCloseTo(0.4 * 0.2 * 1e-3 * 100, 3); // ATM: shrinks like σ√T S / √(2π)
   });
 
   it('collapses to the payoff at expiry', () => {

@@ -36,11 +36,13 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 
 ### 3. Moneyness, intrinsic & time value
 - **Goals:** Classify options as ITM, ATM, or OTM. Split a price into intrinsic value and time value, and
-  explain why time value is positive.
-- **Key math:** intrinsic $= (S-K)^+$; time value $=$ price $-$ intrinsic.
-- **Widgets:** price curve before expiry drawn over the payoff "hockey stick", with the gap between them shaded
-  as time value. A slider for time left that shows the gap closing as $T \to 0$. This is a first look at
-  Black–Scholes, used as a black box for now.
+  explain where time value comes from (the kink plus uncertainty), and why it can be negative for a deep
+  in-the-money European put.
+- **Key math:** intrinsic $= (S-K)^+$; time value $=$ price $-$ intrinsic; two-outcome time value
+  $\tfrac12(u - |S-K|)^+$ (Jensen); $\text{TV}_C - \text{TV}_P = K(1 - e^{-rT})$; $C_{ATM} \approx 0.4\,\sigma\sqrt{T} S$.
+- **Widgets:** `ConvexityChord`: two equally likely futures on the hockey stick, with the chord's midpoint above
+  it. `TimeValueDiagram`: the Black–Scholes price over the hockey stick, with time value shaded and a "run the
+  clock" button. Black–Scholes is used as a black box for now.
 - **Prereqs:** 2.
 
 ### 4. How options trade
@@ -390,6 +392,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `OptionTimeline` | 1 | 3, 9 |
 | `PayoffTracer` | 2 | — |
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
+| `ConvexityChord` | 3 | 10, 22 |
+| `TimeValueDiagram` | 3 | 9, 20, 21 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

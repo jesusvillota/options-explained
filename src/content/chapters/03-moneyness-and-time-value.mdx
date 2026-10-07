@@ -1,0 +1,289 @@
+---
+title: "Moneyness, intrinsic & time value"
+part: 1
+chapter: 3
+difficulty: 1
+prerequisites: [2]
+summary: "Why an option is worth more than what it would pay if you exercised it right now."
+---
+import ConvexityChord from '../../components/plots/ConvexityChord';
+import TimeValueDiagram from '../../components/plots/TimeValueDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Paying for nothing?
+
+A stock trades at \$100. A call with strike \$100 and one year to expiry costs about \$10.45.
+
+Now imagine you could exercise that call this very minute. You'd pay \$100 for a share worth \$100, and gain
+nothing. So the option would pay **zero** right now, yet people pay \$10.45 for it.
+
+What are they paying for? It isn't for what the option *is* worth today. It's for what it *might* be worth
+before expiry. This chapter splits an option's price into two pieces, the part you could cash in right now and
+the part that only exists because there's still time left. Then we look at where the second part comes from.
+
+## <span class="section-tag">Intuition</span>In, at, or out of the money
+
+First, some vocabulary that traders use constantly. It answers one question: *if the option expired right now,
+would it pay anything?*
+
+| | Call (right to buy at $\Strike{K}$) | Put (right to sell at $\Strike{K}$) |
+|---|---|---|
+| **In the money** (ITM): it would pay | stock above strike, $\Spot{S} > \Strike{K}$ | stock below strike, $\Spot{S} < \Strike{K}$ |
+| **At the money** (ATM): right on the edge | $\Spot{S} \approx \Strike{K}$ | $\Spot{S} \approx \Strike{K}$ |
+| **Out of the money** (OTM): it would pay nothing | $\Spot{S} < \Strike{K}$ | $\Spot{S} > \Strike{K}$ |
+
+A call and a put with the same strike are always on opposite sides. When the stock is at \$120, a \$100 call is in
+the money and a \$100 put is out of the money. We also say *deep* in or out of the money when the stock is far
+from the strike.
+
+<Callout type="note">
+Notice that $\Spot{S}$ here has no subscript. It's the stock price <em>today</em>. In Chapter 2 we drew
+everything against $\Spot{S_T}$, the price <em>at expiry</em>. This chapter is about the time in between.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Two pieces of a price
+
+The amount an option would pay if you could exercise it right now is called its **intrinsic value**. For a call,
+it's $\Spot{S} - \Strike{K}$ when that's positive and zero otherwise, which is the hockey stick from Chapter 2,
+read with today's price. Out-of-the-money options have zero intrinsic value.
+
+Whatever the option costs *on top of* its intrinsic value is its **time value**:
+
+$$
+\text{option price} \;=\; \underbrace{\text{intrinsic value}}_{\text{exercise now}} \;+\; \underbrace{\text{time value}}_{\text{the rest}}.
+$$
+
+With the stock at \$110, the \$100 call costs about \$17.66. Its intrinsic value is \$10, so the other \$7.66 is
+time value. Below, the solid line is the option's price today and the dashed hockey stick is its intrinsic value.
+The shaded gap between them is the time value.
+
+<TimeValueDiagram client:visible typeToggle={false} title="Price = intrinsic value + time value" />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Run the clock</em>. As expiry gets closer the curve
+sinks onto the hockey stick and the time value disappears. On the expiry date, an option is worth exactly its
+payoff, which is all of Chapter 2.</p>
+
+Where does the solid curve come from? It's the **Black–Scholes** price, the most famous formula in finance. For
+now we use it as a black box that gives us sensible prices. Working out what is inside the box takes Parts III
+and IV.
+
+## <span class="section-tag">Intuition</span>Why waiting is worth something
+
+Here's the key idea of the chapter, and you can see it without any formula.
+
+Make the future as simple as possible. Between now and expiry, the stock goes either **up** or **down** by the
+same amount, with equal chances. Then compare two choices:
+
+- **Exercise now**, if you could. You get the payoff at today's price, a point on the hockey stick.
+- **Wait until expiry.** You get one of two payoffs, also on the hockey stick, and on average you get the
+  midpoint of the dashed line joining them.
+
+<ConvexityChord client:visible />
+
+Because the hockey stick **bends** at the strike, the line joining the two outcomes passes *above* it. So waiting
+is worth more than exercising now. The gap, in <span class="c-time">teal</span>, is time value.
+
+<p class="try-this"><strong>Try this:</strong> drag the stock price to \$150, far into the money. Once both
+futures land on the same straight piece of the hockey stick, the chord lies <em>on</em> the line and the time
+value is gone. Then drag back to \$100 and widen the move. The gap grows.</p>
+
+<Callout type="key" title="Where time value comes from">
+The option holder keeps the good outcomes and is protected from the bad ones. That protection lives at the
+<strong>kink</strong>. It's only worth something if the stock has a real chance of ending up on the other side of
+the strike. More time, or a more volatile stock, means bigger possible moves, so more chance of crossing the kink
+and more time value.
+</Callout>
+
+This tells us what the time value looks like:
+
+- **It's largest at the money**, where the stock is sitting right on the kink and either direction is possible.
+- **It shrinks deep in or deep out of the money**, where the stock would need a huge move to reach the other
+  side of the strike.
+- **It grows with time to expiry and with volatility**, because both make larger moves possible.
+
+<Callout type="note" title="Simplification">
+Real stocks don't jump between exactly two prices, and up and down aren't really equally likely. The real
+version of this argument, with many possible prices and correct probabilities, is what the binomial model of
+Part III and the Black–Scholes formula of Part IV do. The conclusion here survives intact: <em>time value comes
+from the kink plus uncertainty</em>.
+</Callout>
+
+## <span class="section-tag">Intuition</span>A twist: negative time value
+
+There's one more thing in the price, and it comes from **interest**.
+
+The holder of a call *pays* the strike, but only at expiry. Paying \$100 a year from now is cheaper than paying
+\$100 today, because in the meantime that money can earn interest. So for a call, waiting has a second benefit,
+and a deep in-the-money call keeps a little time value even when the kink is far away. At a 5% rate it's about
+\$4.88 on a \$100 strike.
+
+The holder of a put *receives* the strike, also only at expiry. For a put, waiting has a cost: you'd rather have
+the \$100 today. When a European put is deep in the money, its kink gives almost no protection, and the interest
+cost wins. **Its time value goes negative:** the put is worth *less* than you'd get by exercising it today, if
+only you were allowed to.
+
+<TimeValueDiagram client:visible type="put" typeToggle={false} initialSpot={60} title="A deep in-the-money European put" />
+
+<p class="try-this"><strong>Try this:</strong> drag the stock price up from \$60 towards \$100. The time value
+turns positive near \$90, once the kink's protection becomes worth more than the interest you lose by
+waiting.</p>
+
+A European put can only be exercised at expiry, so the holder is stuck waiting. An *American* put could be
+exercised early, and that's exactly when it would be: Chapter 9 is all about this decision.
+
+## <span class="section-tag">Formalisation</span>The decomposition in symbols
+
+**Intrinsic value** is the payoff evaluated at today's price $\Spot{S}$:
+
+$$
+\text{call: } (\Spot{S} - \Strike{K})^+, \qquad\qquad \text{put: } (\Strike{K} - \Spot{S})^+.
+$$
+
+An option is **in the money** when its intrinsic value is positive. Traders measure "how far" with the ratio
+$\Spot{S}/\Strike{K}$, or its logarithm $\ln(\Spot{S}/\Strike{K})$, called **log-moneyness**, which we'll use
+heavily in Part VI.
+
+**Time value** is everything else. For a call priced at $\Call{C}$,
+
+$$
+\Call{C} = \underbrace{(\Spot{S} - \Strike{K})^+}_{\text{intrinsic}} + \underbrace{\text{TV}}_{\text{time value}}.
+$$
+
+### The chord, exactly
+
+Let's put numbers on the two-futures picture. Today's price is $\Spot{S}$, and at expiry the stock is either
+$\Spot{S} + u$ or $\Spot{S} - u$, each with probability $\tfrac12$. Ignoring interest, the time value of the call
+is the average payoff minus today's intrinsic value:
+
+$$
+\text{TV} = \tfrac12 (\Spot{S} + u - \Strike{K})^+ + \tfrac12 (\Spot{S} - u - \Strike{K})^+ - (\Spot{S} - \Strike{K})^+.
+$$
+
+Work through the three cases: both outcomes above the strike, both below, or one on each side. All three
+collapse into one formula:
+
+$$
+\text{TV} = \tfrac12\big(u - |\Spot{S} - \Strike{K}|\big)^+ .
+$$
+
+<details>
+<summary>Show the three cases</summary>
+
+- **Both outcomes above the strike** ($\Spot{S} - u \ge \Strike{K}$): the average payoff is
+  $\tfrac12[(\Spot{S} + u - \Strike{K}) + (\Spot{S} - u - \Strike{K})] = \Spot{S} - \Strike{K}$, the same as
+  exercising now. TV $= 0$, and indeed $u \le |\Spot{S} - \Strike{K}|$.
+- **Both outcomes below the strike** ($\Spot{S} + u \le \Strike{K}$): both payoffs and the intrinsic value are 0.
+  TV $= 0$.
+- **One on each side** ($\Spot{S} - u < \Strike{K} < \Spot{S} + u$): only the up outcome pays, so the average
+  is $\tfrac12(\Spot{S} + u - \Strike{K})$. If $\Spot{S} \ge \Strike{K}$, subtracting $\Spot{S} - \Strike{K}$
+  gives $\tfrac12(u - (\Spot{S} - \Strike{K}))$. If $\Spot{S} < \Strike{K}$, the intrinsic value is 0 and we
+  get $\tfrac12(u - (\Strike{K} - \Spot{S}))$. Both equal $\tfrac12(u - |\Spot{S} - \Strike{K}|)$.
+
+The put gives the same formula, by the mirror-image argument.
+
+</details>
+
+This little formula has everything we saw in the pictures. The time value is a **tent**:
+
+- it peaks **at the money** ($\Spot{S} = \Strike{K}$), at $u/2$;
+- it falls off linearly as the stock moves away from the strike;
+- it's **zero** once the stock is more than $u$ away, because then the move can't cross the kink;
+- the whole tent gets taller and wider as the possible move $u$ grows.
+
+The underlying principle is that **averaging a bent-upward (convex) function gives more than the function of the
+average**. Mathematicians call it Jensen's inequality, and it will come back again and again in this course.
+
+### Interest and the call–put gap
+
+Interest adds an exact correction. In Chapter 8 we'll prove *put–call parity*. One consequence is that, for the
+same strike and expiry, the call's time value is larger than the put's by a fixed amount, wherever the stock is:
+
+$$
+\text{TV}_{\text{call}} - \text{TV}_{\text{put}} = \Strike{K}\big(1 - e^{-\Rate{r}\Time{T}}\big).
+$$
+
+With $\Strike{K} = 100$, $\Rate{r} = 5\%$ and $\Time{T} = 1$, the gap is about 4.88. You can check it at the
+money: the call is worth 10.45 and the put 5.57.
+
+### How time value grows with time
+
+Without interest, the at-the-money price has a simple approximation, derived in Chapter 18:
+
+$$
+\Call{C}_{\text{ATM}} \approx \frac{1}{\sqrt{2\pi}}\,\Vol{\sigma}\sqrt{\Time{T}}\;\Spot{S} \approx 0.4\,\Vol{\sigma}\sqrt{\Time{T}}\;\Spot{S}.
+$$
+
+With $\Vol{\sigma} = 20\%$, $\Time{T} = 1$ and $\Spot{S} = 100$ that's about 8, close to the exact zero-rate price
+of 7.97. Notice the **square root**: to double the time value of an at-the-money option you need *four times* as
+much time, but only twice the volatility. Why randomness grows like $\sqrt{\text{time}}$ is the story of
+Chapter 15.
+
+## <span class="section-tag">Playground</span>Shape the time value
+
+Here's the price-before-expiry picture with every control: call or put, time to expiry, and volatility.
+
+<TimeValueDiagram client:visible volSlider initialSpot={100} title="Playground: price before expiry" />
+
+<div class="try-this">
+
+- **Double the time value of the at-the-money call** (\$10.45 at one year). Try it once with the time slider and
+  once with the volatility slider. Which needs the bigger change?
+- **Find the stock price where the put's time value crosses zero.** Then raise the volatility. Does the crossing
+  move left or right? Why?
+- **Set volatility to 5%.** The curve hugs the hockey stick: with little uncertainty, the kink hardly
+  matters.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="The stock trades at \$90. Is a put with strike \$100 in, at, or out of the money?"
+  options={["In the money", "At the money", "Out of the money"]}
+  answer={0}
+  explanation="A put pays when the stock is below the strike. Exercising now would mean selling at \$100 a share worth \$90, so its intrinsic value is $(100 - 90)^+ = 10$ and it's in the money."
+/>
+
+<NumericQuiz
+  client:visible
+  question="The stock trades at \$105, and a call with strike \$100 costs \$12. How much of that is time value, in dollars?"
+  answer={7}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="Intrinsic value is $(105 - 100)^+ = 5$, so the time value is $12 - 5 = 7$."
+/>
+
+<Quiz
+  client:visible
+  question="All else equal, which call has the most time value?"
+  options={[
+    "One deep in the money",
+    "One at the money",
+    "One deep out of the money",
+    "They all have the same",
+  ]}
+  answer={1}
+  explanation="Time value comes from the chance of crossing the kink. At the money, the stock sits right on it, so the protection matters most. Far from the strike, the outcome is nearly certain and the kink hardly matters."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Moneyness** says whether an option would pay if exercised now: **in**, **at**, or **out of the money**.
+  Calls and puts with the same strike are on opposite sides.
+- **Price = intrinsic value + time value.** Intrinsic value is the hockey stick at today's price $\Spot{S}$.
+- **Time value comes from the kink plus uncertainty.** Averaging the two sides of a bend gives more than the
+  bend itself. It's largest **at the money** and grows with **time** (like $\sqrt{\Time{T}}$) and
+  **volatility**.
+- **Interest** adds to a call's time value and subtracts from a put's, enough to make a deep in-the-money
+  European put's time value **negative**.
+- At expiry the time value is gone and the price equals the payoff.
+
+**Next up:** before we figure out how to compute that black-box price, a practical detour. In Chapter 4 we'll see
+how options actually trade: contracts, bid and ask, exercise styles, and how to read an option chain.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 10 (moneyness, intrinsic value) and
+  chapter 11 (properties of option prices).

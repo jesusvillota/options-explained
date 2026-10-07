@@ -22,7 +22,7 @@
 }
 
 /* Readout rows: label · value */
-.readout-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; align-items: baseline; }
+.readout-grid { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; align-items: baseline; }
 .readout-grid dt { color: var(--text-muted); }
 .readout-grid dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
 .num { font-variant-numeric: tabular-nums; }
