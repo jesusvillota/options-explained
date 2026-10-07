@@ -1,0 +1,143 @@
+---
+title: "Black–Scholes playground"
+part: 4
+chapter: 20
+difficulty: 2
+prerequisites: [18]
+summary: "Every input of the formula on a slider, and the whole price surface at a glance."
+---
+import BSPricer from '../../components/plots/BSPricer';
+import TimeValueDiagram from '../../components/plots/TimeValueDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Six inputs, one price
+
+The Black–Scholes formula takes six numbers: the stock price $\Spot{S}$, the strike $\Strike{K}$, the time to
+expiry $\Time{T}$, the volatility $\Vol{\sigma}$, the interest rate $\Rate{r}$ and the dividend yield $q$. Five
+of them you can look up. The sixth, volatility, is the market's real subject of debate (Part VI).
+
+A trader needs a *feel* for how the price responds to each one. Which way does it move, how fast, and where is
+it most sensitive? This chapter is a playground for building that intuition before Part V turns each "how fast"
+into a precise number, a **Greek**.
+
+## <span class="section-tag">Intuition</span>The price as a landscape
+
+Fix the strike and volatility, and the price depends on two things that change every day: the stock price and the
+time left. Picture it as a landscape over those two axes. The colour below is the option's price. Expiry is at
+the bottom edge, where the landscape is exactly the hockey stick. As you go up (more time), it smooths out and
+rises.
+
+<BSPricer client:visible />
+
+<p class="try-this"><strong>Try this:</strong> move the stock price with the time slider at 0.01 years: the price
+jumps from zero to positive right at the strike. Now set the time to 3 years: the same move changes the price
+smoothly. Then switch to a put and find the darkest corner of the map.</p>
+
+## <span class="section-tag">Intuition</span>Which way does each input push?
+
+Before computing anything, reason it out. Each answer follows from earlier chapters:
+
+| Input goes up | Call | Put | Why |
+|---|---|---|---|
+| Stock price $\Spot{S}$ | ↑ | ↓ | The call is the right to buy, the put the right to sell |
+| Strike $\Strike{K}$ | ↓ | ↑ | Chapter 10's monotonicity |
+| Volatility $\Vol{\sigma}$ | ↑ | ↑ | More chance of crossing the kink (Chapter 3) |
+| Time $\Time{T}$ | ↑ | usually ↑ | More time, more uncertainty. A deep ITM European put can fall (Chapter 3) |
+| Interest rate $\Rate{r}$ | ↑ | ↓ | Paying $\Strike{K}$ later is cheaper; receiving it later is worth less |
+| Dividend yield $q$ | ↓ | ↑ | Dividends go to shareholders, not option holders, and lower the forward |
+
+Volatility is the only input that pushes calls and puts the **same** way. That's why options are the natural
+instrument for trading volatility, and why the market quotes options *by* their volatility (Chapter 25).
+
+<Callout type="key" title="Four lenses on one formula">
+You've now met Black–Scholes four ways: as the limit of a tree (Chapter 14), as an expected payoff (Chapter 18),
+as the solution of a PDE (Chapter 19), and as a price landscape (here). They're the same function. Each view
+makes different questions easy, and practitioners switch between them all the time.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Comparative statics
+
+For a call with $d_{1,2}$ as in Chapter 18 and $\varphi$ the standard normal density, the sensitivities have
+simple closed forms. They're previewed here and studied in Part V:
+
+$$
+\frac{\partial \Call{C}}{\partial \Spot{S}} = e^{-q\Time{T}}N(d_1) \in (0,1), \qquad
+\frac{\partial \Call{C}}{\partial \Strike{K}} = -e^{-\Rate{r}\Time{T}}N(d_2) \in (-e^{-\Rate{r}\Time{T}},\,0),
+$$
+
+$$
+\frac{\partial \Call{C}}{\partial \Vol{\sigma}} = \Spot{S}e^{-q\Time{T}}\varphi(d_1)\sqrt{\Time{T}} > 0, \qquad
+\frac{\partial \Call{C}}{\partial \Rate{r}} = \Strike{K}\Time{T}e^{-\Rate{r}\Time{T}}N(d_2) > 0 .
+$$
+
+Each sign is one row of the table. The strike derivative is the probability statement from Chapter 10:
+$-e^{\Rate{r}\Time{T}}\partial\Call{C}/\partial\Strike{K} = N(d_2) = \mathbb{Q}(\Spot{S_T} > \Strike{K})$. The positive
+vega is why the table's volatility row has two up arrows.
+
+**Scaling (homogeneity).** Black–Scholes prices are homogeneous of degree one in $(\Spot{S}, \Strike{K})$:
+$\Call{C}(\lambda\Spot{S}, \lambda\Strike{K}) = \lambda\,\Call{C}(\Spot{S}, \Strike{K})$. Only the ratio
+$\Spot{S}/\Strike{K}$ (moneyness) and the total volatility $\Vol{\sigma}\sqrt{\Time{T}}$ really matter, along with the
+discounting. That's why traders think in log-moneyness and total variance $\Vol{\sigma}^2\Time{T}$ (Chapter 26).
+
+**Limits.** As $\Vol{\sigma}\sqrt{\Time{T}} \to 0$, the price falls to the lower bound of Chapter 7. As
+$\Vol{\sigma}\sqrt{\Time{T}} \to \infty$, it rises to the upper bound. Black–Scholes sweeps out the entire
+arbitrage-free band as volatility varies, which is why a quoted price and a quoted *implied volatility* carry the
+same information.
+
+## <span class="section-tag">Playground</span>Challenges
+
+<TimeValueDiagram client:visible volSlider initialSpot={100} title="Price vs stock, with time and volatility" />
+
+<div class="try-this">
+
+- **Make a \$100 call worth exactly \$5** with $\Spot{S} = \Strike{K} = 100$ and $\Time{T} = 1$, using only volatility. What
+  volatility do you need? (You've just computed an *implied* volatility, by hand.)
+- **Find inputs where a European put is worth less than its intrinsic value.** Which slider matters most?
+- **Double both $\Spot{S}$ and $\Strike{K}$** in the pricer above. What happens to the price? Explain with homogeneity.
+- **With $q = \Rate{r}$**, compare the at-the-money call and put. Why are they equal?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Which input moves both call and put prices in the same direction?"
+  options={["Stock price", "Strike", "Volatility", "Interest rate"]}
+  answer={2}
+  explanation="Higher volatility makes crossing the kink more likely for both, so both gain. Every other input pushes calls and puts in opposite directions."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A call on a \$50 stock with strike \$50 costs \$5.23. With all else equal, what would a call on a \$100 stock with strike \$100 cost?"
+  answer={10.46}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="Black–Scholes is homogeneous of degree 1 in $(\Spot{S}, \Strike{K})$: doubling both doubles the price, $2 \times 5.23 = 10.46$."
+/>
+
+<Quiz
+  client:visible
+  question="Raising the dividend yield q (everything else fixed) makes a call..."
+  options={["more expensive", "cheaper", "unchanged", "it depends on volatility"]}
+  answer={1}
+  explanation="Dividends go to shareholders, not call holders, and they lower the forward price $\Spot{S}e^{(\Rate{r}-q)\Time{T}}$. The call is worth less."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The price is a smooth landscape over stock price and time, collapsing onto the payoff at expiry.
+- Directions: $\Spot{S}$ ↑ helps calls, $\Strike{K}$ ↑ helps puts, **volatility helps both**, $\Rate{r}$ ↑ helps calls and
+  hurts puts, $q$ does the opposite of $\Rate{r}$.
+- Black–Scholes depends essentially on moneyness $\Spot{S}/\Strike{K}$ and total volatility $\Vol{\sigma}\sqrt{\Time{T}}$, and it
+  spans the whole arbitrage band as $\Vol{\sigma}$ varies.
+
+**Next up:** Part V makes "how much does the price move?" precise. The **Greeks**, starting with delta and gamma,
+are the slopes and curvatures of this landscape, and they're what traders actually manage day to day.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 15 (the Black–Scholes–Merton model).
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 1.

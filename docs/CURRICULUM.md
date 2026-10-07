@@ -156,32 +156,32 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Build Brownian motion as the limit of a scaled random walk. Know its properties: independent
   Gaussian increments, continuous but nowhere differentiable paths, and $\sqrt{t}$ scaling.
 - **Key math:** $W_t - W_s \sim \mathcal{N}(0, t-s)$; quadratic variation $[W]_t = t$.
-- **Widgets:** `PathSimulator` (seeded) with a step-size slider. A zoom that shows the path stays rough at every
-  scale. A running sum of $(\Delta W)^2$ that converges to $t$.
+- **Widgets:** `PathSimulator` (coin-flip walks vs Brownian motion, ±√t bands), `BrownianZoom` (self-similarity),
+  `QuadraticVariationDemo` (Σ(ΔW)² → t while Σ|ΔW| → ∞).
 - **Prereqs:** 14.
 
 ### 16. Geometric Brownian motion & the lognormal
 - **Goals:** Model prices with GBM. Explain volatility drag: why the median grows at $\mu - \tfrac12\sigma^2$
   while the mean grows at $\mu$.
 - **Key math:** $dS = \mu S\,dt + \sigma S\,dW$; $S_T = S_0 e^{(\mu - \frac12\sigma^2)T + \sigma W_T}$.
-- **Widgets:** GBM paths with the terminal histogram drawn on the side, and mean and median lines that separate
-  as $\sigma$ grows.
+- **Widgets:** `GBMHistogram`: sample paths plus a histogram of $S_T$ against the lognormal, with mean and median
+  lines that separate as $\sigma$ grows.
 - **Prereqs:** 15.
 
 ### 17. Itô's lemma, intuitively
 - **Goals:** See why the second-order Taylor term survives in stochastic calculus. Apply Itô's lemma to
   $\ln S$ and $S^2$.
 - **Key math:** $(dW)^2 = dt$; $df = f_t\,dt + f_x\,dX + \tfrac12 f_{xx}(dX)^2$.
-- **Widgets:** a side-by-side comparison of $f(W_t)$ against its first-order approximation and its Itô-corrected
-  approximation, showing the first-order error building up.
+- **Widgets:** `ItoComparison`: $W_t^2$ vs the ordinary-chain-rule sum $\sum 2W\Delta W$ (short by $t$) and the
+  Itô-corrected sum.
 - **Prereqs:** 15, 16.
 
 ### 18. The Black–Scholes formula
 - **Goals:** Derive the BS call price as a discounted risk-neutral expectation. Interpret $N(d_2)$ as
   $\mathbb{Q}(S_T > K)$ and $S N(d_1)$ as the share-measure term.
 - **Key math:** $C = S e^{-q\tau} N(d_1) - K e^{-r\tau} N(d_2)$; the full integral derivation.
-- **Widgets:** the risk-neutral density of $S_T$ with the region $S_T > K$ shaded and the integrand
-  $(S_T - K)\varphi$ drawn. The area under it equals the price.
+- **Widgets:** `BSIntegrand`: the risk-neutral (or share-measure) density with the in-the-money tail shaded
+  ($N(d_2)$ or $N(d_1)$), and the integrand whose area is $e^{rT}C$.
 - **Prereqs:** 12, 16.
 
 ### 19. The Black–Scholes PDE
@@ -189,15 +189,15 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   risk-neutral expectation and the PDE give the same answer, by Feynman–Kac.
 - **Key math:** $V_t + \tfrac12\sigma^2S^2V_{SS} + (r-q)SV_S - rV = 0$; the change of variables to
   $u_\tau = u_{xx}$.
-- **Widgets:** the payoff as an initial condition that diffuses as $\tau$ grows. Solved live with the
-  finite-difference solver from `src/lib`.
+- **Widgets:** `HeatDiffusion`: the payoff diffusing as $\tau$ grows, solved live by Crank–Nicolson
+  (`src/lib/numerics/finiteDifference.ts`) and matched against the formula.
 - **Prereqs:** 17, 18.
 
 ### 20. Black–Scholes playground
 - **Goals:** Build an intuitive feel for how each input moves the price.
 - **Key math:** recap of the formula and its sensitivities (a teaser for Part V).
-- **Widgets:** `BSPricer` with every input on a slider, and a 3D price surface `Surface3D` over $(S, \tau)$.
-  Includes "challenge" prompts.
+- **Widgets:** `BSPricer`: every input on a slider, with the price over $(S, \tau)$ as a `Heatmap` (canvas,
+  theme-aware), plus challenge prompts.
 - **Prereqs:** 18.
 
 ---
@@ -415,6 +415,12 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `RiskNeutralSlider` | 12 | 40 |
 | `BinomialTreeAnimated` | 13 | 36 |
 | `TreeConvergence` | 14 | 33 |
+| `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16, 24, 33 |
+| `GBMHistogram` | 16 | 33 |
+| `ItoComparison` | 17 | — |
+| `BSIntegrand` | 18 | 37, 40 |
+| `HeatDiffusion` | 19 | 34 |
+| `Heatmap`, `BSPricer` | 20 | 23, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

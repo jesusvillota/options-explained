@@ -6,6 +6,7 @@ import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { katexOptions } from './src/lib/katexMacros.ts';
+import rehypeMathPunctuation from './src/lib/rehypeMathPunctuation.mjs';
 
 // Deployed to GitHub Pages at https://jesusvillota.github.io/options-explained/
 export default defineConfig({
@@ -17,7 +18,7 @@ export default defineConfig({
     // TeX: $inline$ and $$display$$, rendered to HTML at build time by KaTeX.
     processor: unified({
       remarkPlugins: [remarkMath],
-      rehypePlugins: [[rehypeKatex, katexOptions]],
+      rehypePlugins: [[rehypeKatex, katexOptions], rehypeMathPunctuation],
     }),
   },
 });
