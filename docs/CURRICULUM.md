@@ -276,7 +276,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Replicate variance with a strip of out-of-the-money options. Understand how the VIX is built.
 - **Key math:** the log-contract replication
   $-\ln(S_T/F) = \int_0^F \frac{(K-S_T)^+}{K^2}dK + \int_F^\infty \frac{(S_T-K)^+}{K^2}dK - \frac{S_T - F}{F}$.
-- **Widgets:** a strip of options with $1/K^2$ weights that sum into the log payoff.
+- **Widgets:** `LogContractStrip`: out-of-the-money options weighted by $\Delta K/K^2$ summing to the log payoff,
+  with strike spacing and range controls and the strip's fair variance-swap vol under a flat or skewed smile.
+  `VixContributions`: the Cboe formula strike by strike for a 30-day smile, with the put share and the $K_0$
+  correction. Library: `src/lib/vol/varianceSwap.ts`.
 - **Prereqs:** 27.
 
 ---
@@ -432,12 +435,13 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `Heatmap`, `BSPricer` | 20 | 23, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
-| `ThetaGammaBars` | 22 | 28 |
+| `ThetaGammaBars` | 22 | — |
 | `GreekExplorer` | 23 | — |
-| `HedgeSimulator` | 24 | 28 |
+| `HedgeSimulator` | 24 | — |
 | `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
 | `SmileExplorer` | 26 | — |
 | `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
+| `LogContractStrip`, `VixContributions` | 28 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

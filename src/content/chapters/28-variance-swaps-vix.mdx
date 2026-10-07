@@ -1,0 +1,204 @@
+---
+title: "Variance swaps & the VIX"
+part: 6
+chapter: 28
+difficulty: 3
+prerequisites: [27]
+summary: "A static portfolio of options, weighted by 1/K², is a pure bet on volatility. Price it, and you've built the VIX."
+---
+import LogContractStrip from '../../components/plots/LogContractStrip';
+import VixContributions from '../../components/plots/VixContributions';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Betting on volatility, and only volatility
+
+Suppose you think the market will be turbulent over the next year, but you have no idea in which direction. Buying
+an at-the-money straddle is a start, but it's a messy bet. Its sensitivity to volatility depends on where the stock
+goes: once the stock moves away from the strike, gamma fades (Chapter 21) and so does your exposure. Delta-hedging
+it, as in Chapter 24, leaves you with a P&L weighted by $\Gamma\Spot{S}^2$ along the path.
+
+A **variance swap** is the clean version. At expiry it pays the difference between the variance the stock actually
+realised and a strike agreed today:
+
+$$
+\text{payoff} = N_{\text{var}}\big(\Vol{\sigma}_R^2 - K_{\text{var}}\big).
+$$
+
+What's the fair strike? Remarkably, it can be read off today's option prices, with no model for volatility at all.
+And the recipe, applied to S&P 500 options, is exactly how the **VIX** index is computed.
+
+## <span class="section-tag">Intuition</span>The log contract
+
+Here's the key fact, from Itô's lemma (Chapter 17). For any price path,
+
+$$
+\ln\frac{\Spot{S_T}}{\Spot{S_0}} = \int_0^{\Time{T}}\frac{d\Spot{S_t}}{\Spot{S_t}} - \frac12\int_0^{\Time{T}}\Vol{\sigma}_t^2\,dt .
+$$
+
+The total variance is twice the gap between "the sum of returns" and "the log of the total return". The first can
+be earned by holding a fixed *dollar* amount of stock, rebalanced continuously: that's $1/\Spot{S}$ shares. The
+second is the payoff of a **log contract**, which pays $\ln \Spot{S_T}$. So variance equals a dynamic stock position
+minus two log contracts, whatever volatility does along the way.
+
+Nobody trades log contracts. But Chapter 27 showed that any payoff can be built from options weighted by its
+curvature. The curvature of $-\ln \Strike{K}$ is $1/\Strike{K}^2$:
+
+<LogContractStrip client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with \$25 spacing the strip is a polygon that only roughly follows
+the target. At \$2.50 the two are indistinguishable between the outermost strikes. Now narrow the strike range to
+\$80–\$125. Outside it the strip goes straight, the target keeps curving, and the strip's fair volatility drops
+below 20%: the missing far strikes are a real hedging gap.</p>
+
+The weights favour low strikes heavily: $1/\Strike{K}^2$ is four times larger at \$50 than at \$100. So the strip is
+dominated by out-of-the-money **puts**, and when the skew makes puts expensive, variance is expensive too.
+
+<p class="try-this"><strong>Try this:</strong> switch the smile to <em>Equity skew</em>. The fair variance-swap
+volatility rises above the 20% at-the-money volatility. The swap prices in the whole smile, not just the middle.</p>
+
+## <span class="section-tag">Intuition</span>The VIX, strike by strike
+
+The VIX is the square root of the fair 30-day variance of the S&P 500, computed from a strip of out-of-the-money
+puts and calls, multiplied by 100. Here's the formula's anatomy for a stylised 30-day smile:
+
+<VixContributions client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the default skew, puts provide nearly two-thirds of the index. Set the
+skew to 0 and the shares even out. Then raise the wings: the VIX climbs further above the at-the-money vol, because
+the strip pays for every strike's volatility, weighted towards the downside.</p>
+
+<Callout type="key" title="The fear gauge measures the price of variance">
+The VIX is often called the "fear index". More precisely, it's the market price of 30-day variance: what you'd
+pay today, in volatility units, for the realised variance of the next month. Like implied volatility (Chapter 25),
+it usually sits a few points above the volatility that's later realised. That gap is the variance risk premium,
+which sellers of variance swaps earn in calm times and pay back in crashes.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Replicating variance
+
+Assume the stock follows $d\Spot{S_t} = \mu_t\Spot{S_t}\,dt + \Vol{\sigma}_t\Spot{S_t}\,dW_t$, where the volatility
+$\Vol{\sigma}_t$ can be any random process, but there are no jumps. Itô's lemma for $\ln \Spot{S_t}$ gives
+
+$$
+\frac{1}{\Time{T}}\int_0^{\Time{T}}\Vol{\sigma}_t^2\,dt = \frac{2}{\Time{T}}\left[\int_0^{\Time{T}}\frac{d\Spot{S_t}}{\Spot{S_t}} - \ln\frac{\Spot{S_T}}{\Spot{S_0}}\right] .
+$$
+
+Take risk-neutral expectations. The stock position earns $\Rate{r}\Time{T}$, and with the forward
+$F = \Spot{S_0}e^{\Rate{r}\Time{T}}$:
+
+$$
+K_{\text{var}} = \mathbb{E}^{\mathbb{Q}}\Big[\frac{1}{\Time{T}}\int_0^{\Time{T}}\Vol{\sigma}_t^2\,dt\Big]
+= \frac{2}{\Time{T}}\,\mathbb{E}^{\mathbb{Q}}\Big[\frac{\Spot{S_T} - F}{F} - \ln\frac{\Spot{S_T}}{F}\Big] .
+$$
+
+The bracket is the convex payoff in the widget, zero at $F$ with zero slope there. Apply Carr–Madan (Chapter 27)
+with $g(s) = (s - F)/F - \ln(s/F)$, so that $g(F) = g'(F) = 0$ and $g''(\Strike{K}) = 1/\Strike{K}^2$:
+
+$$
+\frac{\Spot{S_T} - F}{F} - \ln\frac{\Spot{S_T}}{F} = \int_0^F \frac{(\Strike{K} - \Spot{S_T})^+}{\Strike{K}^2}\,d\Strike{K} + \int_F^\infty \frac{(\Spot{S_T} - \Strike{K})^+}{\Strike{K}^2}\,d\Strike{K} .
+$$
+
+Pricing both sides,
+
+$$
+K_{\text{var}} = \frac{2e^{\Rate{r}\Time{T}}}{\Time{T}}\left[\int_0^F \frac{\Put{P}(\Strike{K})}{\Strike{K}^2}\,d\Strike{K} + \int_F^\infty \frac{\Call{C}(\Strike{K})}{\Strike{K}^2}\,d\Strike{K}\right] .
+$$
+
+With a flat smile at $\Vol{\sigma}$ this gives exactly $\Vol{\sigma}^2$. With a skew it's more, because the
+far-out puts are priced at higher volatilities and weighted most.
+
+**Why it's a pure volatility bet.** The log contract has $\Spot{S}^2\,\partial^2_{\Spot{S}}(-\ln \Spot{S}) = 1$: its
+**dollar gamma is constant**. In Chapter 24, a delta-hedged option earned
+$\tfrac12\Gamma\Spot{S}^2(\Vol{\sigma}_R^2 - \Vol{\sigma}_I^2)\,dt$ with a weight that depended on the path. The strip
+makes that weight the same everywhere, so the P&L depends only on realised variance.
+
+**The VIX formula.** Cboe computes, for each of two expiries around 30 days,
+
+$$
+\Vol{\sigma}^2 = \frac{2}{\Time{T}}\sum_i \frac{\Delta\Strike{K}_i}{\Strike{K}_i^2}\,e^{\Rate{r}\Time{T}}Q(\Strike{K}_i) - \frac{1}{\Time{T}}\Big(\frac{F}{\Strike{K}_0} - 1\Big)^2,
+$$
+
+where $Q$ is the out-of-the-money option's mid price, $\Strike{K}_0$ is the first listed strike at or below $F$
+(where $Q$ averages the put and call), and $\Delta\Strike{K}_i$ is half the distance between neighbouring strikes.
+The last term corrects for $\Strike{K}_0 \ne F$. It then interpolates the two variances to exactly 30 days and
+reports $\text{VIX} = 100\sqrt{\Vol{\sigma}^2}$.
+
+**Caveats.**
+- **Volatility swaps** pay $\Vol{\sigma}_R - K_{\text{vol}}$. By Jensen's inequality, $K_{\text{vol}} < \sqrt{K_{\text{var}}}$,
+  and the gap depends on the volatility of volatility, so a vol swap can't be replicated statically.
+- **Jumps** break the identity. A jump adds to realised variance differently from how it moves the log contract,
+  so the strip misprices variance when the stock can gap (Chapter 31).
+- **Truncation.** Only a finite range of strikes trades, so real replication leaves out the far tails, as the
+  widget's range slider shows.
+
+## <span class="section-tag">Playground</span>Build your own index
+
+<VixContributions client:visible />
+
+<div class="try-this">
+
+- **Calm market.** Set the at-the-money vol to 12% and the skew to −0.3. How far above 12 does the VIX sit?
+- **Panic.** Set the at-the-money vol to 40% and the skew to −0.8. What share of the index now comes from puts?
+- **Coarse strikes.** Switch to \$10 spacing. How much does the index move? The real VIX uses every listed strike
+  for exactly this reason.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A one-year variance swap has a strike of 20% volatility (K_var = 0.04) and pays \$1,000,000 per unit of variance. Realised volatility turns out to be 25%. What does the buyer receive?"
+  answer={22500}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="$1{,}000{,}000 \times (0.25^2 - 0.20^2) = 1{,}000{,}000 \times (0.0625 - 0.04) = 22{,}500$ dollars."
+/>
+
+<Quiz
+  client:visible
+  question="Why are the options in the variance-swap strip weighted by 1/K²?"
+  options={[
+    "To make the strip cheap",
+    "Because 1/K² is the second derivative of the log payoff, and options build a payoff weighted by its curvature",
+    "Because out-of-the-money options are riskier",
+    "Because the VIX is quoted in percentage points",
+  ]}
+  answer={1}
+  explanation="By Carr–Madan, a payoff $g$ is built from options weighted by $g''(\Strike{K})$. For the log contract, $g'' = 1/\Strike{K}^2$."
+/>
+
+<Quiz
+  client:visible
+  question="In a market with a downward equity skew, the fair variance-swap volatility √K_var is..."
+  options={[
+    "below the at-the-money implied vol",
+    "equal to the at-the-money implied vol",
+    "above the at-the-money implied vol",
+    "unrelated to option prices",
+  ]}
+  answer={2}
+  explanation="The strip includes every out-of-the-money option, weighted towards low strikes, where the skew makes implied volatility highest. So it costs more than at-the-money options alone suggest."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Itô: realised variance = 2 × (dynamic $1/\Spot{S}$-shares position − log contract). With no jumps this holds
+  whatever volatility does.
+- The log contract is a strip of out-of-the-money options weighted by $1/\Strike{K}^2$, so
+  $K_{\text{var}} = \frac{2e^{\Rate{r}\Time{T}}}{\Time{T}}\int Q(\Strike{K})/\Strike{K}^2\,d\Strike{K}$.
+- The strip has constant dollar gamma: a pure bet on variance. With a skew, $\sqrt{K_{\text{var}}}$ exceeds
+  at-the-money vol.
+- The **VIX** is this formula on 30-day S&P 500 options: the price of next month's variance.
+
+**Next up:** Part VI took the smile as given. Part VII asks what models can *produce* one. Chapter 29 starts with
+the simplest idea: let volatility depend on the stock price and time, and choose that function to fit the surface
+exactly.
+
+### Further reading
+
+- K. Demeterfi, E. Derman, M. Kamal and J. Zou, "More than you ever wanted to know about volatility swaps" (Goldman
+  Sachs, 1999).
+- Cboe, *VIX White Paper* (methodology of the Cboe Volatility Index).
+- P. Carr and R. Lee, "Volatility derivatives", *Annual Review of Financial Economics* (2009).

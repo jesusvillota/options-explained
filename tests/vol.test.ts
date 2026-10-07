@@ -5,7 +5,7 @@ import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
 import { butterflyDensity, impliedDensity, impliedTailProbability, smilePrice } from '../src/lib/vol/density';
 import { bisectionBrackets, brennerSubrahmanyam, historicalVol, historicalVolStdError, rollingVol, impliedVol, manasterKoehlerGuess, newtonIterates, priceBounds } from '../src/lib/vol/impliedVol';
 import { atmTotalVariance, densityFactor, EQUITY_SSVI, forwardDelta, logMoneynessForDelta, smileQuotes, ssviButterflyFree, ssviTotalVariance, ssviVol, sviTotalVariance } from '../src/lib/vol/smile';
-import { fairVariance, logContractPayoff, stripPayoff, strikeSpacings, vixVariance } from '../src/lib/vol/varianceSwap';
+import { fairVariance, logContractPayoff, realisedVariance, stripPayoff, strikeSpacings, vixTerms, vixVariance } from '../src/lib/vol/varianceSwap';
 
 const market = { S: 100, K: 100, T: 1, r: 0.05, q: 0 };
 
@@ -202,4 +202,24 @@ describe('variance swaps', () => {
     const skew = (k: number) => ssviVol(k, 1, EQUITY_SSVI);
     expect(fairVariance(market, skew)).toBeGreaterThan(0.04);
   });
+
+  it('VIX terms: puts below K₀, calls above, and with a skew the puts carry most of the weight', () => {
+    const skew = (k: number) => ssviVol(k, 30 / 365, EQUITY_SSVI);
+    const m = { S: 100, K: 100, T: 30 / 365, r: 0.05, q: 0 };
+    const strikes = Array.from({ length: 81 }, (_, i) => 60 + i);
+    const { terms, correction, K0, F } = vixTerms(m, skew, strikes);
+    expect(K0).toBe(100);
+    expect(F).toBeCloseTo(100 * Math.exp(0.05 * 30 / 365), 12);
+    expect(terms.filter((t) => t.K < K0).every((t) => t.kind === 'put')).toBe(true);
+    expect(terms.filter((t) => t.K > K0).every((t) => t.kind === 'call')).toBe(true);
+    const puts = terms.filter((t) => t.kind === 'put').reduce((a, t) => a + t.contribution, 0);
+    const calls = terms.filter((t) => t.kind === 'call').reduce((a, t) => a + t.contribution, 0);
+    expect(puts).toBeGreaterThan(1.5 * calls);
+    expect(terms.reduce((a, t) => a + t.contribution, 0) - correction).toBeCloseTo(vixVariance(m, skew, strikes), 14);
+  });
+
+  it('realised variance of a long GBM path is close to σ²', () => {
+    expect(realisedVariance(gbmPath(11, 100, 0.05, 0.25, 20, 20 * 252))).toBeCloseTo(0.0625, 3);
+  });
 });
+
