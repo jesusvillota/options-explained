@@ -41,7 +41,7 @@ export interface SSVIParams {
   atmVolShort?: number;
 }
 
-export const EQUITY_SSVI: SSVIParams = { atmVol: 0.2, rho: -0.7, eta: 1.0 };
+export const EQUITY_SSVI: SSVIParams = { atmVol: 0.2, rho: -0.6, eta: 0.8 };
 
 /** Speed (per year) at which the at-the-money term structure moves from short to long. */
 const KAPPA = 2;

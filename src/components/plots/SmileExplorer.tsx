@@ -11,7 +11,7 @@ type Axis = 'strike' | 'k' | 'delta';
 type Preset = 'equity' | 'fx' | 'commodity' | 'flat';
 
 const PRESETS: Record<Preset, Required<SSVIParams>> = {
-  equity: { atmVol: 0.2, atmVolShort: 0.2, rho: -0.7, eta: 1.0 },
+  equity: { atmVol: 0.2, atmVolShort: 0.2, rho: -0.6, eta: 0.8 },
   fx: { atmVol: 0.1, atmVolShort: 0.1, rho: 0, eta: 1.2 },
   commodity: { atmVol: 0.3, atmVolShort: 0.3, rho: 0.4, eta: 0.8 },
   flat: { atmVol: 0.2, atmVolShort: 0.2, rho: 0, eta: 0 },

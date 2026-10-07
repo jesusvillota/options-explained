@@ -266,8 +266,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 27. Reading probabilities from prices
 - **Goals:** Recover the risk-neutral density from call prices. Connect it back to butterflies (Ch. 10).
 - **Key math:** $f_{\mathbb{Q}}(K) = e^{rT}\,\partial^2 C/\partial K^2$ (Breeden–Litzenberger).
-- **Widgets:** shrinking butterflies whose scaled payoffs converge to a density. A smile edited by the reader
-  that shows how the implied density changes, and when it goes negative.
+- **Widgets:** `ButterflyDensity`: butterflies of width \$20 to \$2 at every strike, priced from call prices and
+  scaled by $e^{rT}/h^2$, converging onto the lognormal density. `ImpliedDensity`: an SSVI smile and the density
+  it implies, against the lognormal, with tail probabilities and negative (arbitrage) regions in red.
+  Library: `src/lib/vol/density.ts`.
 - **Prereqs:** 10, 26.
 
 ### 28. Variance swaps & the VIX
@@ -414,10 +416,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `CompoundingStaircase` | 6 | — |
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
-| `ParityLine` | 8 | 27 |
+| `ParityLine` | 8 | — |
 | `EarlyExerciseValue` | 9 | 13, 36 |
 | `ExerciseBoundary` | 9 | 13, 36 |
-| `ConvexityEditor` | 10 | 27 |
+| `ConvexityEditor` | 10 | — |
 | `OneStepReplication` | 11 | 12 |
 | `RiskNeutralSlider` | 12 | 40 |
 | `BinomialTreeAnimated` | 13 | 36 |
@@ -435,6 +437,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HedgeSimulator` | 24 | 28 |
 | `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
 | `SmileExplorer` | 26 | — |
+| `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
