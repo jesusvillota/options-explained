@@ -1,0 +1,177 @@
+---
+title: "From trees to Black–Scholes"
+part: 3
+chapter: 14
+difficulty: 2
+prerequisites: [13]
+summary: "Let the number of steps grow without bound: the tree becomes a lognormal, and its price becomes Black–Scholes."
+---
+import TreeConvergence from '../../components/plots/TreeConvergence';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>What does an infinitely fine tree look like?
+
+In Chapter 13, the tree price of our call jumped around: \$12.16 with one step, \$9.54 with two, \$11.04 with
+three, … and then settled near \$10.45. Each extra step makes the model a little more realistic: more possible
+prices, smaller moves.
+
+Push this to the limit, a step every second, every millisecond, every instant. Two things happen, and they're the
+subject of this chapter:
+
+1. The tree's spread of possible final prices takes on a definite, smooth shape: the **lognormal distribution**.
+2. The tree's price converges to a definite number, given by a famous closed-form formula: **Black–Scholes**.
+
+Nothing new is being assumed. Black–Scholes is just the limit of the binomial model you already understand.
+
+## <span class="section-tag">Intuition</span>Many small coin flips make a bell curve
+
+Over $n$ steps the stock makes $J$ up moves and $n - J$ down moves, where $J$ counts heads in $n$ biased coin
+flips. Its final price is
+
+$$
+\Spot{S_T} = \Spot{S_0}\,u^{J}d^{\,n-J} \quad\Longrightarrow\quad \ln\frac{\Spot{S_T}}{\Spot{S_0}} = (2J - n)\,\Vol{\sigma}\sqrt{\Delta t}.
+$$
+
+So the **logarithm** of the price is a sum of many small, independent $\pm\Vol{\sigma}\sqrt{\Delta t}$ steps. The
+**central limit theorem** says such sums always end up bell-shaped, normally distributed, whatever the shape of
+each step. So $\ln \Spot{S_T}$ becomes normal, and $\Spot{S_T}$ itself becomes **lognormal**: skewed to the right,
+never negative, with a long upper tail.
+
+<TreeConvergence client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start at 5 steps, where the tree has only 6 possible outcomes, then
+slide up. By 40 steps the grey bars hug the purple lognormal curve, and by 200 they're indistinguishable. At the
+same time, watch the bottom panel: the tree price zig-zags into the Black–Scholes line.</p>
+
+Now the $\sqrt{\Delta t}$ in $u = e^{\Vol{\sigma}\sqrt{\Delta t}}$ makes sense. Each step contributes variance
+$\Vol{\sigma}^2\Delta t$, and there are $n = \Time{T}/\Delta t$ of them, so the total variance of
+$\ln \Spot{S_T}$ is $\Vol{\sigma}^2\Time{T}$ **no matter how many steps** you use. With any other scaling, the
+limit would either freeze (no randomness) or explode. Randomness grows like the *square root* of time. Chapter 15
+takes this idea seriously.
+
+## <span class="section-tag">Intuition</span>The price converges, with a wobble
+
+The bottom panel shows the tree price for every $n$ from 1 to 200. Two things stand out:
+
+- **It converges.** The error shrinks roughly in proportion to $1/n$. With 200 steps, we're within about a cent.
+- **It zig-zags.** As $n$ changes, the nodes of the tree slide past the strike. Sometimes a node sits just above
+  \$100, sometimes just below, and the price jumps between two interleaved curves. That's why practitioners often
+  average two consecutive $n$, or nudge the tree to put a node on the strike.
+
+The limit is a specific number, \$10.4506, and it has a formula.
+
+<Callout type="key" title="The Black–Scholes formula, as a limit">
+As $n \to \infty$, the tree price of a European call converges to
+
+$$
+\Call{C} = \Spot{S_0}\,N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}\,N(d_2), \qquad
+d_{1,2} = \frac{\ln(\Spot{S_0}/\Strike{K}) + (\Rate{r} \pm \tfrac12\Vol{\sigma}^2)\Time{T}}{\Vol{\sigma}\sqrt{\Time{T}}},
+$$
+
+where $N$ is the standard normal cumulative distribution function. We'll derive it properly, and interpret every
+piece, in Chapter 18.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The limit, step by step
+
+Under $\mathbb{Q}$, each step adds $X_k = +\Vol{\sigma}\sqrt{\Delta t}$ with probability $q$ and
+$-\Vol{\sigma}\sqrt{\Delta t}$ otherwise, so $\ln(\Spot{S_T}/\Spot{S_0}) = \sum_{k=1}^n X_k$.
+
+**Mean and variance per step.** Expanding $q = (e^{\Rate{r}\Delta t} - e^{-\Vol{\sigma}\sqrt{\Delta t}})/(e^{\Vol{\sigma}\sqrt{\Delta t}} - e^{-\Vol{\sigma}\sqrt{\Delta t}})$
+for small $\Delta t$ gives
+
+$$
+q = \tfrac12 + \frac{\Rate{r} - \tfrac12\Vol{\sigma}^2}{2\Vol{\sigma}}\sqrt{\Delta t} + O(\Delta t),
+$$
+
+so
+
+$$
+\mathbb{E}^{\mathbb{Q}}[X_k] = (2q - 1)\Vol{\sigma}\sqrt{\Delta t} = \big(\Rate{r} - \tfrac12\Vol{\sigma}^2\big)\Delta t + O(\Delta t^{3/2}),
+\qquad \operatorname{Var}^{\mathbb{Q}}[X_k] = \Vol{\sigma}^2\Delta t + O(\Delta t^{2}).
+$$
+
+**Sum over $n = \Time{T}/\Delta t$ steps.** The mean of $\ln(\Spot{S_T}/\Spot{S_0})$ tends to
+$(\Rate{r} - \tfrac12\Vol{\sigma}^2)\Time{T}$ and the variance to $\Vol{\sigma}^2\Time{T}$. By the central limit
+theorem (in its Lindeberg form, since the step distribution changes with $n$),
+
+$$
+\ln\frac{\Spot{S_T}}{\Spot{S_0}} \;\xrightarrow{\;d\;}\; \mathcal{N}\!\Big(\big(\Rate{r} - \tfrac12\Vol{\sigma}^2\big)\Time{T},\; \Vol{\sigma}^2\Time{T}\Big)
+\quad\text{under } \mathbb{Q}.
+$$
+
+**Why $-\tfrac12\Vol{\sigma}^2$?** The mean of the *log* is below $\Rate{r}\Time{T}$, even though
+$\mathbb{E}^{\mathbb{Q}}[\Spot{S_T}] = \Spot{S_0}e^{\Rate{r}\Time{T}}$ exactly. Because $e^x$ is convex, a
+symmetric spread in $\ln \Spot{S}$ pushes up the average of $\Spot{S}$ (Jensen again, as in Chapter 3). The two
+are reconciled by $\mathbb{E}[e^{Z}] = e^{m + s^2/2}$ for $Z \sim \mathcal{N}(m, s^2)$. Chapter 16 calls this
+**volatility drag**.
+
+**The price.** The call price is $e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[(\Spot{S_T} - \Strike{K})^+]$, and
+the payoff is continuous and grows no faster than $\Spot{S_T}$, whose moments converge. So the tree price
+converges to the same expectation under the lognormal limit. Evaluating that integral gives the formula in the box
+above (Chapter 18 does it in full). The convergence rate is $O(1/n)$, with an oscillating error term that depends
+on where the strike sits between nodes. Leisen and Reimer (1996) give trees that remove the oscillation.
+
+## <span class="section-tag">Playground</span>Watch the limit
+
+<TreeConvergence client:visible />
+
+<div class="try-this">
+
+- **Find the smallest $n$** for which the tree price is within 1 cent of Black–Scholes, and stays there.
+- **Compare $n = 99$ and $n = 100$.** The zig-zag means consecutive $n$ fall on opposite sides of the true price.
+  Their average is much closer than either.
+- **Look at the left tail of the distribution.** Even with huge volatility the lognormal never reaches \$0.
+  Prices can't go negative, which is one reason we model $\ln \Spot{S}$ rather than $\Spot{S}$ itself.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Why does the CRR tree use u = exp(σ√Δt) rather than, say, exp(σΔt)?"
+  options={[
+    "To keep q between 0 and 1",
+    "So the total variance of ln S_T stays σ²T as the number of steps grows",
+    "To make the tree recombine",
+    "Because volatility is quoted per square root of a day",
+  ]}
+  answer={1}
+  explanation="Each step adds variance $(\Vol{\sigma}\sqrt{\Delta t})^2 = \Vol{\sigma}^2\Delta t$, and there are $\Time{T}/\Delta t$ steps, so the total is $\Vol{\sigma}^2\Time{T}$ for any $n$. With $\Vol{\sigma}\Delta t$ the variance would vanish as $n \to \infty$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Under Q, with r = 5%, σ = 20% and T = 1, what is the mean of ln(S_T/S_0)? (Decimal, three places.)"
+  answer={0.03}
+  tolerance={0.0005}
+  explanation="$(\Rate{r} - \tfrac12\Vol{\sigma}^2)\Time{T} = 0.05 - 0.02 = 0.03$."
+/>
+
+<Quiz
+  client:visible
+  question="As n → ∞, the distribution of S_T in the CRR tree becomes..."
+  options={["normal", "lognormal", "uniform", "binomial with infinite variance"]}
+  answer={1}
+  explanation="The log of the price is a sum of many small independent steps, so it becomes normal. The price itself is therefore lognormal."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- In a CRR tree, $\ln \Spot{S_T}$ is a sum of $n$ small independent steps. By the **central limit theorem**, it
+  becomes normal, so $\Spot{S_T}$ becomes **lognormal**.
+- $u = e^{\Vol{\sigma}\sqrt{\Delta t}}$ keeps the total variance at $\Vol{\sigma}^2\Time{T}$: randomness scales with
+  $\sqrt{\text{time}}$.
+- Under $\mathbb{Q}$: $\ln(\Spot{S_T}/\Spot{S_0}) \sim \mathcal{N}\big((\Rate{r} - \tfrac12\Vol{\sigma}^2)\Time{T}, \Vol{\sigma}^2\Time{T}\big)$.
+- The tree price converges, with a **zig-zag**, at rate $1/n$, to the **Black–Scholes formula**
+  $\Call{C} = \Spot{S_0}N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$.
+
+**Next up:** Part IV takes the continuous-time limit seriously. Instead of a tree with tiny steps, we'll describe
+the stock's path directly, starting with the strange object the random walk turns into: **Brownian motion**.
+
+### Further reading
+
+- J. C. Cox, S. A. Ross and M. Rubinstein, "Option pricing: a simplified approach" (1979), section on the limit.
+- D. Leisen and M. Reimer, "Binomial models for option valuation – examining and improving convergence" (1996).
