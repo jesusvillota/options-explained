@@ -75,6 +75,10 @@ export function Heatmap({
   }
   const flat = values.flat().filter(Number.isFinite);
   const [lo, hi] = range ?? [Math.min(...flat), Math.max(...flat)];
+  // Show a limit that is zero up to rounding (e.g. 7.5e-76) as 0.
+  const tidy = (v: number) => (Math.abs(v) < 1e-6 * Math.max(Math.abs(lo), Math.abs(hi)) ? 0 : v);
+  // On narrow screens the legend moves to the bottom so it doesn't cover the label.
+  const narrow = width > 0 && width < 480;
 
   useEffect(() => {
     const c = canvas.current;
@@ -146,10 +150,10 @@ export function Heatmap({
           </svg>
         </>
       )}
-      <div style={{ position: 'absolute', right: MARGIN.right + 4, top: MARGIN.top + 4, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-inset)', padding: '2px 6px', borderRadius: 4 }}>
-        <span>{formatValue(lo)}</span>
+      <div style={{ position: 'absolute', right: MARGIN.right + 4, top: narrow ? MARGIN.top + plotH - 24 : MARGIN.top + 4, display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-inset)', padding: '2px 6px', borderRadius: 4 }}>
+        <span>{formatValue(tidy(lo))}</span>
         <span style={{ width: 60, height: 8, borderRadius: 2, background: `linear-gradient(to right, ${lo < 0 ? `var(${negativeColor}), var(--bg-inset),` : 'var(--bg-inset),'} var(${color}))` }} />
-        <span>{formatValue(hi)}</span>
+        <span>{formatValue(tidy(hi))}</span>
       </div>
     </div>
   );
