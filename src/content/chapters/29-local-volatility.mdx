@@ -1,0 +1,191 @@
+---
+title: "Local volatility (Dupire)"
+part: 7
+chapter: 29
+difficulty: 3
+prerequisites: [19, 27]
+summary: "Let volatility depend on the stock price and time, and there is exactly one way to choose it that fits every option on the surface."
+---
+import LocalVolMap from '../../components/plots/LocalVolMap';
+import LocalVolDynamics from '../../components/plots/LocalVolDynamics';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>One model for every strike
+
+Black–Scholes uses one number, $\Vol{\sigma}$, and so it can match one option. The smile of Chapter 26 says that
+each strike and maturity needs its own number. A trader who prices a barrier or an Asian option needs a single
+model that is consistent with *all* the vanilla prices at once. Otherwise the exotic's price depends on which
+vanilla you happened to calibrate to.
+
+The most direct fix keeps everything about Black–Scholes except one thing. Let volatility be a function of where
+the stock is and when, $\Vol{\sigma}(\Spot{S}, t)$. In 1994 Bruno Dupire, and independently Derman and Kani,
+showed that there is exactly one such function that reproduces a given implied volatility surface, and gave a
+formula for it.
+
+## <span class="section-tag">Intuition</span>A map of volatility
+
+Think of $\Vol{\sigma}_{\text{loc}}(\Spot{S}, t)$ as a landscape the stock walks through. Wherever the path is at
+time $t$, it moves with the volatility of that spot on the map:
+
+<LocalVolMap client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the equity skew, the map is brightest at low stock prices. A
+path that falls becomes more volatile, which is the leverage effect built into the model. Toggle to the implied
+surface on the same colour scale: the local map is clearly steeper in the vertical direction. The readout says by
+how much: about twice.</p>
+
+## <span class="section-tag">Intuition</span>Why the local skew is twice as steep
+
+An option struck at $\Strike{K}$ cares about the volatility the stock experiences on its way from today's price to
+$\Strike{K}$. For short maturities, its implied volatility is roughly the **average** of the local volatility
+along that route:
+
+$$
+\Vol{\sigma}_{\text{imp}}(\Strike{K}) \approx \tfrac12\big(\Vol{\sigma}_{\text{loc}}(\Spot{S_0}) + \Vol{\sigma}_{\text{loc}}(\Strike{K})\big) .
+$$
+
+Move the strike down by \$1 and only one end of the average moves, so the implied smile changes at half the rate
+of the local one. Turned around, the **local skew is about twice the implied skew**. Local volatility has to
+exaggerate the smile, because each option averages it out.
+
+## <span class="section-tag">Intuition</span>Right today, wrong tomorrow
+
+Local vol fits today's surface perfectly, by construction. The trouble is what it says about tomorrow. Calibrate
+it to today's smile, then move the spot and ask the model for the new smile:
+
+<LocalVolDynamics client:visible />
+
+<p class="try-this"><strong>Try this:</strong> move the spot down to \$92. The local vol smile (thick) shifts to the
+<em>right</em>, the opposite way to the spot, and its at-the-money vol jumps to about 29%. The dashed sticky-moneyness
+smile, which simply moves with the spot, keeps the at-the-money vol near 21%.</p>
+
+Hagan, Kumar, Lesniewski and Woodward (2002) pointed out this flaw. Under local volatility, the smile moves
+against the spot. In many markets it actually moves *with* the spot, closer to sticky moneyness. Since a model's
+delta includes how it thinks the smile will move, a local vol delta can be badly wrong, even though every price
+the model produces today is right.
+
+<Callout type="key" title="Calibration is not the same as a good model">
+Fitting today's prices pins down the model's <em>static</em> distribution at each maturity. It says nothing about
+the dynamics: how the smile evolves, the forward smile, or the joint behaviour across dates. Two models can match
+every vanilla today and still disagree wildly on a barrier or a forward-start option.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Dupire's formula
+
+Assume $d\Spot{S_t} = (\Rate{r} - q)\Spot{S_t}\,dt + \Vol{\sigma}_{\text{loc}}(\Spot{S_t}, t)\Spot{S_t}\,dW_t$. The
+density $p(\Strike{K}, \Time{T})$ of $\Spot{S_T}$ obeys the forward (Fokker–Planck) equation. Substituting
+$p = e^{\Rate{r}\Time{T}}\partial_{\Strike{K}\Strike{K}}\Call{C}$ (Breeden–Litzenberger, Chapter 27) and integrating
+twice in $\Strike{K}$ gives **Dupire's equation** for call prices as functions of strike and maturity:
+
+$$
+\frac{\partial \Call{C}}{\partial \Time{T}} = \tfrac12\Vol{\sigma}_{\text{loc}}^2(\Strike{K}, \Time{T})\,\Strike{K}^2\frac{\partial^2 \Call{C}}{\partial \Strike{K}^2} - (\Rate{r} - q)\Strike{K}\frac{\partial \Call{C}}{\partial \Strike{K}} - q\Call{C} .
+$$
+
+It's a *forward* equation: one solve from today's spot gives every strike and maturity. That's how the widget
+re-prices after a spot move. Solving for the volatility,
+
+$$
+\Vol{\sigma}_{\text{loc}}^2(\Strike{K}, \Time{T}) = \frac{\partial_{\Time{T}}\Call{C} + (\Rate{r} - q)\Strike{K}\,\partial_{\Strike{K}}\Call{C} + q\Call{C}}{\tfrac12\Strike{K}^2\,\partial_{\Strike{K}\Strike{K}}\Call{C}} .
+$$
+
+The numerator is a calendar spread and the denominator a butterfly, so no-arbitrage (Chapters 26 and 27) is exactly
+what makes $\Vol{\sigma}_{\text{loc}}^2$ positive. Differentiating noisy market prices twice is numerically
+fragile, so in practice one first fits a smooth arbitrage-free surface such as SSVI. In total implied variance
+$w(k, \Time{T})$, Gatheral's form is
+
+$$
+\Vol{\sigma}_{\text{loc}}^2(\Strike{K}, \Time{T}) = \frac{\partial_{\Time{T}} w(k, \Time{T})}{g(k, \Time{T})}, \qquad k = \ln(\Strike{K}/F_{\Time{T}}),
+$$
+
+with $g$ the density factor of Chapter 27. This is what the widget computes.
+
+**Implied vol as an average.** For short maturities, Berestycki, Busca and Florent showed that implied volatility is
+a harmonic average of local volatility along the straight line in log-moneyness:
+
+$$
+\frac{1}{\Vol{\sigma}_{\text{imp}}(k)} \approx \int_0^1 \frac{dy}{\Vol{\sigma}_{\text{loc}}(yk)} .
+$$
+
+Differentiating at $k = 0$ gives the **factor of two**: $\partial_k\Vol{\sigma}_{\text{imp}}(0) \approx \tfrac12\,\partial_k\Vol{\sigma}_{\text{loc}}(0)$.
+
+**What local vol really is.** Gyöngy's theorem (1986) says that *any* model, for example a stochastic volatility
+model, has the same one-dimensional distributions as the local vol model with
+
+$$
+\Vol{\sigma}_{\text{loc}}^2(\Strike{K}, \Time{T}) = \mathbb{E}^{\mathbb{Q}}\big[\Vol{\sigma}_{\Time{T}}^2 \,\big|\, \Spot{S_T} = \Strike{K}\big] .
+$$
+
+Local variance is the market's expected instantaneous variance, conditional on the stock being at $\Strike{K}$ at
+$\Time{T}$. It's a projection of richer dynamics onto one dimension, which explains both why it fits all
+vanillas and why its dynamics are wrong.
+
+## <span class="section-tag">Playground</span>Shape the landscape
+
+<LocalVolMap client:visible />
+
+<div class="try-this">
+
+- **Flatten it.** Set skew and wings to zero. What does the local vol map look like, and what do the paths do?
+- **Flip the skew.** Set ρ = +0.4, like a commodity. Where is the map brightest now, and what happens to paths
+  that rally?
+- **Wings only.** With ρ = 0 and wings at 1.2, the implied smile is symmetric. Why is the local vol map bright at
+  both high and low prices, and darkest near the starting price?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Near the money, short-dated implied volatility falls by 0.8 vol points for each 1% increase in strike. Roughly how much does local volatility fall per 1% increase in the stock price?"
+  answer={1.6}
+  tolerance={0.05}
+  explanation="Local skew is about twice the implied skew: $2 \times 0.8 = 1.6$ vol points per 1%."
+/>
+
+<Quiz
+  client:visible
+  question="A local volatility model calibrated to today's implied surface..."
+  options={[
+    "reprices every European vanilla option on the surface",
+    "predicts how the smile will move when the spot moves",
+    "gives the same barrier prices as any other model fitting the same vanillas",
+    "has constant volatility along each path",
+  ]}
+  answer={0}
+  explanation="Dupire's construction reproduces every vanilla price exactly. Its smile dynamics are typically wrong, and path-dependent options are model-dependent even among models that match all vanillas."
+/>
+
+<Quiz
+  client:visible
+  question="By Gyöngy's theorem, the local variance σ²_loc(K, T) equals..."
+  options={[
+    "the implied variance at strike K",
+    "the expected instantaneous variance at time T, given that the stock is at K",
+    "the realised variance of the stock up to T",
+    "the variance-swap strike for maturity T",
+  ]}
+  answer={1}
+  explanation="$\Vol{\sigma}_{\text{loc}}^2(\Strike{K}, \Time{T}) = \mathbb{E}^{\mathbb{Q}}[\Vol{\sigma}_{\Time{T}}^2 \mid \Spot{S_T} = \Strike{K}]$: local variance is conditional expected variance."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Local vol** $\Vol{\sigma}_{\text{loc}}(\Spot{S}, t)$ is the unique diffusion coefficient that reproduces a given
+  implied surface: Dupire's formula, a calendar spread divided by a butterfly.
+- Implied vol averages local vol along the way to the strike, so the **local skew is about twice the implied
+  skew**.
+- **Gyöngy**: local variance is the conditional expectation of instantaneous variance.
+- Local vol fits today perfectly but moves the smile **against** the spot, which distorts deltas and forward-smile
+  products.
+
+**Next up:** instead of fixing volatility as a function of the stock, let it be random. Chapter 30 introduces
+the Heston model, where variance follows its own mean-reverting process, correlated with the stock.
+
+### Further reading
+
+- B. Dupire, "Pricing with a smile", *Risk* (1994).
+- E. Derman and I. Kani, "Riding on a smile", *Risk* (1994).
+- J. Gatheral, *The Volatility Surface*, chapters 1–3.
+- P. Hagan, D. Kumar, A. Lesniewski and D. Woodward, "Managing smile risk", *Wilmott* (2002).

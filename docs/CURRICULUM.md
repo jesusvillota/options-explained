@@ -291,7 +291,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   in particular its forward smile dynamics.
 - **Key math:** Dupire's formula
   $\sigma_{loc}^2(K,T) = \frac{\partial_T C + (r-q)K\partial_K C + qC}{\tfrac12 K^2 \partial_{KK} C}$.
-- **Widgets:** a local vol surface next to the implied vol surface, with sample paths coloured by the local vol.
+- **Widgets:** `LocalVolMap`: Dupire local vol of an SSVI surface as a `Heatmap` over $(S, t)$ with seeded
+  local-vol paths overlaid, a toggle to the implied surface on the same scale, and the local/implied skew ratio
+  (≈ 2). `LocalVolDynamics`: the smile local vol predicts after a spot move (Dupire's forward PDE from the new
+  spot) against sticky strike and sticky moneyness. Library: `src/lib/models/localVol.ts`.
 - **Prereqs:** 19, 27.
 
 ### 30. Stochastic volatility (Heston)
@@ -432,7 +435,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ItoComparison` | 17 | — |
 | `BSIntegrand` | 18 | 37, 40 |
 | `HeatDiffusion` | 19 | 34 |
-| `Heatmap`, `BSPricer` | 20 | 23, 26 |
+| `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
 | `ThetaGammaBars` | 22 | — |
@@ -442,6 +445,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `SmileExplorer` | 26 | — |
 | `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
 | `LogContractStrip`, `VixContributions` | 28 | — |
+| `LocalVolMap`, `LocalVolDynamics` | 29 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

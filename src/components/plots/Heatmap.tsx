@@ -23,6 +23,8 @@ interface HeatmapProps {
   /** Grid resolution. */
   nx?: number;
   ny?: number;
+  /** Polylines drawn on top, in data coordinates (e.g. simulated paths, Chapter 29). */
+  overlay?: { points: [number, number][]; color: string; width?: number }[];
 }
 
 const MARGIN = { left: 52, right: 14, top: 10, bottom: 40 };
@@ -44,7 +46,7 @@ function readColor(el: Element, name: string): [number, number, number] {
  */
 export function Heatmap({
   f, x, y, height, color, negativeColor = '--c-put', range, xTicks, yTicks,
-  formatX = String, formatY = String, formatValue = (v) => v.toFixed(2), xLabel, yLabel, marker, nx = 120, ny = 80,
+  formatX = String, formatY = String, formatValue = (v) => v.toFixed(2), xLabel, yLabel, marker, nx = 120, ny = 80, overlay = [],
 }: HeatmapProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -135,6 +137,9 @@ export function Heatmap({
             ))}
             {xLabel && <text x={MARGIN.left + plotW} y={height - 4} textAnchor="end" fill="currentColor">{xLabel}</text>}
             {yLabel && <text x={MARGIN.left + 6} y={MARGIN.top + 14} fill="var(--text)" style={{ paintOrder: 'stroke', stroke: 'var(--bg-inset)', strokeWidth: 4 }}>{yLabel}</text>}
+            {overlay.map((line, i) => (
+              <polyline key={`o${i}`} points={line.points.map(([px, py]) => `${toPx(Math.min(Math.max(px, x[0]), x[1]))},${toPy(Math.min(Math.max(py, y[0]), y[1]))}`).join(' ')} fill="none" stroke={line.color} strokeWidth={line.width ?? 1.5} strokeLinejoin="round" />
+            ))}
             {marker && (
               <g stroke="var(--text)" strokeWidth={1.5}>
                 <line x1={toPx(marker[0])} x2={toPx(marker[0])} y1={MARGIN.top} y2={MARGIN.top + plotH} strokeDasharray="4 3" />

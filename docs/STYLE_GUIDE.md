@@ -72,6 +72,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\Delta, \Gamma, \Theta, \mathcal{V}, \rho$ | Delta, gamma, theta, vega, rho. Write vega as $\mathcal{V}$ so it isn't confused with $\nu$ |
 | $\hat\sigma$ | An estimate of $\sigma$ from data (historical volatility) |
 | $C^{\text{mkt}}$ | An observed market price, as opposed to a model price such as $C_{\text{BS}}$ |
+| $\sigma_{\text{imp}}$, $\sigma_{\text{loc}}$ | Implied volatility and local (Dupire) volatility (Chapter 29) |
 | $k$, $w$ | Log-moneyness $k = \ln(K/F)$ and total implied variance $w = \sigma_{\text{imp}}^2 T$ (Part VI) |
 | $\theta_T$, $\rho$, $\eta$, $\psi$ | SSVI: at-the-money total variance, skew, wing level, and $\psi = \eta/\sqrt{\theta_T}$. In Part VI, $\rho$ is the smile's skew; in Parts VII and IX it's a correlation. Context always says which, and the Greek rho is written $\rho_{\text{call}}$ when ambiguous |
 | $\text{RR}_{25}$, $\text{BF}_{25}$ | 25-delta risk reversal and butterfly, in volatility points |
