@@ -97,7 +97,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   American puts sometimes are.
 - **Key math:** $C^{Am} \ge S - Ke^{-rT} > S - K$; the put's early-exercise trade-off (interest on $K$ vs the
   insurance you give up).
-- **Widgets:** compare "exercise now" with "sell the option" as $S$ varies. Previews the early-exercise boundary.
+- **Widgets:** `EarlyExerciseValue` (American vs European vs payoff, with the exercise region and early-exercise
+  premium, for calls with dividends too) and `ExerciseBoundary` (the put's critical price $S^*(t)$ from the tree,
+  with a random path that triggers exercise). Formalisation includes optimal stopping, smooth pasting and the
+  perpetual put.
 - **Prereqs:** 7, 8.
 
 ### 10. Shape constraints
@@ -404,6 +407,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
 | `ParityLine` | 8 | 27 |
+| `EarlyExerciseValue` | 9 | 13, 36 |
+| `ExerciseBoundary` | 9 | 13, 36 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

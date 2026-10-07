@@ -1,0 +1,202 @@
+---
+title: "Early exercise"
+part: 2
+chapter: 9
+difficulty: 2
+prerequisites: [7, 8]
+summary: "Why you should never exercise an American call early on a stock with no dividends, and why puts are different."
+---
+import EarlyExerciseValue from '../../components/plots/EarlyExerciseValue';
+import ExerciseBoundary from '../../components/plots/ExerciseBoundary';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Cash in now, or wait?
+
+You hold an **American** put: strike \$100, one year left, and you can exercise it any day you like. The company
+has just had terrible news and its stock has crashed to \$60. Exercise today and you get \$40, right now. Wait,
+and the most you could ever get is \$100 at expiry, and the stock might bounce back.
+
+Now flip it. You hold an American **call** with strike \$100, and the stock has soared to \$160. Exercise today
+and you lock in \$60. Should you?
+
+The answers are different, and the reason is one of the neatest arguments in option theory. For the call
+(no dividends): **never exercise early**. For the put: **sometimes exercise early**, and there's a precise
+dividing line, which moves over time.
+
+## <span class="section-tag">Intuition</span>The call: alive is always worth more
+
+Exercising a call early does two things, and both hurt you:
+
+1. **You pay the strike sooner.** Paying \$100 today instead of in a year costs you a year's interest on \$100.
+2. **You throw away the insurance.** Once exercised, you own the stock outright. If it crashes, you take the
+   whole loss. The unexercised call would have let you walk away below \$100.
+
+So exercising early gives up value twice, and gains nothing in return, *unless the stock pays dividends* that
+only shareholders receive. Chapter 7 put a number on it: a European call is worth at least
+$\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$, which is **more** than the $\Spot{S} - \Strike{K}$ you'd get by
+exercising. An American call is worth at least as much as the European one, so it's always worth more alive than
+dead.
+
+<Callout type="key" title="Don't exercise: sell">
+If you want out of a call on a non-dividend stock before expiry, <strong>sell it</strong>. Someone will pay you
+at least $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$ for it, more than exercising would give you. As a result,
+an American call on a non-dividend stock is worth <em>exactly</em> the same as a European one.
+</Callout>
+
+## <span class="section-tag">Intuition</span>The put: sometimes the interest wins
+
+For a put, exercising early means **receiving** the strike sooner. That's good: you can earn interest on it. The
+cost is the same lost insurance, since once exercised you can't benefit if the stock recovers. So there's a
+genuine trade-off:
+
+- **Benefit of exercising now:** interest on $\Strike{K}$ until expiry.
+- **Cost of exercising now:** the option's remaining protection, its *time value* from Chapter 3.
+
+When the stock has collapsed, the protection is worth very little: the put is almost certain to end up in the
+money anyway. The interest wins, and exercising is the right call. Remember Chapter 3: that's exactly where a
+*European* put had **negative** time value. An American holder isn't stuck waiting, so they exercise.
+
+<EarlyExerciseValue client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the stock price down. Below about \$81 the American value
+(thick) lies exactly on the payoff: that's the orange <em>exercise now</em> region. Then set the interest rate to
+zero. The region vanishes: with no interest to earn, there's no reason to exercise a put early.</p>
+
+The gap between the thick American curve and the dashed European one is the **early-exercise premium**: what the
+right to exercise early is worth. At the money it's about \$0.52 here (\$6.09 vs \$5.57). Deep in the money it
+grows, because the European put is stuck below its payoff while the American one isn't.
+
+Switch to a **call** with no dividends: the two curves lie exactly on top of each other. Then raise the dividend
+yield. Now the call *does* have an exercise region, at high stock prices. A shareholder collects dividends and a
+call holder doesn't, so deep in the money it can pay to exercise and start receiving them.
+
+## <span class="section-tag">Intuition</span>A boundary that moves with time
+
+For each moment before expiry, there's a **critical stock price** $\Spot{S}^*(t)$: exercise the put if the stock
+is below it, wait if above. Today it's about \$81. As expiry approaches, there's less interest left to earn, so
+the critical price rises, and it reaches the strike exactly at expiry.
+
+The holder's whole strategy is: *watch the stock, and exercise the first time it touches the boundary.*
+
+<ExerciseBoundary client:visible />
+
+<p class="try-this"><strong>Try this:</strong> re-roll the path a few times. Some paths dive into the region
+early, some only at the very end, and some never. Then raise the volatility: the boundary <em>drops</em>. When
+the stock is more volatile, the insurance is worth more, so you need a deeper fall before giving it up.</p>
+
+## <span class="section-tag">Formalisation</span>Optimal stopping
+
+**American value.** An American option lets the holder choose *when* to stop, using only information available so
+far: a **stopping time** $\tau \le \Time{T}$. Its price is the value of the best such strategy:
+
+$$
+V^{\text{Am}}_0 = \sup_{\tau \le T}\; \mathbb{E}\big[e^{-\Rate{r}\tau}\,\text{payoff}(\Spot{S_\tau})\big],
+$$
+
+where the expectation is taken in the pricing sense we'll build in Parts III and IV. In the binomial tree of
+Chapter 13 this becomes very concrete: at every node, the value is the larger of *exercise now* and *continue*,
+
+$$
+V = \max\big(\text{payoff}(\Spot{S}),\; \text{discounted value of continuing}\big).
+$$
+
+**The call, formally.** With no dividends, $\Call{C}^{\text{Am}} \ge \Call{C}^{\text{Eu}} \ge \Spot{S} - \Strike{K}e^{-\Rate{r}\tau} > \Spot{S} - \Strike{K}$
+whenever $\Rate{r} > 0$ and $\tau > 0$ time remains. Continuing always beats stopping, so the optimal stopping time
+is $\tau = \Time{T}$, and $\Call{C}^{\text{Am}} = \Call{C}^{\text{Eu}}$.
+
+**The boundary.** For the put, the exercise region at each time is an interval $\{\Spot{S} \le \Spot{S}^*(t)\}$. The
+American value meets the payoff **smoothly** at the boundary. Its slope there is exactly $-1$, the slope of
+$\Strike{K} - \Spot{S}$, rather than a kink. This **smooth pasting** condition is what pins down where the
+boundary sits.
+
+**An exact solution.** With no expiry at all, a *perpetual* American put, the problem can be solved in closed
+form. The boundary is a constant,
+
+$$
+\Spot{S}^* = \frac{\gamma}{1 + \gamma}\,\Strike{K}, \qquad \gamma = \frac{2\Rate{r}}{\Vol{\sigma}^2},
+$$
+
+and for $\Spot{S} \ge \Spot{S}^*$ the value is $(\Strike{K} - \Spot{S}^*)\,(\Spot{S}/\Spot{S}^*)^{-\gamma}$. With
+$\Rate{r} = 5\%$ and $\Vol{\sigma} = 20\%$ we get $\gamma = 2.5$ and $\Spot{S}^* \approx 71.43$. A finite-maturity
+put has *less* reason to wait than an infinite one, so its boundary lies above this (\$81 today in our example).
+
+<details>
+<summary>Checking smooth pasting for the perpetual put</summary>
+
+At $\Spot{S}^*$ the value is $\Strike{K} - \Spot{S}^*$, so it meets the payoff. Its slope is
+$-\gamma(\Strike{K} - \Spot{S}^*)/\Spot{S}^*$. Using $\Strike{K} - \Spot{S}^* = \Strike{K}/(1+\gamma)$ and
+$\Spot{S}^* = \gamma\Strike{K}/(1+\gamma)$, the slope is $-\gamma \cdot \tfrac{1}{1+\gamma} \cdot \tfrac{1+\gamma}{\gamma} = -1$.
+Any other choice of $\Spot{S}^*$ would leave a kink, and you could do better by moving the boundary.
+
+</details>
+
+**Dividends.** With a dividend yield $q$, an American call has its own boundary *above* the strike. Exercise is
+optimal when the dividends you'd collect as a shareholder outweigh the interest saved and the insurance lost. For
+discrete dividends, the only candidate moment is just before the stock goes ex-dividend.
+
+## <span class="section-tag">Playground</span>Exercise or hold?
+
+<EarlyExerciseValue client:visible type="call" initialSpot={130} initialQ={0.08} title="Playground: calls with dividends" />
+
+<div class="try-this">
+
+- **With an 8% dividend yield**, find where the call's exercise region starts. Then lower the dividend to 0.
+  What happens to the region?
+- **For a put**, compare the early-exercise premium at 1 year and at 3 years to expiry. Why does it grow?
+- **Raise the rate to 15%** for a put. Where does the exercise region now begin?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="You hold a deep in-the-money American call on a stock that pays no dividends, with 6 months left. You want to lock in your gain. What should you do?"
+  options={[
+    "Exercise it today.",
+    "Sell the call in the market.",
+    "Wait until expiry no matter what.",
+    "Buy a put with the same strike.",
+  ]}
+  answer={1}
+  explanation="Selling captures at least $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$, more than the $\Spot{S} - \Strike{K}$ from exercising. Exercising early throws away interest on the strike and the remaining insurance."
+/>
+
+<NumericQuiz
+  client:visible
+  question="For a perpetual American put with K = 100, r = 5% and σ = 20%, below what stock price should you exercise? (Round to the cent.)"
+  answer={71.43}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="$\gamma = 2\Rate{r}/\Vol{\sigma}^2 = 0.10/0.04 = 2.5$, so $\Spot{S}^* = \tfrac{2.5}{3.5} \times 100 \approx 71.43$."
+/>
+
+<Quiz
+  client:visible
+  question="Which change makes early exercise of an American put more attractive?"
+  options={["Higher volatility", "Higher interest rates", "Lower interest rates", "Longer time to expiry, nothing else"]}
+  answer={1}
+  explanation="Exercising a put early means receiving the strike sooner, which is worth more when rates are high. Higher volatility does the opposite: it makes the insurance you'd give up more valuable."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Exercising early trades **interest on the strike** against **the option's remaining insurance**.
+- **Calls on non-dividend stocks: never exercise early.** Selling always beats exercising, so American and
+  European calls are worth the same.
+- **Puts: exercise when deep in the money**, below a critical price $\Spot{S}^*(t)$ that rises to the strike at
+  expiry. The **early-exercise premium** makes American puts worth more than European ones.
+- The American value is an **optimal stopping** problem. Its value meets the payoff smoothly at the boundary
+  (smooth pasting). The perpetual put has the closed form $\Spot{S}^* = \tfrac{\gamma}{1+\gamma}\Strike{K}$.
+- **Dividends** can make early exercise of calls optimal.
+
+**Next up:** the last no-arbitrage chapter. In Chapter 10 we'll look at how prices must change *across strikes*:
+they must slope and curve in particular ways, and that will turn out to encode probabilities.
+
+### Further reading
+
+- R. C. Merton, "Theory of rational option pricing" (1973), section on early exercise.
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 11.
+- H. P. McKean, "Appendix: a free boundary problem for the heat equation arising from a problem in mathematical
+  economics" (1965), on the perpetual put.

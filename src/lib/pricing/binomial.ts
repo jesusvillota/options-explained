@@ -32,3 +32,49 @@ export function binomialPrice(type: OptionType, input: BinomialInput): number {
   }
   return values[0];
 }
+
+export interface BoundaryPoint {
+  /** Time from today, in years. */
+  t: number;
+  /** Critical stock price: exercise at or below it (put) or at or above it (call). Null if never optimal. */
+  S: number | null;
+}
+
+/**
+ * The early-exercise boundary of an American option. For each of `points`
+ * times between today and expiry, bisect on the stock price for where the
+ * tree's American value first equals the payoff (exercise is optimal there).
+ */
+export function exerciseBoundary(type: OptionType, input: BinomialInput, points = 24): BoundaryPoint[] {
+  const { K, T } = input;
+  const out: BoundaryPoint[] = [];
+  for (let k = 0; k <= points; k++) {
+    const t = (T * k) / points;
+    const tau = T - t;
+    if (tau <= 1e-9) {
+      out.push({ t, S: K });
+      continue;
+    }
+    const steps = Math.max(40, Math.round(input.steps * (tau / T)));
+    const exercised = (S: number) => {
+      const ex = payoff(type, S, K);
+      if (ex <= 0) return false;
+      const am = binomialPrice(type, { ...input, S, T: tau, steps, american: true });
+      return am - ex < 1e-9 * K;
+    };
+    // Put: exercise for S ≤ S*. Call (with dividends): exercise for S ≥ S*.
+    let lo = type === 'put' ? K * 1e-3 : K;
+    let hi = type === 'put' ? K : K * 20;
+    if (!exercised(type === 'put' ? lo : hi)) {
+      out.push({ t, S: null });
+      continue;
+    }
+    for (let i = 0; i < 40; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (exercised(mid) === (type === 'put')) lo = mid;
+      else hi = mid;
+    }
+    out.push({ t, S: 0.5 * (lo + hi) });
+  }
+  return out;
+}
