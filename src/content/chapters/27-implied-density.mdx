@@ -1,0 +1,198 @@
+---
+title: "Reading probabilities from prices"
+part: 6
+chapter: 27
+difficulty: 3
+prerequisites: [10, 26]
+summary: "Option prices across strikes contain the market's whole distribution for the stock. Two derivatives get it out."
+---
+import ButterflyDensity from '../../components/plots/ButterflyDensity';
+import ImpliedDensity from '../../components/plots/ImpliedDensity';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>What are the odds of a crash?
+
+How likely is it that the stock market falls 20% over the next year? You could ask economists, or you could
+read the answer off option prices. A put struck 20% below today's level pays off only in that scenario, so its
+price says something about how likely the market thinks that is.
+
+In fact option prices say much more. Prices across *all* strikes for one expiry determine the market's entire
+probability distribution for the stock on that date. Breeden and Litzenberger showed this in 1978, and the tool
+is one you've already met: the **butterfly** of Chapter 10.
+
+## <span class="section-tag">Intuition</span>A butterfly is a bet on a narrow range
+
+Buy a call at $\Strike{K} - h$, sell two at $\Strike{K}$, buy one at $\Strike{K} + h$. The payoff is a tent: zero
+outside $[\Strike{K} - h, \Strike{K} + h]$, rising to $h$ at $\Strike{K}$. Its area is $h^2$. Divide by $h^2$ and
+you have a contract with total area one, that pays only if the stock ends near $\Strike{K}$.
+
+So the butterfly's price, scaled by $1/h^2$ (and grown by $e^{\Rate{r}\Time{T}}$ to undo the discounting), is the
+risk-neutral probability, per dollar, of ending near $\Strike{K}$. Line butterflies up at every strike and you get
+a histogram of the market's distribution:
+
+<ButterflyDensity client:visible />
+
+<p class="try-this"><strong>Try this:</strong> shrink the width from \$20 to \$2. The bars, priced from nothing
+but call prices, converge onto the lognormal density that Black–Scholes assumes. Slide the highlighted butterfly
+into the tails: it costs very little, because ending there is unlikely.</p>
+
+The same logic one level down gives probabilities of finishing above a strike. A tight **call spread**, long
+$\Strike{K}$ and short $\Strike{K} + h$, pays about $h$ if the stock ends above $\Strike{K}$. Its price divided by
+$h$ is the discounted probability $e^{-\Rate{r}\Time{T}}\mathbb{Q}(\Spot{S_T} > \Strike{K})$. That's the digital
+option of Chapter 37.
+
+## <span class="section-tag">Intuition</span>The density hidden in the smile
+
+With a flat smile we just get the lognormal back. Real smiles aren't flat, and the density they imply isn't
+lognormal:
+
+<ImpliedDensity client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the equity-style skew (ρ = −0.6), the risk-neutral probability
+of a 20% fall within three months is about 4.5%, four times the lognormal's 1.1%. A 20% rise is <em>less</em> likely
+than lognormal: fat left tail, thin right tail. Now set ρ to 0: the smile becomes symmetric and the left tail
+loses its extra weight.</p>
+
+<Callout type="key" title="Prices are probabilities, but risk-neutral ones">
+Option prices reveal $\mathbb{Q}$, the risk-neutral distribution, not the real-world $\mathbb{P}$. The two
+differ by risk premia. Investors pay extra for crash protection, so the left tail of $\mathbb{Q}$ is fatter than
+the market's honest forecast. A 15% "implied probability of a crash" is a price, not a prediction.
+</Callout>
+
+## <span class="section-tag">Intuition</span>When a smile is impossible
+
+Not every smile is allowed. If the wings are too steep, the implied "density" dips below zero somewhere. A
+negative probability means a butterfly with a **negative price**: someone pays you to take a position that can
+only pay off. That's an arbitrage, and a quoted smile that implies it is wrong.
+
+<p class="try-this"><strong>Try this:</strong> set the skew to −0.9 and push the wings above 2.5. The density
+goes negative (red) just below the money, and the readout flags the arbitrage.</p>
+
+## <span class="section-tag">Formalisation</span>Breeden–Litzenberger
+
+Let $f$ be the risk-neutral density of $\Spot{S_T}$. The call price is
+
+$$
+\Call{C}(\Strike{K}) = e^{-\Rate{r}\Time{T}}\int_{\Strike{K}}^{\infty} (s - \Strike{K})\,f(s)\,ds .
+$$
+
+Differentiating under the integral (the boundary term vanishes at $s = \Strike{K}$):
+
+$$
+\frac{\partial \Call{C}}{\partial \Strike{K}} = -e^{-\Rate{r}\Time{T}}\int_{\Strike{K}}^{\infty} f(s)\,ds = -e^{-\Rate{r}\Time{T}}\,\mathbb{Q}(\Spot{S_T} > \Strike{K}),
+\qquad
+\frac{\partial^2 \Call{C}}{\partial \Strike{K}^2} = e^{-\Rate{r}\Time{T}}\,f(\Strike{K}) .
+$$
+
+So the density is $f(\Strike{K}) = e^{\Rate{r}\Time{T}}\,\partial^2\Call{C}/\partial\Strike{K}^2$, and the butterfly
+is its finite-difference approximation:
+
+$$
+f(\Strike{K}) \approx e^{\Rate{r}\Time{T}}\,\frac{\Call{C}(\Strike{K} - h) - 2\Call{C}(\Strike{K}) + \Call{C}(\Strike{K} + h)}{h^2},
+$$
+
+with an error of order $h^2$. No-arbitrage, which requires every butterfly to cost something non-negative, is
+exactly the statement that $\Call{C}$ is **convex** in $\Strike{K}$, which is the requirement that $f \ge 0$
+(Chapter 10).
+
+**With a smile.** Write $\Call{C}(\Strike{K}) = \Call{C}_{\text{BS}}(\Strike{K}, \Vol{\sigma}(\Strike{K}))$. The chain
+rule adds a term to the slope:
+
+$$
+\mathbb{Q}(\Spot{S_T} > \Strike{K}) = N(d_2) - e^{\Rate{r}\Time{T}}\,\mathcal{V}\,\frac{\partial\Vol{\sigma}}{\partial \Strike{K}} .
+$$
+
+With an equity skew, $\partial\Vol{\sigma}/\partial\Strike{K} < 0$, so the true probability of finishing above
+$\Strike{K}$ is *higher* than the Black–Scholes $N(d_2)$ at that strike's vol. Digital options must be priced
+with this skew correction (Chapter 37).
+
+**Arbitrage-free smiles.** In terms of total variance $w(k)$, Gatheral showed that the density is non-negative
+exactly when
+
+$$
+g(k) = \Big(1 - \frac{k\,w'}{2w}\Big)^2 - \frac{w'^2}{4}\Big(\frac{1}{w} + \frac14\Big) + \frac{w''}{2} \;\ge\; 0 .
+$$
+
+For SSVI, $\eta^2(1 + |\rho|) \le 4$ and $\eta\sqrt{\theta_{\Time{T}}}(1 + |\rho|) < 4$ are **sufficient** for
+this. Breaking them doesn't guarantee arbitrage, but the widget shows that it soon appears.
+
+**Pricing anything.** Once you have $f$, any European payoff $g(\Spot{S_T})$ is priced by
+$e^{-\Rate{r}\Time{T}}\int g(\Strike{K})f(\Strike{K})\,d\Strike{K} = \int g(\Strike{K})\,\partial^2_{\Strike{K}}\Call{C}\,d\Strike{K}$.
+Integrating by parts turns this into a **static portfolio** of bonds, forwards and options (Carr and Madan):
+
+$$
+g(\Spot{S_T}) = g(F) + g'(F)(\Spot{S_T} - F) + \int_0^F g''(\Strike{K})(\Strike{K} - \Spot{S_T})^+\,d\Strike{K} + \int_F^\infty g''(\Strike{K})(\Spot{S_T} - \Strike{K})^+\,d\Strike{K} .
+$$
+
+Each option is weighted by the payoff's curvature at its strike. Chapter 28 uses this with $g = \ln$.
+
+## <span class="section-tag">Playground</span>Probabilities from the smile
+
+<ImpliedDensity client:visible />
+
+<div class="try-this">
+
+- **Price crash insurance.** Raise the at-the-money volatility to 30%, as after a sell-off. What's the
+  risk-neutral probability of a 20% fall in three months now, and how does it compare with Black–Scholes?
+- **Longer-dated tails.** Switch to 1 year. Does the skew change the probability of a 20% fall more or less, in
+  relative terms, than at 3 months?
+- **Find the edge.** With ρ = −0.9, what's the largest wing setting with no arbitrage? Compare it with the SSVI
+  sufficient condition $\eta \le 2/\sqrt{1.9} \approx 1.45$.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With zero interest rates, the 95/100/105 call butterfly costs \$0.90. Roughly what is the risk-neutral probability, in %, that the stock ends within \$2.50 of \$100?"
+  answer={18}
+  tolerance={0.03}
+  explanation="The density at 100 is about $0.90/5^2 = 0.036$ per dollar. Over a \$5-wide range that's $0.036 \times 5 = 0.18$, or 18%."
+/>
+
+<Quiz
+  client:visible
+  question="A dealer quotes call prices C(95) = 8.00, C(100) = 4.50, C(105) = 0.80 (same expiry). What's wrong?"
+  options={[
+    "Nothing",
+    "The prices aren't convex in strike: the 95/100/105 butterfly has a negative price",
+    "C(105) should be larger than C(100)",
+    "The prices don't satisfy put–call parity",
+  ]}
+  answer={1}
+  explanation="$8.00 - 2 \times 4.50 + 0.80 = -0.20$. Buy the butterfly and you're paid \$0.20 today for a payoff that can never be negative. Equivalently, the price falls by 3.50 from 95 to 100 but by 3.70 from 100 to 105: the curve bends the wrong way."
+/>
+
+<Quiz
+  client:visible
+  question="In a market with a downward equity skew, a digital call (pays \$1 if the stock ends above K) is worth..."
+  options={[
+    "less than $e^{-\\Rate{r}\\Time{T}}N(d_2)$ at the strike's implied vol",
+    "more than $e^{-\\Rate{r}\\Time{T}}N(d_2)$ at the strike's implied vol",
+    "exactly $e^{-\\Rate{r}\\Time{T}}N(d_2)$ at the strike's implied vol",
+    "nothing, because it's not a vanilla option",
+  ]}
+  answer={1}
+  explanation="$\mathbb{Q}(\Spot{S_T} > \Strike{K}) = N(d_2) - e^{\Rate{r}\Time{T}}\mathcal{V}\,\partial\Vol{\sigma}/\partial\Strike{K}$, and the skew makes $\partial\Vol{\sigma}/\partial\Strike{K} < 0$, so the correction adds to the price."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Breeden–Litzenberger**: $f(\Strike{K}) = e^{\Rate{r}\Time{T}}\,\partial^2\Call{C}/\partial\Strike{K}^2$, and
+  $\mathbb{Q}(\Spot{S_T} > \Strike{K}) = -e^{\Rate{r}\Time{T}}\,\partial\Call{C}/\partial\Strike{K}$.
+- A scaled **butterfly** is a finite-difference density. Its price can't be negative, so call prices are convex
+  in strike.
+- A skew means a fat left tail. These are **risk-neutral** probabilities, which include risk premia.
+- Too-steep wings imply a negative density: a butterfly arbitrage. Any European payoff can be replicated with
+  options weighted by its curvature.
+
+**Next up:** the Carr–Madan formula with a logarithm gives a portfolio of options whose value is the market's
+expected variance. Chapter 28 builds it, and with it the **VIX**.
+
+### Further reading
+
+- D. Breeden and R. Litzenberger, "Prices of state-contingent claims implicit in option prices" (1978).
+- P. Carr and D. Madan, "Towards a theory of volatility trading" (1998).
+- J. Gatheral, *The Volatility Surface*, chapter 2.

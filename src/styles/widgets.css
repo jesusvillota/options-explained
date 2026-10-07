@@ -138,3 +138,9 @@
 .leg-remove { margin-left: auto; }
 .widget-side .widget-controls:has(.strategy-controls) { display: block; }
 .strategy-controls > .ctl-button { justify-self: start; }
+
+/* Small iteration table inside a readout (Chapter 25) */
+.iter-table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+.iter-table th, .iter-table td { padding: 0.15rem 0.9rem 0.15rem 0; text-align: right; white-space: nowrap; }
+.iter-table th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; }
+.iter-table + p { margin: 0.4rem 0 0; }

@@ -1,0 +1,192 @@
+---
+title: "Smile, skew and the volatility surface"
+part: 6
+chapter: 26
+difficulty: 3
+prerequisites: [25]
+summary: "Black–Scholes says every option on a stock has the same implied volatility. The market disagrees, in a very particular shape."
+---
+import SmileExplorer from '../../components/plots/SmileExplorer';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The day the smile appeared
+
+If Black–Scholes were exactly right, volatility would be a property of the stock, so every option on it, at every
+strike and every expiry, would have the **same** implied volatility. Plot implied volatility against strike and
+you'd get a flat line.
+
+Before 1987, for stock indices, you nearly did. Then on 19 October 1987 the S&P 500 fell about 20% in a single
+day. With 20% annual volatility, a typical day moves about 1.3%, so that fall was more than fifteen standard
+deviations: under the lognormal model, something that should essentially never happen. Since then, out-of-the-money
+puts on stock indices have always traded at **higher** implied volatilities than calls. The flat line became a
+slope, the **skew**, and the market has never forgotten.
+
+## <span class="section-tag">Intuition</span>Smiles, skews and smirks
+
+Here is implied volatility across strikes for five maturities, from a model surface fitted to the typical shape of
+each market:
+
+<SmileExplorer client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with <em>Equity index</em>, the 3-month curve falls from left to
+right: low-strike puts are expensive. Switch to <em>Currency</em>: a symmetric smile, both wings up. Then
+<em>Commodity</em>: the skew flips, because the feared move is a price spike. Finally pick <em>Black–Scholes</em>:
+every curve collapses onto one flat line.</p>
+
+The shapes have names. A **smile** curves up on both sides. A **skew** (or smirk) slopes, mostly down to the right
+for equities. Notice that the short-dated curves are much steeper than the long-dated ones when you plot against
+strike. That's mostly an artefact of the axis, as we'll see.
+
+## <span class="section-tag">Intuition</span>Why the market smiles
+
+Implied volatility is the number you have to put into the *wrong* model to get the *right* price. A smile is a
+map of where Black–Scholes's lognormal assumption fails:
+
+- **Fat tails.** Real returns have more extreme moves than the normal distribution allows. Far-out options, on
+  either side, are worth more than the lognormal says, so both wings rise: a **smile** (currencies).
+- **Crashes and the leverage effect.** Stocks fall faster than they rise, and volatility jumps when they fall.
+  The left tail is fatter than the right, so low strikes get the highest volatilities: a **skew** (equities).
+  Investors also pay up for portfolio insurance, which keeps put prices high.
+- **Spikes.** For many commodities, the danger is a supply shock that sends prices *up*, so the skew points
+  the other way.
+
+Chapter 27 makes this precise: the smile *is* the risk-neutral distribution, written in a different coordinate.
+
+<Callout type="key" title="Implied volatility is a coordinate, not a forecast">
+Quoting options in implied volatility is a way of normalising prices, so that options with different strikes and
+expiries can be compared. A 30% put and a 20% call on the same stock don't mean the market expects two
+volatilities. They mean the true distribution isn't lognormal.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Better coordinates
+
+The strike axis makes short-dated smiles look steep because a \$10 move is a lot for one month and very little for
+two years. Two changes of coordinates fix that:
+
+- **Log-moneyness**, $k = \ln(\Strike{K}/F)$, measures the strike relative to the forward $F$, so the at-the-money
+  point is always $k = 0$.
+- **Delta** goes further: it measures strikes in units of the standard deviation to expiry. The 25-delta put is the put
+  whose delta is $-0.25$: roughly a one-in-four chance of finishing in the money, whatever the maturity.
+
+<p class="try-this"><strong>Try this:</strong> switch the axis to <em>Delta</em>. The five smiles now lie almost
+on top of each other. Desks quote smiles in exactly this coordinate: the at-the-money volatility, the 25-delta
+<strong>risk reversal</strong> (call vol minus put vol, the skew), and the 25-delta <strong>butterfly</strong> (the
+average wing vol minus at-the-money, the curvature).</p>
+
+## <span class="section-tag">Formalisation</span>The implied volatility surface
+
+For each strike and expiry, the **implied volatility** $\Vol{\sigma}_{\text{imp}}(\Strike{K}, \Time{T})$ is defined by
+
+$$
+\Call{C}^{\text{mkt}}(\Strike{K}, \Time{T}) = \Call{C}_{\text{BS}}\big(\Spot{S}, \Strike{K}, \Time{T}, \Rate{r}, \Vol{\sigma}_{\text{imp}}(\Strike{K}, \Time{T})\big),
+$$
+
+and the function $(\Strike{K}, \Time{T}) \mapsto \Vol{\sigma}_{\text{imp}}$ is the **volatility surface**. It's
+usually written in log-moneyness $k = \ln(\Strike{K}/F_{\Time{T}})$ and **total implied variance**
+
+$$
+w(k, \Time{T}) = \Vol{\sigma}_{\text{imp}}^2(k, \Time{T})\,\Time{T} .
+$$
+
+Black–Scholes prices depend on $\Vol{\sigma}$ and $\Time{T}$ only through $w$, so $w$ is the natural object.
+
+**Calendar arbitrage.** At fixed $k$, $w$ must not decrease with maturity. Otherwise a longer-dated option would
+be cheaper than a shorter one with the same forward moneyness, and you could buy the long one and sell the short
+one for free (with zero rates and dividends, a calendar spread at a fixed strike has a non-negative payoff).
+Implied *volatility* can fall with maturity, but total *variance* can't.
+
+**Butterfly arbitrage.** Across strikes, call prices must be convex (Chapter 10). That puts limits on how the
+smile can bend; Chapter 27 turns it into the condition that a density is non-negative.
+
+**The wings are at most linear.** Lee's moment formula (2004) says that for large $|k|$, $w(k)$ grows at most
+like $2|k|$. A smile can't curve up quadratically forever.
+
+**Parametrising a smile.** Gatheral's **SVI** ("stochastic volatility inspired") writes one maturity's total
+variance as
+
+$$
+w(k) = a + b\Big(\rho\,(k - m) + \sqrt{(k - m)^2 + s^2}\Big),
+$$
+
+a hyperbola with level $a$, wing slope $b$, rotation $\rho$, centre $m$ and smoothness $s$. Its wings are linear,
+with slopes $b(1 \pm \rho)$, consistent with Lee. **Surface SVI** (Gatheral and Jacquier, 2014), used in the widget,
+ties all maturities together with the at-the-money total variance $\theta_{\Time{T}}$:
+
+$$
+w(k, \Time{T}) = \frac{\theta_{\Time{T}}}{2}\Big(1 + \rho\,\psi k + \sqrt{(\psi k + \rho)^2 + 1 - \rho^2}\Big), \qquad \psi = \frac{\eta}{\sqrt{\theta_{\Time{T}}}} .
+$$
+
+Here $\rho$ sets the skew and $\eta$ the wings. If $\theta_{\Time{T}}$ increases with $\Time{T}$, there's no
+calendar arbitrage, and $\eta^2(1 + |\rho|) \le 4$ (with a similar bound involving $\theta$) rules out butterfly
+arbitrage.
+
+**Desk quotes.** With $\Vol{\sigma}_{25c}$ and $\Vol{\sigma}_{25p}$ the volatilities at the 25-delta call and put,
+
+$$
+\text{RR}_{25} = \Vol{\sigma}_{25c} - \Vol{\sigma}_{25p}, \qquad
+\text{BF}_{25} = \tfrac12(\Vol{\sigma}_{25c} + \Vol{\sigma}_{25p}) - \Vol{\sigma}_{\text{ATM}} .
+$$
+
+To first order, the risk reversal measures the slope of the smile and the butterfly its curvature.
+
+## <span class="section-tag">Playground</span>Shape a surface
+
+<SmileExplorer client:visible />
+
+<div class="try-this">
+
+- **Invert the term structure.** Set the short-dated at-the-money volatility to 45% and the long-dated one to
+  20%, as in a market panic. Look at the surface view. Is there calendar arbitrage? (Compare total variance, not
+  volatility.)
+- **Read the risk reversal.** With the currency preset it's almost zero. Turn the skew to $-0.5$. How many points is
+  the risk reversal now?
+- **Break it.** Push the wings to 2.5 and the skew to $-0.9$. The readout flags possible butterfly arbitrage.
+  Chapter 27 shows exactly what goes wrong.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="On a stock index, which typically has the higher implied volatility: the 90%-strike put or the 110%-strike call, same expiry?"
+  options={["The 90% put", "The 110% call", "They're equal", "It depends on interest rates"]}
+  answer={0}
+  explanation="Index smiles are skewed: low strikes have higher implied volatilities, because the market prices a fatter left tail (crashes) than the lognormal model."
+/>
+
+<NumericQuiz
+  client:visible
+  question="The 3-month 25-delta call trades at 18% vol, the 25-delta put at 24%, and at-the-money at 20%. What is the 25-delta butterfly, in vol points?"
+  answer={1}
+  tolerance={0.01}
+  explanation="$\tfrac12(18 + 24) - 20 = 21 - 20 = 1$ point. (The risk reversal is $18 - 24 = -6$ points.)"
+/>
+
+<Quiz
+  client:visible
+  question="At a fixed log-moneyness, which quantity must not decrease with maturity, to avoid calendar arbitrage?"
+  options={["Implied volatility", "Total implied variance σ²T", "The 25-delta risk reversal", "The call's delta"]}
+  answer={1}
+  explanation="Total variance $w = \Vol{\sigma}^2\Time{T}$ must be non-decreasing in $\Time{T}$. Implied volatility itself can fall with maturity, as it does after a panic."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Implied volatility varies with strike and maturity. Equities show a downward **skew** (since 1987), currencies
+  a **smile**, and commodities often an upward skew.
+- The smile encodes how the real distribution differs from the lognormal: fat tails, crashes, spikes.
+- Work in log-moneyness $k = \ln(\Strike{K}/F)$ and total variance $w = \Vol{\sigma}^2\Time{T}$. Calendar
+  no-arbitrage: $w$ non-decreasing in $\Time{T}$.
+- Desks quote ATM, the 25-delta **risk reversal** (skew) and **butterfly** (curvature). SVI and SSVI are standard
+  parametrisations.
+
+**Next up:** a smile is a statement about probabilities. Chapter 27 extracts the full risk-neutral distribution
+from option prices, and shows what an arbitrageable smile does to it.
+
+### Further reading
+
+- J. Gatheral, *The Volatility Surface: A Practitioner's Guide* (2006), chapters 1–3.
+- J. Gatheral and A. Jacquier, "Arbitrage-free SVI volatility surfaces" (2014).
+- R. Lee, "The moment formula for implied volatility at extreme strikes" (2004).

@@ -59,3 +59,14 @@ export function gbmPath(seed: number, S0: number, mu: number, sigma: number, T: 
   for (let i = 1; i <= n; i++) out.push(out[i - 1] * Math.exp((mu - 0.5 * sigma * sigma) * dt + sigma * Math.sqrt(dt) * z()));
   return out;
 }
+
+/**
+ * GBM whose volatility can change from step to step (e.g. a calm regime followed
+ * by a turbulent one): sigmas[i] applies to step i, each of length dt.
+ */
+export function gbmPathVariableVol(seed: number, S0: number, mu: number, sigmas: number[], dt: number): number[] {
+  const z = normalRng(seed);
+  const out = [S0];
+  sigmas.forEach((s, i) => out.push(out[i] * Math.exp((mu - 0.5 * s * s) * dt + s * Math.sqrt(dt) * z())));
+  return out;
+}

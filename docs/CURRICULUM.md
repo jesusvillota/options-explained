@@ -247,28 +247,39 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   Newton–Raphson, with a bisection fallback.
 - **Key math:** $\hat\sigma = \sqrt{252}\,\mathrm{sd}(\ln S_{i+1}/S_i)$; the Newton step
   $\sigma_{n+1} = \sigma_n - (C(\sigma_n) - C^{mkt})/\mathcal{V}(\sigma_n)$.
-- **Widgets:** an animated Newton iteration on the $C(\sigma)$ curve.
+- **Widgets:** `HistoricalVolEstimator`: a rolling-window estimate on a simulated history whose volatility jumps
+  from 15% to 40%, trading noise against lag. `NewtonIV`: Newton's tangents (or bisection's bracket) stepping
+  along the $C(\sigma)$ curve to the market price, with an iteration table and a visible failure from a bad start.
+  Library: `src/lib/vol/impliedVol.ts`.
 - **Prereqs:** 23.
 
 ### 26. Smile, skew and the volatility surface
 - **Goals:** See why implied vol varies with strike and maturity, and what the skew says about crash fears.
   Learn the coordinates: log-moneyness and delta.
 - **Key math:** $\sigma_{imp}(K, T)$; total variance $w = \sigma^2 T$; a brief look at SVI.
-- **Widgets:** a smile plot for several maturities, and a 3D surface `Surface3D` built from stylised data.
+- **Widgets:** `SmileExplorer`: an SSVI surface with equity, currency, commodity and flat presets and sliders
+  for the ATM term structure, skew and wings. Smiles for five maturities against strike, log-moneyness or delta,
+  or the whole surface as a `Heatmap`, with ATM / 25Δ risk reversal / 25Δ butterfly quotes and an arbitrage
+  flag. Library: `src/lib/vol/smile.ts`.
 - **Prereqs:** 25.
 
 ### 27. Reading probabilities from prices
 - **Goals:** Recover the risk-neutral density from call prices. Connect it back to butterflies (Ch. 10).
 - **Key math:** $f_{\mathbb{Q}}(K) = e^{rT}\,\partial^2 C/\partial K^2$ (Breeden–Litzenberger).
-- **Widgets:** shrinking butterflies whose scaled payoffs converge to a density. A smile edited by the reader
-  that shows how the implied density changes, and when it goes negative.
+- **Widgets:** `ButterflyDensity`: butterflies of width \$20 to \$2 at every strike, priced from call prices and
+  scaled by $e^{rT}/h^2$, converging onto the lognormal density. `ImpliedDensity`: an SSVI smile and the density
+  it implies, against the lognormal, with tail probabilities and negative (arbitrage) regions in red.
+  Library: `src/lib/vol/density.ts`.
 - **Prereqs:** 10, 26.
 
 ### 28. Variance swaps & the VIX
 - **Goals:** Replicate variance with a strip of out-of-the-money options. Understand how the VIX is built.
 - **Key math:** the log-contract replication
   $-\ln(S_T/F) = \int_0^F \frac{(K-S_T)^+}{K^2}dK + \int_F^\infty \frac{(S_T-K)^+}{K^2}dK - \frac{S_T - F}{F}$.
-- **Widgets:** a strip of options with $1/K^2$ weights that sum into the log payoff.
+- **Widgets:** `LogContractStrip`: out-of-the-money options weighted by $\Delta K/K^2$ summing to the log payoff,
+  with strike spacing and range controls and the strip's fair variance-swap vol under a flat or skewed smile.
+  `VixContributions`: the Cboe formula strike by strike for a 30-day smile, with the put share and the $K_0$
+  correction. Library: `src/lib/vol/varianceSwap.ts`.
 - **Prereqs:** 27.
 
 ---
@@ -404,14 +415,14 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
-| `OptionChain` | 4 | 25, 26 |
+| `OptionChain` | 4 | — |
 | `CompoundingStaircase` | 6 | — |
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
-| `ParityLine` | 8 | 27 |
+| `ParityLine` | 8 | — |
 | `EarlyExerciseValue` | 9 | 13, 36 |
 | `ExerciseBoundary` | 9 | 13, 36 |
-| `ConvexityEditor` | 10 | 27 |
+| `ConvexityEditor` | 10 | — |
 | `OneStepReplication` | 11 | 12 |
 | `RiskNeutralSlider` | 12 | 40 |
 | `BinomialTreeAnimated` | 13 | 36 |
@@ -424,9 +435,13 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `Heatmap`, `BSPricer` | 20 | 23, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
-| `ThetaGammaBars` | 22 | 28 |
+| `ThetaGammaBars` | 22 | — |
 | `GreekExplorer` | 23 | — |
-| `HedgeSimulator` | 24 | 28 |
+| `HedgeSimulator` | 24 | — |
+| `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
+| `SmileExplorer` | 26 | — |
+| `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
+| `LogContractStrip`, `VixContributions` | 28 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
