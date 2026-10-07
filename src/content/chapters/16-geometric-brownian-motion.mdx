@@ -1,0 +1,181 @@
+---
+title: "Geometric Brownian motion & the lognormal"
+part: 4
+chapter: 16
+difficulty: 2
+prerequisites: [15]
+summary: "Model percentage moves with Brownian noise, and you get prices that never go negative, plus a surprising gap between mean and median."
+---
+import GBMHistogram from '../../components/plots/GBMHistogram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Up 50%, down 50%
+
+A stock at \$100 rises 50% one year and falls 50% the next. Where does it end up? Not at \$100: at \$75. A 50%
+gain followed by a 50% loss leaves you down 25%.
+
+Now imagine a stock whose *average* yearly return is zero but which bounces around a lot. Its typical outcome
+**drifts downwards** over time, even though nothing about it is "expected" to fall. This effect, *volatility
+drag*, is the reason for the mysterious $-\tfrac12\Vol{\sigma}^2$ we keep meeting. In this chapter we build the
+standard model of a stock price, **geometric Brownian motion**, and see exactly where that term comes from.
+
+## <span class="section-tag">Intuition</span>Random percentages, not random dollars
+
+Brownian motion can go negative, and its wiggles are the same size whether the stock costs \$1 or \$1,000. Real
+prices aren't like that. A \$1,000 stock moves by about ten times as many dollars as a \$100 one, and neither can
+go below zero.
+
+So let the **percentage** change be random. Over a short time $dt$:
+
+$$
+\frac{d\Spot{S}}{\Spot{S}} = \mu\,dt + \Vol{\sigma}\,dW .
+$$
+
+The return has a steady part, the **drift** $\mu$, plus Brownian noise scaled by the **volatility**
+$\Vol{\sigma}$. This is **geometric Brownian motion** (GBM). It's what the CRR tree becomes in the limit, with
+multiplicative up and down moves. Its solution, derived in Chapter 17, is
+
+$$
+\Spot{S_t} = \Spot{S_0}\,\exp\!\Big(\big(\mu - \tfrac12\Vol{\sigma}^2\big)t + \Vol{\sigma}W_t\Big).
+$$
+
+The price is the exponential of a Brownian motion with drift. It's always positive, and its logarithm is normally
+distributed, so the price is **lognormal**.
+
+<GBMHistogram client:visible />
+
+<p class="try-this"><strong>Try this:</strong> set the drift to 0% and raise the volatility to 80%. Most paths sink,
+and the median (orange) falls far below \$100, yet the mean (blue) stays at exactly \$100. A handful of paths
+shoot up enormously and carry the average. That's volatility drag.</p>
+
+## <span class="section-tag">Intuition</span>Mean versus median
+
+The lognormal is lopsided. It can't go below zero, but it has a long tail to the right. That creates two different
+"centres":
+
+- The **mean** grows at the drift: $\mathbb{E}[\Spot{S_t}] = \Spot{S_0}e^{\mu t}$. It's dragged up by rare
+  huge outcomes.
+- The **median**, the typical outcome, grows more slowly: $\Spot{S_0}e^{(\mu - \frac12\Vol{\sigma}^2)t}$. Half the
+  paths end below it.
+
+The gap between them is the $\tfrac12\Vol{\sigma}^2$ term. The 50%-up, 50%-down example shows why: in percentage
+terms, gains and losses don't cancel. A $+x$ then $-x$ always leaves you with $1 - x^2$ of what you started with.
+Over many small moves of size $\Vol{\sigma}\sqrt{dt}$, those $x^2$ losses add up to $\tfrac12\Vol{\sigma}^2$ per
+unit of time.
+
+<Callout type="key" title="Volatility drag">
+For a lognormal price, the typical (median) growth rate is $\mu - \tfrac12\Vol{\sigma}^2$, lower than the average
+growth rate $\mu$. Volatility doesn't just add noise: it pulls the typical outcome down while the average stays
+put. For a stock with zero average return and 40% volatility, the median falls by about 8% a year.
+</Callout>
+
+## <span class="section-tag">Intuition</span>What this means for option pricing
+
+Under the risk-neutral probability from Chapters 12 and 14, the drift $\mu$ is replaced by the risk-free rate
+$\Rate{r}$:
+
+$$
+\Spot{S_T} = \Spot{S_0}\exp\!\Big(\big(\Rate{r} - \tfrac12\Vol{\sigma}^2\big)\Time{T} + \Vol{\sigma}\sqrt{\Time{T}}\,Z\Big), \qquad Z \sim \mathcal{N}(0,1)\ \text{under } \mathbb{Q}.
+$$
+
+This single line is the whole Black–Scholes model of the stock. The real-world drift $\mu$ disappears from the
+pricing, exactly as the up-probability did in Chapter 12. Volatility $\Vol{\sigma}$ is now the only property of the
+stock that option prices care about, which is why traders quote options in volatility (Part VI).
+
+## <span class="section-tag">Formalisation</span>Properties of GBM
+
+**SDE and solution.** $d\Spot{S_t} = \mu\Spot{S_t}\,dt + \Vol{\sigma}\Spot{S_t}\,dW_t$ has the unique solution
+$\Spot{S_t} = \Spot{S_0}\exp\big((\mu - \tfrac12\Vol{\sigma}^2)t + \Vol{\sigma}W_t\big)$ (verified with Itô's
+lemma in Chapter 17).
+
+**Log returns are normal.**
+$\ln(\Spot{S_t}/\Spot{S_0}) \sim \mathcal{N}\big((\mu - \tfrac12\Vol{\sigma}^2)t,\; \Vol{\sigma}^2t\big)$, and
+non-overlapping log returns are independent.
+
+**Moments.** Using $\mathbb{E}[e^{X}] = e^{m + s^2/2}$ for $X \sim \mathcal{N}(m, s^2)$:
+
+$$
+\mathbb{E}[\Spot{S_t}] = \Spot{S_0}e^{\mu t}, \qquad
+\operatorname{Var}[\Spot{S_t}] = \Spot{S_0}^2e^{2\mu t}\big(e^{\Vol{\sigma}^2t} - 1\big), \qquad
+\text{median} = \Spot{S_0}e^{(\mu - \frac12\Vol{\sigma}^2)t}.
+$$
+
+**Density.** For $x > 0$,
+
+$$
+f_{\Spot{S_t}}(x) = \frac{1}{x\,\Vol{\sigma}\sqrt{2\pi t}}\exp\!\left(-\frac{\big(\ln(x/\Spot{S_0}) - (\mu - \tfrac12\Vol{\sigma}^2)t\big)^2}{2\Vol{\sigma}^2t}\right).
+$$
+
+**Probability of a loss.** $\mathbb{P}(\Spot{S_t} < \Spot{S_0}) = N\!\left(-\dfrac{(\mu - \tfrac12\Vol{\sigma}^2)\sqrt{t}}{\Vol{\sigma}}\right)$.
+If $\mu < \tfrac12\Vol{\sigma}^2$, this tends to 1 as $t \to \infty$: the stock almost surely ends up near zero,
+even though its mean grows.
+
+**Arithmetic vs geometric returns.** The average simple return is $\mu$. The compound (geometric) growth rate, the
+one you actually experience over a long horizon, is $\mu - \tfrac12\Vol{\sigma}^2$.
+
+**Limitations.** GBM assumes constant volatility, normal log returns and continuous paths. Real returns have fatter
+tails, jumps, and volatility that changes over time. Parts VI and VII deal with each of these.
+
+## <span class="section-tag">Playground</span>Simulate a stock
+
+<GBMHistogram client:visible />
+
+<div class="try-this">
+
+- **Find the volatility at which a stock with 8% drift has a 50% chance of losing money** over any horizon.
+  (Hint: when is $\mu - \tfrac12\Vol{\sigma}^2 = 0$?)
+- **Stretch the horizon to 10 years** with high volatility. Compare the simulated mean with the theoretical one.
+  Why is the simulated mean so noisy?
+- **Set the volatility very low.** Mean and median merge, and the distribution looks almost normal.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A stock follows GBM with μ = 10% and σ = 40%, starting at \$100. What is its median price after one year? (Round to the cent.)"
+  answer={102.02}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="Median $= 100\,e^{(0.10 - 0.08)} = 100\,e^{0.02} \approx 102.02$. The mean is higher, $100\,e^{0.10} \approx 110.52$."
+/>
+
+<Quiz
+  client:visible
+  question="Under the risk-neutral probability, what is the drift of the stock in the Black–Scholes model?"
+  options={["μ", "μ − σ²/2", "r", "r − σ²/2 for the price itself"]}
+  answer={2}
+  explanation="Under $\mathbb{Q}$, $d\Spot{S} = \Rate{r}\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW^{\mathbb{Q}}$. The log price then drifts at $\Rate{r} - \tfrac12\Vol{\sigma}^2$, but the price's own drift is $\Rate{r}$."
+/>
+
+<Quiz
+  client:visible
+  question="Why is the median of a GBM price below its mean?"
+  options={[
+    "Because of transaction costs",
+    "Because the lognormal is right-skewed: rare large outcomes pull the mean up",
+    "Because the drift is negative",
+    "Because Brownian motion is negative half the time",
+  ]}
+  answer={1}
+  explanation="The price can't fall below zero but can rise without limit. The mean is pulled up by the long right tail, while the median reflects the typical path."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **GBM**: $d\Spot{S}/\Spot{S} = \mu\,dt + \Vol{\sigma}\,dW$, solved by
+  $\Spot{S_t} = \Spot{S_0}e^{(\mu - \frac12\Vol{\sigma}^2)t + \Vol{\sigma}W_t}$. Prices are positive and
+  **lognormal**.
+- **Mean** $\Spot{S_0}e^{\mu t}$ vs **median** $\Spot{S_0}e^{(\mu - \frac12\Vol{\sigma}^2)t}$: the
+  $\tfrac12\Vol{\sigma}^2$ gap is **volatility drag**.
+- For pricing, replace $\mu$ by $\Rate{r}$. Volatility is the only stock-specific input that matters.
+
+**Next up:** we keep writing $d\Spot{S}$ and $dW$ as if they obeyed ordinary calculus. They don't. Chapter 17
+shows the one extra rule they follow, Itô's lemma, and uses it to derive the GBM solution.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 14 (Wiener processes and Itô's lemma).
+- P. Samuelson, "Rational theory of warrant pricing" (1965), which introduced GBM for stock prices.
