@@ -348,8 +348,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Discretise the BS PDE. Compare explicit, implicit, and Crank–Nicolson schemes, and understand
   stability and the CFL condition.
 - **Key math:** the difference stencils; the stability condition $\Delta t \lesssim \Delta S^2/(\sigma^2 S^2)$.
-- **Widgets:** a live grid solver. Pushing $\Delta t$ above the limit makes the explicit scheme blow up on
-  screen.
+- **Widgets:** `FDStability`: a live θ-scheme solver (explicit, implicit, Crank–Nicolson, CN + Rannacher) on 100
+  price steps; below 393 time steps the explicit scheme's rounding errors grow into a visible sawtooth.
+  `FDConvergence`: time-discretisation error against steps on log–log axes (slopes −1 and −2). Library:
+  `src/lib/numerics/finiteDifference.ts` (now with Rannacher start-up and the explicit stability limit).
 - **Prereqs:** 19.
 
 ### 35. Fourier pricing
@@ -445,7 +447,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `GBMHistogram` | 16 | 33 |
 | `ItoComparison` | 17 | — |
 | `BSIntegrand` | 18 | 37, 40 |
-| `HeatDiffusion` | 19 | 34 |
+| `HeatDiffusion` | 19 | — |
 | `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
@@ -461,6 +463,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `JumpPaths`, `JumpSmile` | 31 | — |
 | `SABRSmileFit`, `RoughPaths` | 32 | 41 |
 | `MCConvergence`, `MCErrorScaling` | 33 | — |
+| `FDStability`, `FDConvergence` | 34 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
