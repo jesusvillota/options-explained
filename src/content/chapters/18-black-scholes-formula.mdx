@@ -1,0 +1,187 @@
+---
+title: "The Black–Scholes formula"
+part: 4
+chapter: 18
+difficulty: 3
+prerequisites: [12, 16]
+summary: "Compute the discounted risk-neutral expected payoff under a lognormal stock, and every piece of the famous formula gets a meaning."
+---
+import BSIntegrand from '../../components/plots/BSIntegrand';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>One integral away
+
+We've assembled every ingredient:
+
+- **Chapter 12:** price = discounted expected payoff under the risk-neutral probability $\mathbb{Q}$.
+- **Chapters 14 and 16:** under $\mathbb{Q}$, the stock at expiry is lognormal,
+  $\Spot{S_T} = \Spot{S}\exp\big((\Rate{r} - \tfrac12\Vol{\sigma}^2)\Time{T} + \Vol{\sigma}\sqrt{\Time{T}}\,Z\big)$ with $Z$ standard normal.
+
+So the price of a call is one integral:
+
+$$
+\Call{C} = e^{-\Rate{r}\Time{T}}\;\mathbb{E}^{\mathbb{Q}}\big[(\Spot{S_T} - \Strike{K})^+\big].
+$$
+
+In this chapter we compute it, and get the formula that earned Scholes and Merton the 1997 Nobel prize:
+
+$$
+\boxed{\;\Call{C} = \Spot{S}\,N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}\,N(d_2)\;}
+\qquad d_{1,2} = \frac{\ln(\Spot{S}/\Strike{K}) + (\Rate{r} \pm \tfrac12\Vol{\sigma}^2)\Time{T}}{\Vol{\sigma}\sqrt{\Time{T}}}.
+$$
+
+More importantly, we'll see what each piece *means*. It's two simple bets, not one opaque formula.
+
+## <span class="section-tag">Intuition</span>Split the payoff in two
+
+At expiry, if the call finishes in the money you receive the stock and pay the strike. If not, nothing happens.
+So the payoff is the difference of two simpler contracts:
+
+$$
+(\Spot{S_T} - \Strike{K})^+ \;=\; \underbrace{\Spot{S_T}\cdot\mathbf{1}\{\Spot{S_T} > \Strike{K}\}}_{\text{get the stock if ITM}} \;-\; \underbrace{\Strike{K}\cdot\mathbf{1}\{\Spot{S_T} > \Strike{K}\}}_{\text{pay the strike if ITM}} .
+$$
+
+**The cash leg.** Paying $\Strike{K}$ "if in the money" is worth $\Strike{K}$, discounted, times the
+risk-neutral probability of finishing in the money. That probability is $N(d_2)$, so the cash leg is worth
+$\Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$.
+
+**The stock leg.** Receiving the stock "if in the money" is worth $\Spot{S}N(d_1)$. It's tempting to read
+$N(d_1)$ as the same probability again, but it's larger. The stock tends to be in the money exactly in the
+scenarios where it's worth a lot, and that correlation pushes the value up. $N(d_1)$ is the probability of
+finishing in the money **measured in units of the stock**, a different "risk-neutral" world where the stock, not
+cash, is the numeraire.
+
+Toggle between the two probability worlds below:
+
+<BSIntegrand client:visible />
+
+<p class="try-this"><strong>Try this:</strong> in the top panel, the shaded tail is $N(d_2)$, the
+$\mathbb{Q}$-probability of exercise. Switch to <em>Share measure</em>: the density shifts right and the shaded
+area becomes the larger $N(d_1)$. In the bottom panel, the shaded area under payoff × density is the expected
+payoff, $e^{\Rate{r}\Time{T}}\Call{C}$.</p>
+
+<Callout type="key" title="Reading the formula">
+$\Call{C} = \Spot{S}\,N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$ says: <em>receive the stock if in the money,
+pay the strike if in the money</em>. $N(d_2)$ is the risk-neutral chance of exercise. $N(d_1)$ is the same event
+seen from the stock's point of view, and (Chapter 21) it's also the call's <strong>delta</strong>, the number of
+shares in the replicating portfolio.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Sanity checks
+
+A formula you can't sanity-check is a formula you can't trust. Each limit below matches something we already know:
+
+- **Deep in the money** ($\Spot{S} \gg \Strike{K}$): $d_1, d_2 \to \infty$, both $N$'s → 1, and
+  $\Call{C} \to \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$, the forward's value. That's the lower bound from
+  Chapter 7.
+- **Deep out of the money**: both $N$'s → 0, so $\Call{C} \to 0$.
+- **No volatility** ($\Vol{\sigma} \to 0$): the future is certain, $\Spot{S_T} = \Spot{S}e^{\Rate{r}\Time{T}}$, and
+  $\Call{C} = (\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}})^+$.
+- **Huge volatility** ($\Vol{\sigma} \to \infty$): $d_1 \to \infty$, $d_2 \to -\infty$, so $\Call{C} \to \Spot{S}$,
+  the upper bound from Chapter 7.
+
+**Puts** follow from put–call parity (Chapter 8):
+
+$$
+\Put{P} = \Strike{K}e^{-\Rate{r}\Time{T}}\,N(-d_2) - \Spot{S}\,N(-d_1).
+$$
+
+## <span class="section-tag">Formalisation</span>The derivation
+
+Write $\Spot{S_T} = \Spot{S}e^{(\Rate{r} - \frac12\Vol{\sigma}^2)\Time{T} + \Vol{\sigma}\sqrt{\Time{T}}Z}$ with $Z \sim \mathcal{N}(0,1)$ under
+$\mathbb{Q}$. The call is in the money when
+
+$$
+\Spot{S_T} > \Strike{K} \iff Z > -d_2, \qquad d_2 = \frac{\ln(\Spot{S}/\Strike{K}) + (\Rate{r} - \tfrac12\Vol{\sigma}^2)\Time{T}}{\Vol{\sigma}\sqrt{\Time{T}}}.
+$$
+
+**Cash leg.** $\mathbb{Q}(\Spot{S_T} > \Strike{K}) = \mathbb{Q}(Z > -d_2) = N(d_2)$, so
+$e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[\Strike{K}\mathbf{1}\{\Spot{S_T}>\Strike{K}\}] = \Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$.
+
+**Stock leg.** Write out the expectation and complete the square in the exponent:
+
+$$
+e^{-\Rate{r}\Time{T}}\,\mathbb{E}^{\mathbb{Q}}\big[\Spot{S_T}\mathbf{1}\{Z > -d_2\}\big]
+= \Spot{S}\int_{-d_2}^{\infty} e^{-\frac12\Vol{\sigma}^2\Time{T} + \Vol{\sigma}\sqrt{\Time{T}}z}\,\frac{e^{-z^2/2}}{\sqrt{2\pi}}\,dz
+= \Spot{S}\int_{-d_2}^{\infty}\frac{e^{-(z - \Vol{\sigma}\sqrt{\Time{T}})^2/2}}{\sqrt{2\pi}}\,dz .
+$$
+
+Substitute $y = z - \Vol{\sigma}\sqrt{\Time{T}}$. The lower limit becomes $-d_2 - \Vol{\sigma}\sqrt{\Time{T}} = -d_1$, so the
+integral is $N(d_1)$ with $d_1 = d_2 + \Vol{\sigma}\sqrt{\Time{T}}$. Subtract the two legs and you have the formula.
+
+**The share measure.** The shift $z \mapsto z - \Vol{\sigma}\sqrt{\Time{T}}$ is a *change of probability*. Weighting each
+scenario by $\Spot{S_T}/(\Spot{S}e^{\Rate{r}\Time{T}})$ moves the mean of $Z$ up by $\Vol{\sigma}\sqrt{\Time{T}}$, and under the new
+probability $\mathbb{Q}^S$ the event $\{\Spot{S_T} > \Strike{K}\}$ has probability $N(d_1)$. So
+
+$$
+\Call{C} = \Spot{S}\;\mathbb{Q}^{S}(\Spot{S_T} > \Strike{K}) \;-\; \Strike{K}e^{-\Rate{r}\Time{T}}\;\mathbb{Q}(\Spot{S_T} > \Strike{K}).
+$$
+
+This "change of numeraire" is the gateway to Part X.
+
+**With dividends** (yield $q$), replace $\Spot{S}$ by $\Spot{S}e^{-q\Time{T}}$ and $\Rate{r}$ by $\Rate{r} - q$ in the drift:
+$\Call{C} = \Spot{S}e^{-q\Time{T}}N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$ with
+$d_{1,2} = \big[\ln(\Spot{S}/\Strike{K}) + (\Rate{r} - q \pm \tfrac12\Vol{\sigma}^2)\Time{T}\big]/(\Vol{\sigma}\sqrt{\Time{T}})$.
+This is Merton's version. With $q$ as the foreign rate it prices currency options (Garman–Kohlhagen).
+
+## <span class="section-tag">Playground</span>Take the formula apart
+
+<BSIntegrand client:visible />
+
+<div class="try-this">
+
+- **Set the strike far above the stock.** Both $N$'s shrink, but by different amounts. Which leg dominates the
+  price?
+- **Set volatility to 80%.** In the top panel the density smears out, and $N(d_1)$ and $N(d_2)$ drift apart. Why
+  does more volatility *lower* $N(d_2)$ for an at-the-money call yet raise its price?
+- **Check the zero-rate at-the-money approximation** $\Call{C} \approx 0.4\,\Vol{\sigma}\sqrt{\Time{T}}\,\Spot{S}$ from
+  Chapter 3. Set $\Rate{r} = 0$ and $\Spot{S} = \Strike{K} = 100$, and compare.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="For S = K = 100, r = 5%, σ = 20%, T = 1, what is d₂? (Two decimals.)"
+  answer={0.15}
+  tolerance={0.0001}
+  explanation="$d_2 = [\ln 1 + (0.05 - 0.02)\cdot 1]/0.2 = 0.03/0.2 = 0.15$, and $d_1 = d_2 + \Vol{\sigma}\sqrt{\Time{T}} = 0.35$."
+/>
+
+<Quiz
+  client:visible
+  question="Which term in the Black–Scholes formula is the risk-neutral probability that the call is exercised?"
+  options={["N(d₁)", "N(d₂)", "N(−d₁)", "S·N(d₁)"]}
+  answer={1}
+  explanation="$\mathbb{Q}(\Spot{S_T} > \Strike{K}) = N(d_2)$. $N(d_1)$ is the same event under the share measure, and it's the call's delta."
+/>
+
+<Quiz
+  client:visible
+  question="As σ → ∞ (everything else fixed), the Black–Scholes call price tends to..."
+  options={["0", "the strike", "the stock price S", "S − K"]}
+  answer={2}
+  explanation="$d_1 \to +\infty$ and $d_2 \to -\infty$, so $\Call{C} \to \Spot{S}\cdot 1 - \Strike{K}e^{-\Rate{r}\Time{T}}\cdot 0 = \Spot{S}$, the upper arbitrage bound."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- $\Call{C} = \Spot{S}N(d_1) - \Strike{K}e^{-\Rate{r}\Time{T}}N(d_2)$: **receive the stock if ITM** minus **pay the strike if
+  ITM**.
+- $N(d_2) = \mathbb{Q}(\Spot{S_T} > \Strike{K})$. $N(d_1)$ is the same event under the **share measure**, and it's
+  the call's delta.
+- The derivation is one Gaussian integral with a completed square. The shift by $\Vol{\sigma}\sqrt{\Time{T}}$ is a change of
+  probability.
+- Puts by parity: $\Put{P} = \Strike{K}e^{-\Rate{r}\Time{T}}N(-d_2) - \Spot{S}N(-d_1)$. Dividends: replace $\Spot{S}$ with
+  $\Spot{S}e^{-q\Time{T}}$.
+
+**Next up:** Black and Scholes didn't get their formula from an expectation. They got it from a **hedging
+argument** that produces a partial differential equation. Chapter 19 follows their route, and finds the heat
+equation hiding inside.
+
+### Further reading
+
+- F. Black and M. Scholes, "The pricing of options and corporate liabilities" (1973).
+- R. C. Merton, "Theory of rational option pricing" (1973).

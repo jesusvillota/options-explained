@@ -19,3 +19,13 @@ export function niceTicks(lo: number, hi: number, target = 5): number[] {
   for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) ticks.push(Math.round(t * 1e6) / 1e6);
   return ticks;
 }
+
+/** [min, max] of a (possibly very long) array, without spreading it into Math.min/max. */
+export function extent(values: number[]): [number, number] {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of values) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  return [lo, hi];
+}

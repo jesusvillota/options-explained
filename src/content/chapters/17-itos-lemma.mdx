@@ -1,0 +1,170 @@
+---
+title: "Itô's lemma, intuitively"
+part: 4
+chapter: 17
+difficulty: 3
+prerequisites: [15, 16]
+summary: "The chain rule for random paths keeps one extra term, because (dW)² = dt."
+---
+import ItoComparison from '../../components/plots/ItoComparison';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The chain rule breaks
+
+In ordinary calculus, if $x(t)$ is a smooth function, the chain rule gives $d(x^2) = 2x\,dx$. Integrate, and
+$x_t^2 = \int_0^t 2x\,dx$ (when $x_0 = 0$).
+
+Try the same with Brownian motion. The "chain rule" would say $W_t^2 = \int_0^t 2W\,dW$. But take expectations.
+The left side has $\mathbb{E}[W_t^2] = t$. The right side is a sum of terms $2W\,\Delta W$, where each
+$\Delta W$ is a fresh coin flip independent of the $W$ before it, so its expectation is **zero**. The two sides
+can't be equal. Ordinary calculus gives the wrong answer for random paths.
+
+The fix is a single extra term, and it's the most important formula in mathematical finance: **Itô's lemma**.
+
+## <span class="section-tag">Intuition</span>Keep the second-order term
+
+Expand any smooth function $f$ around a point, Taylor-style:
+
+$$
+\Delta f \;=\; f'(W)\,\Delta W \;+\; \tfrac12 f''(W)\,(\Delta W)^2 \;+\; \dots
+$$
+
+For a smooth path, $\Delta x$ is of size $\Delta t$, so $(\Delta x)^2$ is of size $\Delta t^2$. Summed over
+$t/\Delta t$ steps, those squares add up to nothing, and we drop them. That's why ordinary calculus only needs
+the first term.
+
+For Brownian motion, $\Delta W$ is of size $\sqrt{\Delta t}$, so $(\Delta W)^2$ is of size $\Delta t$. Summed over
+the steps, the squares add up to **elapsed time**, the quadratic variation from Chapter 15. They don't vanish:
+they become a $dt$ term. Replacing $(\Delta W)^2$ by $\Delta t$:
+
+$$
+df = f'(W)\,dW + \tfrac12 f''(W)\,dt .
+$$
+
+For $f(W) = W^2$: $d(W^2) = 2W\,dW + dt$. So $W_t^2 = \int_0^t 2W\,dW + t$. The extra $t$ is exactly what the
+expectation argument demanded. Watch it happen along a path:
+
+<ItoComparison client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with only 8 steps, all three curves wander apart. Slide up to 65,536
+steps. The red "ordinary chain rule" sum ends up short of $W^2$ by almost exactly 1, which is $t$ at the end. Add
+$t$ back (green dashed) and it lands on $W^2$ for every new path.</p>
+
+<Callout type="key" title="The multiplication table of stochastic calculus">
+$$
+dt \cdot dt = 0, \qquad dt \cdot dW = 0, \qquad dW \cdot dW = dt.
+$$
+Expand any function to second order, apply this table, and you have Itô's lemma.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Where −½σ² comes from
+
+Now apply this to a stock following GBM, $d\Spot{S} = \mu\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW$, and look at its
+logarithm, $f(\Spot{S}) = \ln \Spot{S}$, with $f' = 1/\Spot{S}$ and $f'' = -1/\Spot{S}^2$:
+
+$$
+d\ln \Spot{S} = \frac{1}{\Spot{S}}\,d\Spot{S} - \frac{1}{2\Spot{S}^2}\,(d\Spot{S})^2 .
+$$
+
+Using the table, $(d\Spot{S})^2 = \Vol{\sigma}^2\Spot{S}^2\,(dW)^2 = \Vol{\sigma}^2\Spot{S}^2\,dt$. So
+
+$$
+d\ln \Spot{S} = \big(\mu - \tfrac12\Vol{\sigma}^2\big)\,dt + \Vol{\sigma}\,dW .
+$$
+
+The log price is a Brownian motion with drift $\mu - \tfrac12\Vol{\sigma}^2$. Integrating gives exactly the GBM
+formula from Chapter 16. The $-\tfrac12\Vol{\sigma}^2$ we've met in trees, volatility drag and soon Black–Scholes
+is the second-order Itô term, made visible.
+
+## <span class="section-tag">Formalisation</span>Itô integrals and Itô's lemma
+
+**The Itô integral.** For a process $H_t$ that only uses information up to time $t$ (it doesn't peek ahead), define
+
+$$
+\int_0^t H_s\,dW_s = \lim_{n \to \infty} \sum_{k} H_{t_{k-1}}\big(W_{t_k} - W_{t_{k-1}}\big),
+$$
+
+always evaluating $H$ at the **left endpoint** of each step. That choice is what makes the integral a model of
+trading: you choose your position before the next price move. The convergence is in mean square. Two key
+properties:
+
+$$
+\mathbb{E}\Big[\int_0^t H_s\,dW_s\Big] = 0, \qquad \mathbb{E}\Big[\Big(\int_0^t H_s\,dW_s\Big)^2\Big] = \mathbb{E}\Big[\int_0^t H_s^2\,ds\Big] \quad \text{(Itô isometry)}.
+$$
+
+**Itô processes.** $dX_t = a_t\,dt + b_t\,dW_t$. Its quadratic variation is $(dX)^2 = b_t^2\,dt$.
+
+**Itô's lemma.** For $f(t, x)$ twice differentiable in $x$ and once in $t$,
+
+$$
+\boxed{\;df(t, X_t) = \frac{\partial f}{\partial t}\,dt + \frac{\partial f}{\partial x}\,dX_t + \frac12\frac{\partial^2 f}{\partial x^2}\,b_t^2\,dt\;}
+$$
+
+*Proof sketch.* Taylor-expand $f$ over each small step to second order in $\Delta X$ and first order in
+$\Delta t$. Sum over the steps. The $(\Delta X)^2$ terms converge to $\int b^2\,dt$ by the quadratic-variation
+argument. The terms $\Delta t\,\Delta X$, $(\Delta t)^2$ and higher powers of $\Delta X$ sum to zero.
+
+**Examples.**
+
+- $W_t^2 = 2\int_0^t W_s\,dW_s + t$.
+- **Exponential martingale.** $M_t = \exp\big(\theta W_t - \tfrac12\theta^2t\big)$ satisfies $dM = \theta M\,dW$,
+  with no $dt$ term, so $\mathbb{E}[M_t] = 1$. The $-\tfrac12\theta^2t$ is exactly what cancels Itô's correction.
+  We'll use this to change probabilities in Chapter 40.
+- **GBM.** $d\ln \Spot{S} = (\mu - \tfrac12\Vol{\sigma}^2)\,dt + \Vol{\sigma}\,dW$, which proves Chapter 16's formula.
+
+## <span class="section-tag">Playground</span>See the correction
+
+<ItoComparison client:visible />
+
+<div class="try-this">
+
+- **Re-roll the path several times at 65,536 steps.** The gap between $W^2$ and the ordinary-chain-rule sum is
+  always close to 1. Its randomness shrinks as the steps shrink.
+- **At 8 steps**, the gap is noisy. How fine must the steps be before the correction is reliably visible?
+- **Predict**, before looking: if the plot ran to $t = 2$, what would the gap be at the end?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="By Itô's lemma, d(W_t²) equals..."
+  options={["2W dW", "2W dW + dt", "2W dW + 2 dt", "dt"]}
+  answer={1}
+  explanation="With $f(w) = w^2$: $f' = 2w$, $f'' = 2$, so $df = 2W\,dW + \tfrac12 \cdot 2\,dt = 2W\,dW + dt$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="If dS = μS dt + σS dW with μ = 7% and σ = 30%, what is the drift of ln S (per year, as a decimal)?"
+  answer={0.025}
+  tolerance={0.0001}
+  explanation="$\mu - \tfrac12\Vol{\sigma}^2 = 0.07 - 0.045 = 0.025$."
+/>
+
+<Quiz
+  client:visible
+  question="In stochastic calculus, which product is NOT zero?"
+  options={["dt · dt", "dt · dW", "dW · dW"]}
+  answer={2}
+  explanation="$(dW)^2 = dt$: the quadratic variation of Brownian motion. The other two are of higher order and vanish."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Brownian increments are of size $\sqrt{dt}$, so their squares add up to time: $(dW)^2 = dt$.
+- **Itô's lemma** is the chain rule with one extra term: $df = f_t\,dt + f_x\,dX + \tfrac12 f_{xx}(dX)^2$.
+- Applied to $\ln \Spot{S}$ under GBM, it gives drift $\mu - \tfrac12\Vol{\sigma}^2$: the origin of volatility
+  drag.
+- Itô integrals evaluate the integrand at the left endpoint, like a trader choosing a position before the price
+  moves. They have mean zero and obey the Itô isometry.
+
+**Next up:** we now have everything needed for the main event. Chapter 18 computes the risk-neutral expectation of
+a call's payoff under GBM, and out comes the Black–Scholes formula.
+
+### Further reading
+
+- K. Itô, "On stochastic differential equations" (1951).
+- S. E. Shreve, *Stochastic Calculus for Finance II*, chapter 4.

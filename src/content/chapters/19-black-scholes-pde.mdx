@@ -1,0 +1,181 @@
+---
+title: "The Black–Scholes PDE"
+part: 4
+chapter: 19
+difficulty: 3
+prerequisites: [17, 18]
+summary: "Hedge away all the randomness, demand the risk-free return, and out comes a heat equation for the option price."
+---
+import HeatDiffusion from '../../components/plots/HeatDiffusion';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The original argument
+
+Black and Scholes didn't compute an expectation. In 1973 they asked a trader's question: *if I own an option, can I
+trade the stock so that my combined position has no risk at all, even for an instant?*
+
+The answer is yes, and it leads to an equation every option price must obey: a **partial differential equation**
+(PDE). Solve it with the payoff as the final condition, and you get the same formula as Chapter 18. Along the way
+there's a surprise: rearranged, the equation is the **heat equation**, the one that describes how heat spreads
+through a metal bar.
+
+## <span class="section-tag">Intuition</span>Hedge away the randomness
+
+Hold one option, worth $V(\Spot{S}, t)$, and **sell short $\Delta$ shares**. Over a tiny time $dt$, the stock
+moves by $d\Spot{S}$. By Itô's lemma (Chapter 17), the option moves by
+
+$$
+dV = \frac{\partial V}{\partial t}\,dt + \frac{\partial V}{\partial \Spot{S}}\,d\Spot{S} + \frac12\frac{\partial^2 V}{\partial \Spot{S}^2}\,\Vol{\sigma}^2\Spot{S}^2\,dt .
+$$
+
+Your portfolio $\Pi = V - \Delta\Spot{S}$ changes by $dV - \Delta\,d\Spot{S}$. The only random term is the one with
+$d\Spot{S}$. Choose
+
+$$
+\Delta = \frac{\partial V}{\partial \Spot{S}},
+$$
+
+and it **cancels exactly**. Over that instant the portfolio's change is completely predictable. It's the
+continuous-time version of Chapter 11's replication, where $\Delta$ was the slope of the line through the two
+payoffs.
+
+A riskless portfolio must earn the risk-free rate, or there'd be an arbitrage: $d\Pi = \Rate{r}\,\Pi\,dt$. Write
+that out and divide by $dt$:
+
+$$
+\boxed{\;\frac{\partial V}{\partial t} + \frac12\Vol{\sigma}^2\Spot{S}^2\frac{\partial^2 V}{\partial \Spot{S}^2} + \Rate{r}\Spot{S}\frac{\partial V}{\partial \Spot{S}} - \Rate{r}V = 0\;}
+$$
+
+That's the **Black–Scholes PDE**. Notice what's missing: the stock's drift $\mu$. It appeared in $d\Spot{S}$, but
+it cancelled along with the randomness. This is the continuous-time echo of Chapter 12's surprise.
+
+<Callout type="key" title="What the PDE says">
+In words: <strong>time decay + gamma effect + interest on the hedge = interest on the option</strong>. An option
+that curves upwards (positive $\partial^2 V/\partial \Spot{S}^2$) gains from volatility, and pays for it by losing
+value as time passes. Chapter 22 builds on exactly this trade-off.
+</Callout>
+
+## <span class="section-tag">Intuition</span>The heat equation in disguise
+
+Run time backwards, from expiry. At expiry the option's value is its payoff, sharp kink included. As we move away
+from expiry (time to expiry $\Time{\tau}$ growing), the PDE says the curvature $\partial^2 V/\partial \Spot{S}^2$
+pushes the value up where the curve bends upwards. Kinks get rounded off; peaks spread out.
+
+That's exactly what heat does. Put a hot spot on a cold bar and it spreads, smoothing out. With a change of
+variables (log price, time to expiry, and a little rescaling) the Black–Scholes PDE becomes **literally** the heat
+equation, $u_\tau = \tfrac12\Vol{\sigma}^2\,u_{xx}$. Watch it below. The thick curve is a numerical solution of the
+PDE, and the dashed curve is Chapter 18's formula:
+
+<HeatDiffusion client:visible />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Play</em>. The hockey stick rounds off, fastest right at
+the kink, where the curvature is concentrated. Raise the volatility: the smoothing speeds up, just as heat spreads
+faster through a better conductor. The two curves agree to a fraction of a cent.</p>
+
+## <span class="section-tag">Formalisation</span>PDE, boundary conditions, Feynman–Kac
+
+**The problem.** Find $V(\Spot{S}, t)$ on $\Spot{S} > 0$, $0 \le t \le \Time{T}$, with
+
+$$
+V_t + \tfrac12\Vol{\sigma}^2\Spot{S}^2V_{SS} + (\Rate{r} - q)\Spot{S}V_S - \Rate{r}V = 0, \qquad V(\Spot{S}, \Time{T}) = \text{payoff}(\Spot{S}),
+$$
+
+including a dividend yield $q$. For a call, the boundary behaviour is $V(0,t) = 0$ and
+$V \sim \Spot{S}e^{-q(\Time{T}-t)} - \Strike{K}e^{-\Rate{r}(\Time{T}-t)}$ as $\Spot{S} \to \infty$.
+
+**Derivation, carefully.** With $d\Spot{S} = \mu\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW$ and
+$\Pi = V - V_S\,\Spot{S}$ (holding $V_S$ fixed over $dt$, as a self-financing hedge does),
+
+$$
+d\Pi = \Big(V_t + \tfrac12\Vol{\sigma}^2\Spot{S}^2V_{SS}\Big)dt .
+$$
+
+No arbitrage forces $d\Pi = \Rate{r}\,\Pi\,dt = \Rate{r}(V - \Spot{S}V_S)\,dt$, which rearranges to the PDE with $q = 0$.
+
+**Reduction to the heat equation.** Let $x = \ln(\Spot{S}/\Strike{K})$, $\tau = \Time{T} - t$, and
+$V = \Strike{K}\,e^{\alpha x + \beta\tau}\,u(x, \tau)$ with
+$\alpha = -\tfrac12\big(\tfrac{2(\Rate{r} - q)}{\Vol{\sigma}^2} - 1\big)$ and
+$\beta = -\tfrac{\Vol{\sigma}^2}{2}\alpha^2 - \Rate{r}$. Then
+
+$$
+u_\tau = \tfrac12\Vol{\sigma}^2\,u_{xx},
+$$
+
+the heat equation with diffusion coefficient $\tfrac12\Vol{\sigma}^2$. The payoff becomes the initial temperature.
+Convolving it with the Gaussian heat kernel reproduces Chapter 18's formula.
+
+**Feynman–Kac.** The two routes always meet. If $V$ solves the PDE with terminal condition $g$, then
+
+$$
+V(\Spot{S}, t) = e^{-\Rate{r}(\Time{T}-t)}\,\mathbb{E}^{\mathbb{Q}}\big[g(\Spot{S_T}) \,\big|\, \Spot{S_t} = \Spot{S}\big],
+\qquad d\Spot{S} = (\Rate{r} - q)\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW^{\mathbb{Q}}.
+$$
+
+PDE and risk-neutral expectation are two descriptions of the same number. The first suits numerical grids
+(Chapter 34), the second suits simulation (Chapter 33).
+
+**American options** turn the PDE into an inequality with a free boundary:
+$\max\big(V_t + \mathcal{L}V - \Rate{r}V,\; \text{payoff} - V\big) = 0$, the continuous version of the tree's $\max$
+in Chapter 13. The widget's solver handles it by taking that $\max$ at every time step.
+
+## <span class="section-tag">Playground</span>Diffuse a put
+
+<HeatDiffusion client:visible />
+
+<div class="try-this">
+
+- **Switch to a put** and play. Near $\Spot{S} = 0$ the curve sits *below* the payoff: negative time value, from
+  Chapter 3.
+- **Compare 10% and 60% volatility** at the same $\Time{\tau}$. How much more "smoothed" is the high-volatility curve?
+- **At $\Time{\tau} = 2$ years**, read the at-the-money value, then check it against the playground in Chapter 20.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="In the Black–Scholes hedging argument, why can we demand that the hedged portfolio earn exactly r?"
+  options={[
+    "Because investors are risk-neutral",
+    "Because the hedge removes all randomness over the instant, so any other return would be an arbitrage",
+    "Because the stock earns r",
+    "Because μ = r in the real world",
+  ]}
+  answer={1}
+  explanation="With $\Delta = V_S$ the $dW$ terms cancel. A riskless portfolio earning more than $\Rate{r}$ (or less) could be combined with borrowing (or lending) for a free profit. No assumption about investors' preferences is needed."
+/>
+
+<Quiz
+  client:visible
+  question="Which quantity does NOT appear in the Black–Scholes PDE?"
+  options={["σ", "r", "μ (the stock's expected return)", "S"]}
+  answer={2}
+  explanation="The drift cancels along with the random term when we hedge. Option prices don't depend on the stock's expected return."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A position has Γ = 0.02 (per $ per $), S = 100, σ = 20%. What is the 'gamma term' ½σ²S²Γ, per year?"
+  answer={4}
+  tolerance={0.001}
+  explanation="$\tfrac12 \times 0.04 \times 10{,}000 \times 0.02 = 4$. In a delta-hedged position it must be paid for by time decay (theta), as Chapter 22 shows."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Hedge the option with $\Delta = \partial V/\partial \Spot{S}$ shares, and the randomness cancels. A riskless portfolio
+  earns $\Rate{r}$, which gives the **Black–Scholes PDE**: $V_t + \tfrac12\Vol{\sigma}^2\Spot{S}^2V_{SS} + \Rate{r}\Spot{S}V_S - \Rate{r}V = 0$.
+- The drift $\mu$ cancels: no preferences, no forecasts.
+- In log variables and time to expiry, it's the **heat equation**: the payoff's kink diffuses away.
+- **Feynman–Kac**: the PDE solution equals the discounted risk-neutral expectation, two routes to one price.
+
+**Next up:** Part IV ends with a playground: every input of Black–Scholes on a slider, and the full price
+surface on screen at once.
+
+### Further reading
+
+- F. Black and M. Scholes, "The pricing of options and corporate liabilities" (1973).
+- P. Wilmott, S. Howison and J. Dewynne, *The Mathematics of Financial Derivatives*, chapter 5 (the heat
+  equation transformation).
