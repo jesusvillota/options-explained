@@ -80,8 +80,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 7. Arbitrage bounds
 - **Goals:** Derive upper and lower bounds on call and put prices with no model at all.
 - **Key math:** $\max(S - Ke^{-rT}, 0) \le C \le S$; $\max(Ke^{-rT} - S, 0) \le P \le Ke^{-rT}$.
-- **Widgets:** the feasible region shaded in $(S, C)$ space. A draggable "market price" that triggers an
-  arbitrage explanation when it leaves the region.
+- **Widgets:** `BoundsRegion`: the arbitrage-free band in $(S, C)$ or $(S, P)$ space with Black–Scholes inside,
+  and a draggable market price that names the arbitrage trade when it leaves the band.
 - **Prereqs:** 6.
 
 ### 8. Put–call parity
@@ -401,6 +401,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `OptionChain` | 4 | 25, 26 |
 | `CompoundingStaircase` | 6 | — |
 | `ForwardArbitrageMachine` | 6 | 8 |
+| `BoundsRegion` | 7 | 9, 10 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

@@ -1,0 +1,214 @@
+---
+title: "Arbitrage bounds"
+part: 2
+chapter: 7
+difficulty: 2
+prerequisites: [6]
+summary: "Without any model of the stock, we can still fence in what an option can cost."
+---
+import BoundsRegion from '../../components/plots/BoundsRegion';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Prices you can prove are wrong
+
+Someone offers to sell you a one-year call on a \$100 stock, strike \$100, for **\$120**. Another trader quotes a
+call with strike \$100 on a stock at **\$130** for just **\$20**.
+
+You don't need a model of how stocks move to know both prices are wrong. In fact, you can make money from both
+of them *without taking any risk*. Paying \$120 for the right to buy something worth \$100 is obviously silly.
+The second one is subtler, but just as certain.
+
+This chapter finds the tightest fence we can put around an option's price using only the arbitrage idea from
+Chapter 6: *if one portfolio always pays at least as much as another, it can't cost less.* No probabilities,
+no volatility, no formulas for how stocks move. Just logic.
+
+## <span class="section-tag">Intuition</span>Four walls
+
+For a call with strike $\Strike{K}$ and expiry $\Time{T}$ on a stock that pays no dividends, there are four
+simple arguments.
+
+**1. A call can't be worth less than zero.** It's a right, not an obligation. At worst you throw it away.
+
+**2. A call can't be worth more than the stock.** The call lets you *buy* the stock for $\Strike{K}$, so owning
+the share outright is always at least as good. If the call cost more than the share, you'd sell the call, buy
+the share, and keep the difference. Whatever happens, the share you hold covers what you might owe.
+
+**3. A call is worth at least as much as a forward.** In Chapter 6 a forward with delivery price $\Strike{K}$
+was worth $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$. The call has the same upside but lets you walk away
+from the downside, so it can't be worth less:
+
+$$
+\Call{C} \;\ge\; \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}.
+$$
+
+**4. Put it together**, and the call price lives in a band:
+
+$$
+\max\!\big(\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}},\, 0\big) \;\le\; \Call{C} \;\le\; \Spot{S}.
+$$
+
+Draw both walls against the stock price and you get a region every sensible price must lie in. The
+Black–Scholes price, the dashed curve, sits comfortably inside:
+
+<BoundsRegion client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the market point above the upper wall, then below the lower
+wall when the stock is at \$130. Read the trade each time. Then slide the time to expiry to its smallest value:
+the band collapses onto the hockey stick. At expiry there's no room left, and the price must be the payoff.</p>
+
+Our two bad quotes from the hook fail one wall each:
+
+- **\$120 for a call on a \$100 stock** breaks the upper wall. Sell the call, buy the stock, keep \$20.
+- **\$20 for a \$100-strike call on a \$130 stock** breaks the lower wall, which is
+  $130 - 100e^{-0.05} \approx 34.88$. Buy the call, short the stock and lend \$95.12. You lock in about \$14.88
+  today, and at expiry the loan returns \$100, enough to close the short via the call however high the stock
+  has gone.
+
+## <span class="section-tag">Intuition</span>The put's walls
+
+The same reasoning fences in a put:
+
+- **A put can't be worth more than the strike's present value**, $\Strike{K}e^{-\Rate{r}\Time{T}}$. The best a
+  put can ever pay is $\Strike{K}$ at expiry, if the stock goes to zero.
+- **A put is worth at least as much as a short forward**: $\Put{P} \ge \Strike{K}e^{-\Rate{r}\Time{T}} - \Spot{S}$.
+- And, of course, $\Put{P} \ge 0$.
+
+Switch the widget to *Put* to see its band. It's shaped differently: highest when the stock is near zero, and
+squeezed towards zero as the stock rises.
+
+<Callout type="key" title="The dominance principle">
+Every bound in this chapter comes from one rule: <strong>if portfolio A pays at least as much as portfolio B in
+every possible future, then A must cost at least as much as B today.</strong> Otherwise, buy A, sell B, pocket
+the difference, and you can never lose. This rule doesn't depend on probabilities, so the bounds hold under any
+model of the stock, as long as markets don't leave free lunches lying around.
+</Callout>
+
+## <span class="section-tag">Intuition</span>What the band tells us
+
+The width of the band says how much the arbitrage argument alone *can't* decide.
+
+- **Near expiry**, the band is thin: the price must be close to the payoff. That's Chapter 3's time value
+  vanishing.
+- **Far from expiry**, the band is wide. As $\Time{T}$ grows, the lower wall $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$
+  approaches $\Spot{S}$ itself. A very long-dated call is worth nearly as much as the stock, because paying
+  $\Strike{K}$ in the distant future costs almost nothing today.
+- **Inside the band**, arbitrage is silent. Any price there is consistent with *some* view of how the stock
+  moves. To pick a single price, we'll need a model. That's what Parts III and IV are for.
+
+There's one striking consequence. With positive interest rates, the lower wall is strictly above the payoff:
+$\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}} > \Spot{S} - \Strike{K}$. So a call on a non-dividend stock is
+**always worth more alive than exercised**. You'll see why that matters in Chapter 9.
+
+## <span class="section-tag">Formalisation</span>Bounds with dividends, and their proofs
+
+Let the stock pay a continuous dividend yield $q$. Holding $e^{-q\Time{T}}$ shares today, with dividends
+reinvested, gives exactly one share at $\Time{T}$, so "the stock" in each argument costs
+$\Spot{S}e^{-q\Time{T}}$. For European options:
+
+$$
+\boxed{\;\max\!\big(\Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}},\,0\big) \le \Call{C} \le \Spot{S}e^{-q\Time{T}}\;}
+$$
+
+$$
+\boxed{\;\max\!\big(\Strike{K}e^{-\Rate{r}\Time{T}} - \Spot{S}e^{-q\Time{T}},\,0\big) \le \Put{P} \le \Strike{K}e^{-\Rate{r}\Time{T}}\;}
+$$
+
+Each inequality compares two portfolios at expiry:
+
+| Bound | Portfolio A (costs more) | Portfolio B | Why A ≥ B at expiry |
+|---|---|---|---|
+| $\Call{C} \le \Spot{S}e^{-q\Time{T}}$ | $e^{-q\Time{T}}$ shares | 1 call | $\Spot{S_T} \ge (\Spot{S_T}-\Strike{K})^+$ |
+| $\Call{C} \ge \Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}$ | call + bond paying $\Strike{K}$ | $e^{-q\Time{T}}$ shares | $\max(\Spot{S_T}, \Strike{K}) \ge \Spot{S_T}$ |
+| $\Put{P} \le \Strike{K}e^{-\Rate{r}\Time{T}}$ | bond paying $\Strike{K}$ | 1 put | $\Strike{K} \ge (\Strike{K} - \Spot{S_T})^+$ |
+| $\Put{P} \ge \Strike{K}e^{-\Rate{r}\Time{T}} - \Spot{S}e^{-q\Time{T}}$ | put + $e^{-q\Time{T}}$ shares | bond paying $\Strike{K}$ | $\max(\Spot{S_T}, \Strike{K}) \ge \Strike{K}$ |
+
+For the second row: at expiry the call plus the bond pay $(\Spot{S_T} - \Strike{K})^+ + \Strike{K} = \max(\Spot{S_T}, \Strike{K})$,
+which is at least $\Spot{S_T}$, what the shares pay. By dominance, the call plus the bond's price
+$\Strike{K}e^{-\Rate{r}\Time{T}}$ must be at least $\Spot{S}e^{-q\Time{T}}$. Rearranged, that's the lower bound.
+The others follow the same pattern.
+
+**American options** can be exercised at any moment, so they must also be worth at least their payoff right
+now. That adds two more walls: $\Call{C}^{\text{Am}} \ge \Spot{S} - \Strike{K}$ and
+$\Put{P}^{\text{Am}} \ge \Strike{K} - \Spot{S}$. Their upper bounds become $\Spot{S}$ and $\Strike{K}$. For the
+put, $\Strike{K}$ rather than its present value, because the holder can collect it immediately.
+
+<details>
+<summary>Why the bounds can't be improved without a model</summary>
+
+Each bound is *attained* in some limit. Shrink volatility towards zero, and a call's price falls to its lower
+bound, the forward's value or zero. Push volatility (or time) towards infinity, and it rises to $\Spot{S}e^{-q\Time{T}}$.
+Since every price in between is reached by some model, nothing stronger can be proved from arbitrage alone.
+You can check this numerically in Chapter 20's playground.
+
+</details>
+
+## <span class="section-tag">Playground</span>Stress the walls
+
+<BoundsRegion client:visible type="put" initialSpot={40} initialPrice={50} title="Playground: put bounds" />
+
+<div class="try-this">
+
+- **Find the put's arbitrage** at the starting point (stock \$40, put quoted at \$50). Which wall is broken?
+  What's the trade?
+- **Make the interest rate 15% and the time 5 years.** The put's upper wall drops well below \$100. Why can a put
+  struck at \$100 be worth so much less than \$100, even if the stock is worthless?
+- **For a call**, set $\Time{T}$ to 5 years. How close does the Black–Scholes curve get to the upper wall?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Stock \$100 (no dividends), strike \$90, rate 5%, one year. What is the lowest price a European call can have without arbitrage? (Round to the cent.)"
+  answer={14.39}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="$\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}} = 100 - 90e^{-0.05} \approx 100 - 85.61 = 14.39$, which is more than zero, so that's the bound."
+/>
+
+<Quiz
+  client:visible
+  question="A call on a \$100 stock is quoted at \$105. What's the arbitrage?"
+  options={[
+    "Buy the call and sell the stock.",
+    "Sell the call and buy the stock.",
+    "Buy the call and lend money.",
+    "There's none: options can cost anything.",
+  ]}
+  answer={1}
+  explanation="The call is worth at most the stock. Sell it for \$105, buy the share for \$100, and keep \$5. Whatever happens, the share covers you: if the call is exercised, you deliver it and also receive the strike."
+/>
+
+<Quiz
+  client:visible
+  question="As time to expiry grows very large (no dividends, positive rates), a call's price must approach..."
+  options={[
+    "zero",
+    "the strike",
+    "the stock price",
+    "the intrinsic value"
+  ]}
+  answer={2}
+  explanation="The lower bound $\Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}}$ rises towards $\Spot{S}$ as $\Time{T}$ grows, and the upper bound is $\Spot{S}$. The band squeezes the price up to the stock price."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The **dominance principle**: if A always pays at least as much as B, then A costs at least as much as B.
+  It needs no model.
+- European calls: $\max(\Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}, 0) \le \Call{C} \le \Spot{S}e^{-q\Time{T}}$.
+  Puts: $\max(\Strike{K}e^{-\Rate{r}\Time{T}} - \Spot{S}e^{-q\Time{T}}, 0) \le \Put{P} \le \Strike{K}e^{-\Rate{r}\Time{T}}$.
+- The band is **thin near expiry and wide far from it**. Inside it, arbitrage alone can't choose a price, and we
+  need a model.
+- A call on a non-dividend stock is worth more than its intrinsic value: a first hint that it should never be
+  exercised early.
+
+**Next up:** the bounds treat calls and puts separately. In Chapter 8 we'll find an *exact* relationship
+between them, put–call parity, which turns any call price into a put price and back.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 11 (properties of stock options).
+- R. C. Merton, "Theory of rational option pricing" (1973), where these bounds were first set out systematically.
