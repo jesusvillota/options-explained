@@ -21,6 +21,11 @@ export interface FDInput {
   /** θ = 0: explicit, θ = 1: fully implicit, θ = ½: Crank–Nicolson. */
   theta?: number;
   american?: boolean;
+  /**
+   * Rannacher start-up: replace the first two steps with four fully implicit
+   * half-steps, damping the payoff's kink so Crank–Nicolson keeps second order.
+   */
+  rannacher?: boolean;
 }
 
 export interface FDResult {
@@ -48,7 +53,7 @@ function thomas(a: number[], b: number[], c: number[], d: number[]): number[] {
   return x;
 }
 
-export function solveBlackScholesPDE({ type, K, r, sigma, q = 0, T, nS, nT, Smax = 4 * K, theta = 0.5, american = false }: FDInput): FDResult {
+export function solveBlackScholesPDE({ type, K, r, sigma, q = 0, T, nS, nT, Smax = 4 * K, theta = 0.5, american = false, rannacher = false }: FDInput): FDResult {
   const dS = Smax / nS;
   const dTau = T / nT;
   const S = Array.from({ length: nS + 1 }, (_, i) => i * dS);
@@ -61,28 +66,34 @@ export function solveBlackScholesPDE({ type, K, r, sigma, q = 0, T, nS, nT, Smax
     type === 'call'
       ? [0, Smax * Math.exp(-q * tau) - K * Math.exp(-r * tau)]
       : [K * Math.exp(-r * tau), 0];
-  for (let k = 1; k <= nT; k++) {
-    const prev = V[k - 1];
-    const tau = k * dTau;
+  // One θ-step of size h from `prev`, ending at time-to-expiry tau.
+  const step = (prev: number[], h: number, th: number, tau: number): number[] => {
     const [lo, hi] = boundary(tau);
     const m = nS - 1; // interior unknowns i = 1..nS−1
     const a = new Array(m), b = new Array(m), c = new Array(m), d = new Array(m);
     for (let i = 1; i <= m; i++) {
-      const explicitPart = prev[i] + (1 - theta) * dTau * (alpha[i] * prev[i - 1] + beta[i] * prev[i] + gamma[i] * prev[i + 1]);
-      a[i - 1] = -theta * dTau * alpha[i];
-      b[i - 1] = 1 - theta * dTau * beta[i];
-      c[i - 1] = -theta * dTau * gamma[i];
-      d[i - 1] = explicitPart;
+      a[i - 1] = -th * h * alpha[i];
+      b[i - 1] = 1 - th * h * beta[i];
+      c[i - 1] = -th * h * gamma[i];
+      d[i - 1] = prev[i] + (1 - th) * h * (alpha[i] * prev[i - 1] + beta[i] * prev[i] + gamma[i] * prev[i + 1]);
     }
     // Move known boundary values to the right-hand side.
     d[0] -= a[0] * lo;
     d[m - 1] -= c[m - 1] * hi;
     a[0] = 0;
     c[m - 1] = 0;
-    const interior = theta === 0 ? d.map((x, j) => x / b[j]) : thomas(a, b, c, d);
-    let next = [lo, ...interior, hi];
-    if (american) next = next.map((v, i) => Math.max(v, payoff(type, S[i], K)));
-    V.push(next);
+    const interior = th === 0 ? d.map((x, j) => x / b[j]) : thomas(a, b, c, d);
+    const next = [lo, ...interior, hi];
+    return american ? next.map((v, i) => Math.max(v, payoff(type, S[i], K))) : next;
+  };
+  for (let k = 1; k <= nT; k++) {
+    const prev = V[k - 1];
+    if (rannacher && k <= 2) {
+      const mid = step(prev, dTau / 2, 1, (k - 0.5) * dTau);
+      V.push(step(mid, dTau / 2, 1, k * dTau));
+    } else {
+      V.push(step(prev, dTau, theta, k * dTau));
+    }
   }
   return { S, V, dTau };
 }
@@ -93,4 +104,14 @@ export function interpolate(S: number[], values: number[], s: number): number {
   const i = Math.min(Math.max(Math.floor(s / dS), 0), S.length - 2);
   const w = (s - S[i]) / dS;
   return values[i] * (1 - w) + values[i + 1] * w;
+}
+
+/**
+ * Largest time step for which the explicit scheme (θ = 0) keeps every weight
+ * non-negative, so errors can't grow: 1 + Δτ·β_i ≥ 0 at the top interior node,
+ *   Δτ ≤ 1 / (σ²(n_S − 1)² + r).
+ * Above it, the highest-frequency error mode is amplified at every step (Chapter 34).
+ */
+export function explicitStabilityLimit({ sigma, r, nS }: { sigma: number; r: number; nS: number }): number {
+  return 1 / (sigma * sigma * (nS - 1) * (nS - 1) + r);
 }

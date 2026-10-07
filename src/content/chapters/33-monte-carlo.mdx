@@ -1,0 +1,173 @@
+---
+title: "Monte Carlo pricing"
+part: 8
+chapter: 33
+difficulty: 2
+prerequisites: [18]
+summary: "A price is an expectation, so simulate it: draw many futures, average the payoffs, and learn exactly how wrong you might be."
+---
+import MCConvergence from '../../components/plots/MCConvergence';
+import MCErrorScaling from '../../components/plots/MCErrorScaling';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>When there's no formula
+
+Chapter 18 showed that an option's price is a discounted expectation under the risk-neutral measure. For a
+European call under Black–Scholes, that expectation has a closed form. Most real problems don't: an option on the
+average of a stock over a year, on the best of ten stocks, or on anything in the Heston model with a path-dependent
+payoff.
+
+The most general way to compute an expectation is the most literal one: **simulate it**. Generate many possible
+futures under $\mathbb{Q}$, compute the payoff in each, average, and discount. This is the **Monte Carlo** method,
+named by Ulam and von Neumann at Los Alamos in the 1940s and brought to option pricing by Phelim Boyle in 1977.
+
+## <span class="section-tag">Intuition</span>Average, and know your error
+
+Draw $Z \sim N(0, 1)$, set $\Spot{S_T} = \Spot{S_0}e^{(\Rate{r} - \frac12\Vol{\sigma}^2)\Time{T} + \Vol{\sigma}\sqrt{\Time{T}}Z}$,
+compute $e^{-\Rate{r}\Time{T}}(\Spot{S_T} - \Strike{K})^+$, and repeat. The average converges to the price by the
+law of large numbers. Better still, the samples tell you how far off you probably are:
+
+<MCConvergence client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with plain Monte Carlo, the estimate wanders a lot over the first
+hundred simulations, then settles. The shaded band, ±2 standard errors, almost always contains the dashed exact
+price. Press <em>New random numbers</em> a few times and watch the path change while the band keeps its shape.</p>
+
+The width of the band shrinks like $1/\sqrt{N}$. That's the great weakness of Monte Carlo: **a hundred times more
+work for one more correct digit**. It's also its great strength, because nothing in that rate depends on how
+complicated the problem is.
+
+## <span class="section-tag">Intuition</span>Reducing the variance
+
+Since the error is (standard deviation of one sample)$/\sqrt{N}$, there are two ways to shrink it: more samples,
+or less variable samples. **Variance reduction** does the second.
+
+- **Antithetic variates.** For every $Z$, also use $-Z$. If the stock ended unluckily high on one path, it ends
+  equally low on its twin, and the two payoffs partly cancel each other's luck.
+- **Control variates.** Simulate, alongside the payoff, something with a *known* expectation. The stock price
+  itself works: $\mathbb{E}[\Spot{S_T}] = F$ exactly. If the simulated stocks came out too high on average, the
+  payoffs probably did too, so correct for it.
+
+<MCErrorScaling client:visible />
+
+<p class="try-this"><strong>Try this:</strong> all three lines fall at the same slope, −½ on log–log axes.
+Variance reduction moves the line down without making it steeper. For an at-the-money call, the control variate is
+worth about seven times the simulations. Move the strike far out of the money: the payoff becomes less correlated
+with the stock, and the advantage shrinks.</p>
+
+<Callout type="key" title="Monte Carlo doesn't care about dimension">
+A tree or a PDE grid in $d$ dimensions needs a number of points that grows exponentially in $d$. Monte Carlo's
+error is $\sigma/\sqrt{N}$ whether you simulate one stock or fifty. For baskets, path-dependent payoffs and
+multi-factor models, it is often the only practical method.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The estimator and its error
+
+Let $Y = e^{-\Rate{r}\Time{T}}g(\text{path})$ be the discounted payoff and $Y_1, \dots, Y_N$ independent draws.
+The Monte Carlo estimator
+
+$$
+\hat V_N = \frac1N\sum_{i=1}^N Y_i
+$$
+
+is **unbiased**, $\mathbb{E}[\hat V_N] = V$, with variance $\operatorname{Var}(Y)/N$. By the central limit theorem,
+
+$$
+V \in \Big[\hat V_N - 1.96\,\frac{\hat s}{\sqrt N},\; \hat V_N + 1.96\,\frac{\hat s}{\sqrt N}\Big] \quad\text{with about 95\% confidence,}
+$$
+
+where $\hat s$ is the sample standard deviation of the $Y_i$. The error bar is computed from the same samples, at no
+extra cost.
+
+**Discretisation bias.** GBM can be sampled exactly at any date. Most models can't: the path is built with Euler
+steps of size $\Delta t$, which adds a bias of order $\Delta t$. The total mean squared error is
+$\text{bias}^2 + \text{variance}$, so it pays to balance the number of time steps against the number of paths.
+
+**Antithetic variates.** Average $Y(Z)$ and $Y(-Z)$. For one pair,
+
+$$
+\operatorname{Var}\Big(\tfrac12\big(Y(Z) + Y(-Z)\big)\Big) = \tfrac12\operatorname{Var}(Y)\,\big(1 + \rho\big), \qquad \rho = \operatorname{Corr}\big(Y(Z), Y(-Z)\big).
+$$
+
+A pair costs two samples, so antithetics help exactly when $\rho < 0$, which holds for payoffs monotone in $Z$, such
+as calls and puts.
+
+**Control variates.** Given $X$ with known mean, use $Y_b = Y - b\,(X - \mathbb{E}X)$. It's unbiased for any $b$,
+and its variance is smallest at
+
+$$
+b^\ast = \frac{\operatorname{Cov}(X, Y)}{\operatorname{Var}(X)}, \qquad \operatorname{Var}(Y_{b^\ast}) = \big(1 - \rho_{XY}^2\big)\operatorname{Var}(Y).
+$$
+
+The variance falls by the factor $1/(1 - \rho_{XY}^2)$. With $X = \Spot{S_T}$ and $\mathbb{E}X = F$, a deep
+in-the-money call is almost perfectly correlated with $X$. An out-of-the-money one is not.
+
+**Further tools.** *Importance sampling* shifts the distribution towards the region that matters, for example a
+deep out-of-the-money strike, and reweights by the likelihood ratio, which is Girsanov's theorem in action (Chapter
+40). *Quasi-Monte Carlo* replaces random numbers with low-discrepancy sequences (Sobol, Halton) and can approach
+$1/N$ convergence for smooth problems. *Greeks* come from the same simulation, either by differentiating the payoff
+along each path (pathwise) or by differentiating the density (likelihood ratio).
+
+## <span class="section-tag">Playground</span>Make the error bar small
+
+<MCConvergence client:visible />
+
+<div class="try-this">
+
+- **Deep out of the money.** Set the strike to \$160. The band is narrow in dollars but wide relative to the tiny
+  price. Why does plain Monte Carlo struggle here? Does the control variate help?
+- **Put vs call.** At the same strike, which has the smaller standard error, and why? (Hint: which payoff is
+  bounded?)
+- **Count the misses.** Re-simulate ten times. How often does the final band miss the exact price? You should see
+  roughly one miss in twenty.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With 10,000 paths, your Monte Carlo price has a standard error of \$0.04. How many paths do you need for a standard error of \$0.01?"
+  answer={160000}
+  tolerance={0.001}
+  explanation="The error scales like $1/\sqrt N$. To divide it by 4 you need $4^2 = 16$ times the paths: $160{,}000$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A control variate has correlation 0.95 with the payoff. By what factor does it reduce the variance?"
+  answer={10.3}
+  tolerance={0.02}
+  explanation="$1/(1 - 0.95^2) = 1/(1 - 0.9025) = 1/0.0975 \approx 10.3$. That's the same as running about ten times more plain simulations."
+/>
+
+<Quiz
+  client:visible
+  question="Why is Monte Carlo the usual choice for an option on a basket of 20 stocks?"
+  options={[
+    "It has no error",
+    "Its convergence rate doesn't depend on the number of assets, while grids and trees grow exponentially",
+    "It converges like 1/N",
+    "Trees can't price European options",
+  ]}
+  answer={1}
+  explanation="The error is $\sigma/\sqrt N$ in any dimension. A grid with 10 points per asset would need $10^{20}$ nodes for 20 assets."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Monte Carlo**: simulate under $\mathbb{Q}$, average discounted payoffs. Unbiased, with error
+  $\hat s/\sqrt N$ estimated from the same samples.
+- Convergence is slow, $1/\sqrt N$, but **independent of dimension**.
+- **Antithetic variates** pair $Z$ with $-Z$. **Control variates** subtract a correlated quantity with known mean,
+  cutting variance by $1/(1 - \rho^2)$.
+- Time-stepping adds discretisation bias. Balance steps against paths.
+
+**Next up:** the opposite approach. Instead of sampling the future, solve the Black–Scholes PDE on a grid. Chapter
+34 shows how, and why the simplest scheme can explode.
+
+### Further reading
+
+- P. Glasserman, *Monte Carlo Methods in Financial Engineering* (2003), chapters 1–4.
+- P. Boyle, "Options: a Monte Carlo approach" (1977).

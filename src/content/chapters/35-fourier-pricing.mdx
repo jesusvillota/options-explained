@@ -1,0 +1,176 @@
+---
+title: "Fourier pricing"
+part: 8
+chapter: 35
+difficulty: 3
+prerequisites: [18]
+summary: "Many models have no formula for their density but a simple one for its Fourier transform. Price from that, and fast."
+---
+import CharFnArrows from '../../components/plots/CharFnArrows';
+import COSReconstruction from '../../components/plots/COSReconstruction';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A fingerprint instead of a portrait
+
+To price a European option you need the risk-neutral distribution of $\Spot{S_T}$, either its density (Chapter 18) or
+a way to sample it (Chapter 33). For Heston (Chapter 30) and the jump models (Chapter 31), the density has no closed
+form. Their **characteristic function** does: a different encoding of the same distribution, as its Fourier
+transform.
+
+It's like having a fingerprint instead of a portrait. It identifies the distribution completely, and with the right
+technique you can price from it directly. Chapters 30 and 31 did that with one formula, taken on trust. This chapter
+explains why it works and introduces the fastest method of all.
+
+## <span class="section-tag">Intuition</span>What a characteristic function is
+
+For a random variable $X$, here the log-return $\ln(\Spot{S_T}/F)$, the characteristic function is
+
+$$
+\varphi(u) = \mathbb{E}\big[e^{iuX}\big] .
+$$
+
+Picture each outcome $X$ as a unit arrow, turned by the angle $uX$. Averaging over all outcomes averages the
+arrows. At $u = 0$ they all point the same way and $\varphi(0) = 1$. As $u$ grows, outcomes that differ by a little
+point in very different directions, the arrows fan out around the circle and cancel, and $\varphi$ shrinks towards
+zero:
+
+<CharFnArrows client:visible />
+
+<p class="try-this"><strong>Try this:</strong> slide the frequency up from zero. The faint arrows fan out, and the
+thick average arrow shrinks onto the yellow dot, the exact $\varphi(u)$. Now shorten the maturity to 0.05 years: the
+distribution is narrow, so the arrows stay bunched for much larger $u$. Switch to Merton jumps: the jump paths add
+arrows far from the bunch, and they spread out sooner.</p>
+
+How fast $\varphi$ decays matters. Fourier methods integrate $\varphi$ over $u$, so a slowly decaying $\varphi$
+(short maturities, low volatility) needs a longer range of $u$.
+
+## <span class="section-tag">Intuition</span>Rebuilding the density
+
+Any reasonable function on an interval can be written as a sum of cosines. The **COS method** (Fang and Oosterlee,
+2008) does this for the density, and its key observation is that each cosine's coefficient is just a value of
+$\varphi$. So a handful of evaluations of the characteristic function rebuilds the density, and the option price is a
+weighted sum of those same coefficients.
+
+<COSReconstruction client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with 4 terms the density is a crude, wavy bump that even goes
+negative. At 16 it's nearly right. At 64 it can't be told apart from the exact one. Look at the error plot: every
+doubling of the terms multiplies the number of correct digits, until the error hits machine precision. That's
+<strong>exponential convergence</strong>: compare Monte Carlo's $1/\sqrt N$.</p>
+
+<Callout type="key" title="Fourier methods trade generality for speed">
+Fourier pricing needs a known characteristic function, which affine models (Black–Scholes, Heston, Lévy jump models)
+provide, and a European-style payoff. In return it is extraordinarily fast: a smile of fifty strikes in a fraction
+of a millisecond, which is what makes calibrating Heston to a whole surface practical.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Three Fourier routes to a price
+
+Let $X = \ln(\Spot{S_T}/F)$ with characteristic function $\varphi$, and $k = \ln(\Strike{K}/F)$.
+
+**Why the call needs damping.** The call payoff $F(e^X - e^k)^+$ grows without bound, so its Fourier transform
+doesn't exist. **Carr and Madan** (1999) multiply the call price by $e^{\alpha k}$ for some $\alpha > 0$, so that
+it decays as $k \to -\infty$. Its transform is then explicit:
+
+$$
+\psi(v) = \int e^{ivk}e^{\alpha k}\Call{C}(k)\,dk = \frac{e^{-\Rate{r}\Time{T}}F\,\varphi\big(v - (\alpha + 1)i\big)}{\alpha^2 + \alpha - v^2 + i(2\alpha + 1)v} .
+$$
+
+Inverting with the **fast Fourier transform** gives prices on a whole grid of strikes in $O(N\log N)$ operations.
+
+**Lewis's formula** (2001) shifts the contour of integration to $\operatorname{Im}u = -\tfrac12$ instead, which needs no
+damping parameter:
+
+$$
+\Call{C} = \Spot{S}e^{-q\Time{T}} - \frac{e^{-\Rate{r}\Time{T}}\sqrt{F\Strike{K}}}{\pi}\int_0^\infty \frac{\operatorname{Re}\big[e^{-iuk}\varphi(u - \tfrac{i}{2})\big]}{u^2 + \tfrac14}\,du .
+$$
+
+That's what the Heston and jump widgets evaluate, with Gauss–Legendre quadrature.
+
+**The COS method.** Truncate $X$ to an interval $[a, b]$ that carries essentially all the probability, chosen from
+the cumulants: $a, b = c_1 \mp L\sqrt{c_2}$. On it, expand the density in cosines,
+
+$$
+f(x) \approx {\sum_{j=0}^{N-1}}' A_j\cos\Big(j\pi\frac{x - a}{b - a}\Big), \qquad A_j = \frac{2}{b - a}\operatorname{Re}\Big[\varphi\Big(\frac{j\pi}{b - a}\Big)e^{-ij\pi a/(b - a)}\Big],
+$$
+
+where $\sum'$ halves the first term. The coefficient formula is the whole trick: it's the cosine transform of $f$ on
+$[a, b]$, which equals the full Fourier transform up to the tiny probability outside the interval. The price is then
+
+$$
+V = e^{-\Rate{r}\Time{T}}{\sum_{j=0}^{N-1}}' A_j\,V_j, \qquad V_j = \int_a^b \text{payoff}(x)\cos\Big(j\pi\frac{x - a}{b - a}\Big)dx,
+$$
+
+and for calls and puts the $V_j$ are elementary integrals of $e^x\cos(\cdot)$ and $\cos(\cdot)$. Pricing the put and
+using parity avoids the call's large payoff at the top of the interval. For smooth densities the error falls
+**exponentially** in $N$. A few dozen terms give machine precision.
+
+**Cumulants from φ.** Since $\ln\varphi(u) = \sum_n c_n (iu)^n/n!$, the mean and variance are
+$c_1 = -i(\ln\varphi)'(0)$ and $c_2 = -(\ln\varphi)''(0)$. They can be read off analytically, or numerically as in
+the code.
+
+## <span class="section-tag">Playground</span>How many terms?
+
+<COSReconstruction client:visible />
+
+<div class="try-this">
+
+- **Short maturities.** Set the maturity to 0.05 years. Does Heston need more terms or fewer than at 6 months for an
+  error below $10^{-6}$? (The interval $[a, b]$ shrinks with the distribution, so what matters is the density's
+  shape, not its width. A fixed-grid integral like Lewis's is different: there, a slowly decaying $\varphi$ does mean
+  more points.)
+- **Jumps.** With Merton's model, the density has a long left tail from the jumps. Does COS converge as fast as for
+  Black–Scholes?
+- **Negative density.** With 4 terms, where does the reconstructed density dip below zero? Does the price still
+  come out reasonable?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Why price Heston options from the characteristic function rather than from the density?"
+  options={[
+    "The density is zero",
+    "The characteristic function is known in closed form; the density isn't",
+    "Characteristic functions are always real",
+    "It avoids the need for interest rates",
+  ]}
+  answer={1}
+  explanation="Heston's model is affine, so $\varphi$ is explicit (exponential of Riccati solutions). The density only follows by inverting $\varphi$ numerically."
+/>
+
+<NumericQuiz
+  client:visible
+  question="For X = ln(S_T/F), what is φ(−i) = E[e^X]?"
+  answer={1}
+  tolerance={0.001}
+  explanation="$\varphi(-i) = \mathbb{E}[e^X] = \mathbb{E}[\Spot{S_T}/F] = 1$, because the forward is the risk-neutral expectation of $\Spot{S_T}$. It's a useful check on any characteristic function."
+/>
+
+<Quiz
+  client:visible
+  question="How does the COS method's error behave as the number of terms N grows, for a smooth density?"
+  options={["Like 1/√N", "Like 1/N", "Like 1/N²", "Exponentially fast"]}
+  answer={3}
+  explanation="Cosine coefficients of smooth functions decay faster than any power, so the error falls exponentially until it reaches machine precision."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The **characteristic function** $\varphi(u) = \mathbb{E}[e^{iuX}]$ is the Fourier transform of the density. It's
+  explicit for affine and Lévy models.
+- **Carr–Madan** damps the call and uses the FFT for many strikes. **Lewis** integrates along $\operatorname{Im}u = -\tfrac12$.
+- **COS** expands the density in cosines whose coefficients are values of $\varphi$. It converges exponentially.
+- Fourier methods are fast but need a known $\varphi$ and a European payoff.
+
+**Next up:** the last numerical frontier: early exercise with simulation. Chapter 36 shows how Longstaff and
+Schwartz combine Monte Carlo with regression to price American options.
+
+### Further reading
+
+- P. Carr and D. Madan, "Option valuation using the fast Fourier transform" (1999).
+- A. Lewis, "A simple option formula for general jump-diffusion and other exponential Lévy processes" (2001).
+- F. Fang and C. W. Oosterlee, "A novel pricing method for European options based on Fourier-cosine series expansions" (2008).

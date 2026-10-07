@@ -1,0 +1,170 @@
+---
+title: "Finite differences"
+part: 8
+chapter: 34
+difficulty: 3
+prerequisites: [19]
+summary: "Replace the Black–Scholes PDE's derivatives with differences on a grid, step backwards from expiry, and learn why the obvious scheme explodes."
+---
+import FDConvergence from '../../components/plots/FDConvergence';
+import FDStability from '../../components/plots/FDStability';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Solving the equation, not sampling it
+
+Monte Carlo (Chapter 33) samples the future. The other great family of methods goes back to the Black–Scholes PDE of
+Chapter 19 and solves it directly. Lay a grid over stock price and time, replace each derivative with a difference
+between neighbouring grid values, and march backwards from the known payoff at expiry to today.
+
+For one or two underlyings, finite differences are fast and accurate. They give the price for every stock price
+at once, with the Greeks almost for free. They handle early exercise naturally. But the most obvious way to do it
+has a trap: take time steps that are slightly too large and the solution explodes.
+
+## <span class="section-tag">Intuition</span>A grid that explodes
+
+Here a 1-year call is solved on a grid of 100 price steps of \$2. Choose the scheme and the number of time steps:
+
+<FDStability client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the explicit scheme at 500 steps, the green curve lies on the
+exact one. Now lower the number of steps. The readout says the limit is 393, yet just below it nothing seems to
+happen. Keep going: at 350 a small error appears, at 345 the curve turns red and saws violently up and down, and by
+330 the errors are around $10^{15}$. Above the limit, high-frequency wiggles are amplified at every step, so even
+rounding errors of $10^{-14}$ grow into an explosion; it just takes a few hundred steps to become visible. Switch to
+implicit or Crank–Nicolson: even 10 steps stay stable.</p>
+
+The limit depends on the price grid: $\Delta\tau \lesssim 1/(\Vol{\sigma}^2 n_S^2)$. Halve the price spacing and you
+need four times as many time steps. That's why practitioners use implicit methods.
+
+## <span class="section-tag">Intuition</span>Accuracy: first order and second order
+
+Being stable isn't the same as being accurate. On a fine price grid, the error from the time steps alone behaves very
+differently across schemes:
+
+<FDConvergence client:visible />
+
+<p class="try-this"><strong>Try this:</strong> read the slopes. The implicit line falls one decade per decade:
+twice the steps, half the error. Crank–Nicolson with Rannacher start-up falls twice as fast: twice the steps, a
+quarter of the error. Plain Crank–Nicolson is erratic at coarse steps, because the payoff's kink at the strike
+excites oscillations that it never damps.</p>
+
+<Callout type="key" title="Stability, consistency, convergence">
+A scheme converges to the true solution if it is <strong>consistent</strong> (the differences approximate the
+derivatives) and <strong>stable</strong> (errors don't grow). That's the Lax equivalence theorem. The explicit scheme
+is consistent but only conditionally stable. Implicit and Crank–Nicolson are stable for any time step.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Discretising the PDE
+
+In time to expiry $\Time{\tau}$, the Black–Scholes PDE is a forward heat-type equation:
+
+$$
+\frac{\partial V}{\partial \Time{\tau}} = \tfrac12\Vol{\sigma}^2\Spot{S}^2\frac{\partial^2 V}{\partial \Spot{S}^2} + (\Rate{r} - q)\Spot{S}\frac{\partial V}{\partial \Spot{S}} - \Rate{r}V, \qquad V(\Spot{S}, 0) = \text{payoff}(\Spot{S}) .
+$$
+
+On the grid $\Spot{S}_i = i\,\Delta\Spot{S}$, central differences give, at each node,
+
+$$
+\frac{\partial^2 V}{\partial \Spot{S}^2} \approx \frac{V_{i+1} - 2V_i + V_{i-1}}{\Delta\Spot{S}^2}, \qquad
+\frac{\partial V}{\partial \Spot{S}} \approx \frac{V_{i+1} - V_{i-1}}{2\Delta\Spot{S}},
+$$
+
+so the right-hand side becomes $\mathcal{L}V_i = \alpha_i V_{i-1} + \beta_i V_i + \gamma_i V_{i+1}$ with
+
+$$
+\alpha_i = \tfrac12\Vol{\sigma}^2 i^2 - \tfrac12(\Rate{r} - q)i, \qquad \beta_i = -\Vol{\sigma}^2 i^2 - \Rate{r}, \qquad \gamma_i = \tfrac12\Vol{\sigma}^2 i^2 + \tfrac12(\Rate{r} - q)i .
+$$
+
+Boundary values come from the option's known behaviour far from the strike, for example
+$V(0) = 0$ and $V(\Spot{S}_{\max}) \approx \Spot{S}_{\max}e^{-q\Time{\tau}} - \Strike{K}e^{-\Rate{r}\Time{\tau}}$ for a call.
+
+**The θ-scheme.** Step from $V^n$ (at $\Time{\tau}_n$) to $V^{n+1}$ by
+
+$$
+\frac{V^{n+1} - V^n}{\Delta\Time{\tau}} = \theta\,\mathcal{L}V^{n+1} + (1 - \theta)\,\mathcal{L}V^n .
+$$
+
+- $\theta = 0$, **explicit**: $V^{n+1}$ is given directly, but stable only if every weight stays non-negative,
+  which needs $1 + \Delta\Time{\tau}\,\beta_i \ge 0$ at the top of the grid:
+  $\Delta\Time{\tau} \le 1/(\Vol{\sigma}^2 (n_S - 1)^2 + \Rate{r})$. For the widget that's $0.00255$, or 393 steps.
+- $\theta = 1$, **implicit**: a tridiagonal linear system at each step, solved in $O(n_S)$ by the Thomas algorithm.
+  Unconditionally stable, first order in $\Delta\Time{\tau}$.
+- $\theta = \tfrac12$, **Crank–Nicolson**: also a tridiagonal system, unconditionally stable and second order. But
+  it only weakly damps high frequencies, so the payoff's kink can leave oscillations, especially in the Greeks.
+
+**Rannacher start-up.** Take the first steps fully implicit, as four half-steps, then switch to Crank–Nicolson.
+The implicit steps smooth the kink and the method keeps its second order. That's what the widget's purple line
+shows.
+
+**Why the explicit scheme explodes.** Write the error as a sum of Fourier modes $e^{ij\xi}$ (von Neumann
+analysis). Each explicit step multiplies a mode by an amplification factor. For the highest frequency, $\xi = \pi$,
+that's about $1 - 2\Vol{\sigma}^2 i^2\Delta\Time{\tau}$. Once it falls below $-1$, the mode flips sign and grows at
+every step. That's the sawtooth in the widget.
+
+**Early exercise.** For an American option, after each step set $V_i \leftarrow \max(V_i, \text{payoff}(\Spot{S}_i))$.
+This projection is simple and robust. More refined methods (PSOR, penalty methods) solve the linear
+complementarity problem exactly at each step.
+
+## <span class="section-tag">Playground</span>Find the edge
+
+<FDStability client:visible />
+
+<div class="try-this">
+
+- **Locate the limit.** With the explicit scheme, find the exact number of steps where it becomes unstable. Does it
+  match the formula $1/(\Vol{\sigma}^2(n_S - 1)^2 + \Rate{r})$?
+- **Coarse but stable.** With implicit and only 10 steps, how big is the error at \$100? And with Crank–Nicolson?
+- **Work vs accuracy.** Compare implicit with 400 steps against Crank–Nicolson with 40. Which is closer at \$100,
+  and which did a tenth of the work?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="An explicit scheme on 200 price steps (σ = 20%) needs about Δτ ≤ 1/(σ²·199²). How many time steps does a 1-year option need, at least?"
+  answer={1584}
+  tolerance={0.01}
+  explanation="$1/\Delta\Time{\tau} \ge \Vol{\sigma}^2 \cdot 199^2 = 0.04 \times 39{,}601 \approx 1{,}584$ steps: four times the 393 needed for the widget's 100 price steps."
+/>
+
+<Quiz
+  client:visible
+  question="Halving the time step makes the time-discretisation error of Crank–Nicolson (with Rannacher start-up)..."
+  options={["halve", "quarter", "unchanged", "double"]}
+  answer={1}
+  explanation="Crank–Nicolson is second order in time: the error scales like $\Delta\Time{\tau}^2$, so halving $\Delta\Time{\tau}$ divides it by four."
+/>
+
+<Quiz
+  client:visible
+  question="Why do practitioners prefer implicit or Crank–Nicolson schemes over the explicit one?"
+  options={[
+    "They're simpler to code",
+    "They're stable for any time step, so fine price grids don't force tiny time steps",
+    "They don't need boundary conditions",
+    "They give exact prices",
+  ]}
+  answer={1}
+  explanation="The explicit scheme needs $\Delta\Time{\tau} \propto \Delta\Spot{S}^2$. Implicit methods only need a tridiagonal solve per step, which costs about the same as an explicit step."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Finite differences replace derivatives by differences on a grid and step backwards from the payoff.
+- **Explicit** is simple but stable only for $\Delta\Time{\tau} \lesssim 1/(\Vol{\sigma}^2 n_S^2)$. **Implicit** is always
+  stable and first order. **Crank–Nicolson** is always stable and second order, but needs Rannacher start-up for
+  kinked payoffs.
+- Each implicit step is a tridiagonal solve, $O(n_S)$ with the Thomas algorithm.
+- Early exercise: compare with the payoff at each step.
+
+**Next up:** a third route to prices, through the characteristic function. Chapter 35 explains the Fourier methods
+we used for Heston and jumps, and the remarkably fast COS method.
+
+### Further reading
+
+- P. Wilmott, S. Howison and J. Dewynne, *The Mathematics of Financial Derivatives* (1995).
+- D. Duffy, *Finite Difference Methods in Financial Engineering* (2006).
+- R. Rannacher, "Finite element solution of diffusion problems with irregular data" (1984).

@@ -338,30 +338,38 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price by simulation. Understand error of order $1/\sqrt{N}$. Use antithetic variates and control
   variates.
 - **Key math:** the estimator and its confidence interval; variance reduction formulas.
-- **Widgets:** a running estimate with a confidence band converging to the BS value, and a comparison with and
-  without variance reduction.
+- **Widgets:** `MCConvergence`: the running estimate on a log axis with its ±2 standard-error band against the
+  Black–Scholes value, for plain, antithetic and control-variate estimators. `MCErrorScaling`: standard error
+  against N on log–log axes for all three, with the variance-reduction factors. Library:
+  `src/lib/numerics/monteCarlo.ts`.
 - **Prereqs:** 18.
 
 ### 34. Finite differences
 - **Goals:** Discretise the BS PDE. Compare explicit, implicit, and Crank–Nicolson schemes, and understand
   stability and the CFL condition.
 - **Key math:** the difference stencils; the stability condition $\Delta t \lesssim \Delta S^2/(\sigma^2 S^2)$.
-- **Widgets:** a live grid solver. Pushing $\Delta t$ above the limit makes the explicit scheme blow up on
-  screen.
+- **Widgets:** `FDStability`: a live θ-scheme solver (explicit, implicit, Crank–Nicolson, CN + Rannacher) on 100
+  price steps; below 393 time steps the explicit scheme's rounding errors grow into a visible sawtooth.
+  `FDConvergence`: time-discretisation error against steps on log–log axes (slopes −1 and −2). Library:
+  `src/lib/numerics/finiteDifference.ts` (now with Rannacher start-up and the explicit stability limit).
 - **Prereqs:** 19.
 
 ### 35. Fourier pricing
 - **Goals:** Price from a characteristic function with the Carr–Madan FFT and the COS method.
 - **Key math:** the damped call transform; the COS expansion.
-- **Widgets:** the payoff and density rebuilt from more and more Fourier terms, with the price error falling as
-  terms are added.
+- **Widgets:** `CharFnArrows`: φ(u) as the average of unit arrows at angles $uX$ over sampled log-returns
+  (Black–Scholes, Heston, Merton), against the exact φ. `COSReconstruction`: the density rebuilt from N cosine
+  terms and the price error against N on a log scale (exponential convergence). Library:
+  `src/lib/numerics/cos.ts`, `src/lib/models/fourier.ts`.
 - **Prereqs:** 18; a basic idea of Fourier series.
 
 ### 36. American options by simulation
 - **Goals:** Price American options with Longstaff–Schwartz regression.
 - **Key math:** the continuation value regressed on basis functions; the exercise rule.
-- **Widgets:** a scatter of discounted continuation values against $S$ with the fitted regression curve, and
-  the exercise boundary emerging as time steps back.
+- **Widgets:** `LSMScatter`: at a chosen exercise date, the realised discounted cash flows of in-the-money paths,
+  the quadratic regression and the exercise payoff; below, the boundary from every date against the binomial tree's.
+  Readouts compare the price with an 800-step tree and the Black–Scholes European put. Library:
+  `src/lib/numerics/lsm.ts`.
 - **Prereqs:** 13, 33.
 
 ---
@@ -432,18 +440,18 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
 | `ParityLine` | 8 | — |
-| `EarlyExerciseValue` | 9 | 13, 36 |
-| `ExerciseBoundary` | 9 | 13, 36 |
+| `EarlyExerciseValue` | 9 | 13 |
+| `ExerciseBoundary` | 9 | 13 |
 | `ConvexityEditor` | 10 | — |
 | `OneStepReplication` | 11 | 12 |
 | `RiskNeutralSlider` | 12 | 40 |
-| `BinomialTreeAnimated` | 13 | 36 |
-| `TreeConvergence` | 14 | 33 |
-| `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16, 24, 33 |
-| `GBMHistogram` | 16 | 33 |
+| `BinomialTreeAnimated` | 13 | — |
+| `TreeConvergence` | 14 | — |
+| `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16 |
+| `GBMHistogram` | 16 | — |
 | `ItoComparison` | 17 | — |
 | `BSIntegrand` | 18 | 37, 40 |
-| `HeatDiffusion` | 19 | 34 |
+| `HeatDiffusion` | 19 | — |
 | `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
@@ -458,6 +466,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HestonSmile`, `HestonPaths` | 30 | — |
 | `JumpPaths`, `JumpSmile` | 31 | — |
 | `SABRSmileFit`, `RoughPaths` | 32 | 41 |
+| `MCConvergence`, `MCErrorScaling` | 33 | — |
+| `FDStability`, `FDConvergence` | 34 | — |
+| `CharFnArrows`, `COSReconstruction` | 35 | — |
+| `LSMScatter` | 36 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
