@@ -1,0 +1,186 @@
+---
+title: "Stochastic volatility (Heston)"
+part: 7
+chapter: 30
+difficulty: 3
+prerequisites: [26]
+summary: "Let the variance follow its own random, mean-reverting process, correlated with the stock, and a smile appears on its own."
+---
+import HestonPaths from '../../components/plots/HestonPaths';
+import HestonSmile from '../../components/plots/HestonSmile';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Volatility has a life of its own
+
+Look at the VIX over any decade and you'll see three things. Volatility **wanders**: it isn't constant, and it isn't
+a fixed function of the stock price either. It **mean-reverts**: spikes fade over weeks or months, back towards a
+long-run level. And it **jumps when stocks fall**: the biggest volatility spikes coincide with sell-offs.
+
+Local volatility (Chapter 29) forces volatility to be a deterministic function of the stock price. Steven Heston's
+1993 model makes it a random process of its own, with exactly those three features. Better still, it keeps enough
+structure that options can be priced almost in closed form.
+
+## <span class="section-tag">Intuition</span>Two coupled random walks
+
+In Heston's model the stock follows a diffusion whose variance $v$ is itself random. The variance drifts towards a
+long-run level $\theta$ at speed $\kappa$, gets shaken by its own noise with size $\xi$ (the **vol of vol**), and
+that noise is correlated with the stock's by $\rho$:
+
+<HestonPaths client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with ρ = −0.7, look for the stock's sharpest drops: the volatility
+panel spikes at the same moments. Set ρ to +0.7 and the same random numbers now make volatility rise with the
+stock. Push the vol of vol to 1.2: volatility lurches about and keeps hitting zero, because the Feller condition
+fails.</p>
+
+## <span class="section-tag">Intuition</span>Where the smile comes from
+
+Each parameter shapes the smile in its own way:
+
+<HestonSmile client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start from <em>No vol of vol</em>: three flat lines, Black–Scholes
+again. Raise the vol of vol and the smiles curve upwards in both wings. Now drag the correlation negative: the
+smile tilts into an equity skew. Finally raise the mean reversion κ: the 1-year smile flattens much more than the
+1-month one.</p>
+
+- **Vol of vol ξ: curvature.** When variance is random, the stock's distribution is a mixture of normals with
+  different widths. Mixtures have fatter tails than a single normal, so both wings get more expensive.
+- **Correlation ρ: skew.** With $\rho < 0$, falling prices come with rising volatility, so the left tail
+  stretches and the right tail thins. Puts get expensive relative to calls.
+- **Mean reversion κ: term structure.** The faster variance returns to $\theta$, the less randomness survives
+  over a long horizon, and the flatter long-dated smiles become.
+- **v₀ and θ: levels.** The current variance sets short-dated at-the-money vol, and the long-run variance sets
+  long-dated vol.
+
+<Callout type="key" title="Stochastic volatility makes the market incomplete">
+There's one stock but two sources of randomness. You can't hedge volatility risk with the stock alone, so option
+prices are no longer pinned down by replication. You need a second option to hedge with, and the model's
+risk-neutral parameters are found by <em>calibrating</em> to the option prices the market already shows.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The Heston model
+
+Under the risk-neutral measure,
+
+$$
+d\Spot{S_t} = (\Rate{r} - q)\Spot{S_t}\,dt + \sqrt{v_t}\,\Spot{S_t}\,dW^1_t, \qquad
+dv_t = \kappa(\theta - v_t)\,dt + \xi\sqrt{v_t}\,dW^2_t, \qquad d\langle W^1, W^2\rangle_t = \rho\,dt .
+$$
+
+The variance is a square-root (CIR) process. It stays non-negative, and it never reaches zero if the **Feller
+condition** $2\kappa\theta \ge \xi^2$ holds. In practice, calibrated equity parameters often violate it, which
+makes simulation delicate (the widget uses full truncation: negative values are floored at zero).
+
+**The pricing PDE.** A delta-hedged option is still exposed to $dW^2$. Hedging it with a second option and
+repeating the argument of Chapter 19 gives a two-dimensional PDE,
+
+$$
+V_t + \tfrac12 v\Spot{S}^2V_{SS} + \rho\xi v\Spot{S}V_{Sv} + \tfrac12\xi^2 vV_{vv} + (\Rate{r} - q)\Spot{S}V_S + \kappa(\theta - v)V_v - \Rate{r}V = 0,
+$$
+
+where the drift of $v$ is the risk-neutral one (any market price of volatility risk is absorbed into $\kappa$ and
+$\theta$).
+
+**Why it's solvable.** Heston's model is **affine**: the characteristic function of $X = \ln(\Spot{S_T}/F_{\Time{T}})$
+is exponential-affine in the current variance,
+
+$$
+\varphi(u) = \mathbb{E}^{\mathbb{Q}}\big[e^{iuX}\big] = \exp\big(C(u, \Time{T}) + D(u, \Time{T})\,v_0\big),
+$$
+
+where $C$ and $D$ solve Riccati ODEs with explicit solutions. With $b = \kappa - \rho\xi iu$,
+$d = \sqrt{b^2 + \xi^2(iu + u^2)}$ and $g = (b - d)/(b + d)$:
+
+$$
+D = \frac{b - d}{\xi^2}\,\frac{1 - e^{-d\Time{T}}}{1 - g e^{-d\Time{T}}}, \qquad
+C = \frac{\kappa\theta}{\xi^2}\Big[(b - d)\Time{T} - 2\ln\frac{1 - g e^{-d\Time{T}}}{1 - g}\Big] .
+$$
+
+(This is the form of Albrecher et al., which avoids a branch-cut problem in Heston's original.) A call price then
+comes from one integral of $\varphi$ (Lewis's formula),
+
+$$
+\Call{C} = \Spot{S}e^{-q\Time{T}} - \frac{e^{-\Rate{r}\Time{T}}\sqrt{F\Strike{K}}}{\pi}\int_0^\infty \frac{\operatorname{Re}\big[e^{iu\ln(F/\Strike{K})}\,\varphi(u - \tfrac{i}{2})\big]}{u^2 + \tfrac14}\,du .
+$$
+
+Take it as given for now; Chapter 35 explains why Fourier pricing works. The widget evaluates it for 41 strikes and
+three maturities each time you move a slider.
+
+**Variance swaps are easy.** Since $\mathbb{E}[v_t] = \theta + (v_0 - \theta)e^{-\kappa t}$,
+
+$$
+K_{\text{var}} = \frac{1}{\Time{T}}\,\mathbb{E}\int_0^{\Time{T}} v_t\,dt = \theta + (v_0 - \theta)\,\frac{1 - e^{-\kappa\Time{T}}}{\kappa\Time{T}},
+$$
+
+which matches the model-free option strip of Chapter 28 applied to Heston prices.
+
+**What Heston gets wrong.** For short maturities, the stock moves too little before volatility can react, so
+Heston's short-dated skew is too flat compared with markets, where the one-week skew is steep. Fitting it forces
+unrealistic parameters. Jumps (Chapter 31) and rough volatility (Chapter 32) are two answers.
+
+## <span class="section-tag">Playground</span>Calibrate by hand
+
+<HestonSmile client:visible />
+
+<div class="try-this">
+
+- **Match a market.** Suppose 3-month implied vols are 26% at \$90, 20% at \$100 and 16% at \$110. Find parameters
+  that come close. Which slider moves the 90–110 skew most?
+- **Inverted term structure.** Set current vol to 40% and long-run vol to 20%, as after a crash. How do the three
+  smiles' at-the-money levels compare? What does κ change?
+- **The Feller boundary.** With κ = 2 and θ = 0.04, the Feller condition fails above ξ = 0.4. Do the smiles change
+  in any special way at that point?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="In the Heston model, which parameter mainly creates the downward skew seen in equity smiles?"
+  options={["The mean-reversion speed κ", "The long-run variance θ", "The correlation ρ between stock and variance", "The initial variance v₀"]}
+  answer={2}
+  explanation="Negative $\rho$ makes volatility rise when the stock falls, fattening the left tail of the distribution: puts get relatively expensive."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Heston parameters: v₀ = 0.09, θ = 0.04, κ = 2. What's the 1-year variance-swap volatility, in %? (Use e^{−2} ≈ 0.135.)"
+  answer={24.8}
+  tolerance={0.01}
+  explanation="$K_{\text{var}} = 0.04 + (0.09 - 0.04) \times (1 - 0.135)/2 \approx 0.04 + 0.0216 = 0.0616$, and $\sqrt{0.0616} \approx 0.248$, so about 24.8%: between today's 30% and the long-run 20%."
+/>
+
+<Quiz
+  client:visible
+  question="What does the Feller condition 2κθ ≥ ξ² guarantee?"
+  options={[
+    "That option prices are arbitrage-free",
+    "That the variance process never reaches zero",
+    "That the smile is symmetric",
+    "That the model can be calibrated",
+  ]}
+  answer={1}
+  explanation="When $2\kappa\theta \ge \xi^2$, the drift pulling the variance up near zero beats its noise, so $v_t$ stays strictly positive."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Heston**: variance is a mean-reverting square-root process, correlated with the stock. Parameters
+  $v_0, \theta, \kappa, \xi, \rho$.
+- **ξ** curves the smile, **ρ** tilts it, **κ** controls how fast it flattens with maturity, **v₀** and **θ** set
+  the short- and long-dated levels.
+- It's **affine**, so the characteristic function is explicit and prices are one Fourier integral away.
+- Volatility risk can't be hedged with the stock alone: the market is incomplete. Short-dated skews are too flat
+  in Heston.
+
+**Next up:** some moves are too sudden for any diffusion. Chapter 31 adds **jumps**, which produce the steep
+short-dated skew that Heston struggles with.
+
+### Further reading
+
+- S. Heston, "A closed-form solution for options with stochastic volatility" (1993).
+- H. Albrecher, P. Mayer, W. Schoutens and J. Tistaert, "The little Heston trap" (2007).
+- J. Gatheral, *The Volatility Surface*, chapter 2.

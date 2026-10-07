@@ -291,7 +291,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   in particular its forward smile dynamics.
 - **Key math:** Dupire's formula
   $\sigma_{loc}^2(K,T) = \frac{\partial_T C + (r-q)K\partial_K C + qC}{\tfrac12 K^2 \partial_{KK} C}$.
-- **Widgets:** a local vol surface next to the implied vol surface, with sample paths coloured by the local vol.
+- **Widgets:** `LocalVolMap`: Dupire local vol of an SSVI surface as a `Heatmap` over $(S, t)$ with seeded
+  local-vol paths overlaid, a toggle to the implied surface on the same scale, and the local/implied skew ratio
+  (≈ 2). `LocalVolDynamics`: the smile local vol predicts after a spot move (Dupire's forward PDE from the new
+  spot) against sticky strike and sticky moneyness. Library: `src/lib/models/localVol.ts`.
 - **Prereqs:** 19, 27.
 
 ### 30. Stochastic volatility (Heston)
@@ -299,23 +302,32 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   creates smile. Price with the characteristic function.
 - **Key math:** $dv = \kappa(\theta - v)dt + \xi\sqrt{v}\,dW^v$ with $d\langle W^S, W^v\rangle = \rho\,dt$;
   the Feller condition; the semi-closed-form price.
-- **Widgets:** sliders for $\kappa, \theta, \xi, \rho$ that reshape the smile live. Paired price and variance
-  paths.
+- **Widgets:** `HestonSmile`: smiles at 1 month, 3 months and 1 year priced live from the characteristic function
+  (Lewis integral), with presets, sliders for $\rho, \xi, \kappa, \sqrt{v_0}, \sqrt\theta$, the 90–110 skew,
+  the variance-swap vol and the Feller condition. `HestonPaths`: one seeded path with its instantaneous
+  volatility, reusing the same random numbers as parameters change. Library: `src/lib/models/heston.ts`,
+  `src/lib/models/fourier.ts`.
 - **Prereqs:** 26. The pricing integral is used here as given; Ch. 35 explains the Fourier method behind it.
 
 ### 31. Jumps (Merton, Kou)
 - **Goals:** Add jumps to explain fat tails and steep short-dated skew. Understand that the market is
   incomplete.
 - **Key math:** jump-diffusion SDE; Merton's series formula; compensator.
-- **Widgets:** paths with visible jumps. A comparison of the jump model's terminal density with the
-  lognormal, and of its smile across maturities.
+- **Widgets:** `JumpPaths`: seeded Merton paths with up- and down-jumps marked. `JumpSmile`: the log-return
+  density on a log scale against a normal with the same variance (1 week, 1 month, 1 year), and Merton smiles at
+  four maturities with the 95–105 skew term structure. Library: `src/lib/models/jumps.ts` (Merton series and
+  characteristic function, Kou characteristic function, paths).
 - **Prereqs:** 26.
 
 ### 32. SABR and rough volatility
 - **Goals:** Understand SABR's place in rates markets and the Hagan approximation. Get an intuitive picture of
   rough volatility (Hurst exponent $H < 1/2$).
 - **Key math:** SABR dynamics; Hagan's implied vol formula; fractional Brownian motion.
-- **Widgets:** fBM paths with a slider for $H$. SABR smile fitted to stylised data.
+- **Widgets:** `SABRSmileFit`: Hagan's formula against stylised swaption quotes, with β presets, sliders, a
+  least-squares fit (Nelder–Mead) and the smile after a forward move (the backbone). `RoughPaths`: fractional
+  Brownian motion for any $H$ next to Brownian motion from the same random numbers, the rough volatility it drives,
+  and $H$ estimated back from the path. Library: `src/lib/models/sabr.ts`, `src/lib/math/fbm.ts`,
+  `src/lib/math/optimize.ts`.
 - **Prereqs:** 30.
 
 ---
@@ -432,7 +444,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ItoComparison` | 17 | — |
 | `BSIntegrand` | 18 | 37, 40 |
 | `HeatDiffusion` | 19 | 34 |
-| `Heatmap`, `BSPricer` | 20 | 23, 26 |
+| `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `TangentParabola` | 21 | — |
 | `ThetaGammaBars` | 22 | — |
@@ -442,6 +454,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `SmileExplorer` | 26 | — |
 | `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
 | `LogContractStrip`, `VixContributions` | 28 | — |
+| `LocalVolMap`, `LocalVolDynamics` | 29 | — |
+| `HestonSmile`, `HestonPaths` | 30 | — |
+| `JumpPaths`, `JumpSmile` | 31 | — |
+| `SABRSmileFit`, `RoughPaths` | 32 | 41 |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
