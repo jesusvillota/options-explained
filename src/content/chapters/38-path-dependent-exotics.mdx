@@ -1,0 +1,166 @@
+---
+title: "Path-dependent exotics"
+part: 9
+chapter: 38
+difficulty: 3
+prerequisites: [15, 33]
+summary: "Barrier options switch on or off when the price touches a level; Asian options pay on an average. The path matters, and so does the method."
+---
+import AsianMC from '../../components/plots/AsianMC';
+import BarrierReflection from '../../components/plots/BarrierReflection';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Cheaper protection, with conditions
+
+An investor wants a one-year call on a stock at \$100, but the price, about \$10, feels steep. A **down-and-out
+call** is the same option with one condition: if the stock ever trades at or below \$95, the option dies. The
+investor gives up the scenarios where the stock dips first and then recovers, and pays about half. A
+corporate treasurer hedging a year of monthly revenues in a foreign currency doesn't care about the exchange rate on
+one day, but about the **average** over the year. An **Asian option** on that average costs less than a vanilla too.
+
+Both payoffs depend on the whole path, not just where it ends. That changes the mathematics, and it decides which
+pricing methods work.
+
+## <span class="section-tag">Intuition</span>Barriers and their mirror images
+
+To price a knock-out we need the probability that the stock ends above the strike *without ever touching the
+barrier*. Hitting probabilities sound hard, but Brownian motion has a beautiful symmetry. Take any path that touches
+the barrier, and from the moment it first touches, reflect it in the barrier. The reflected path is just as likely
+as the original:
+
+<BarrierReflection client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the solid path touches the barrier and wanders back up. Its dashed
+twin, the mirror image after the first touch, ends far below. Every path that touches the barrier and ends at some
+level has exactly one twin ending at the reflected level. So "touched the barrier and ended high" has the same
+probability as "ended below the reflected level", which is an ordinary normal probability.</p>
+
+The bottom panel shows the consequence for pricing. A barrier far below the spot costs almost nothing in value: the
+down-and-out call is nearly the vanilla. As the barrier approaches the spot, more paths die and the price falls to
+zero.
+
+<Callout type="key" title="Barriers move the risk to the barrier">
+A knock-out option's delta and gamma can be huge near the barrier, where a small move decides whether the option
+lives or dies. An up-and-out call is worst: it's deep in the money exactly when it's about to vanish. Barrier
+options are cheap, but hedging them near the barrier is expensive.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Averages are less volatile
+
+The average of a path wanders much less than the path itself, especially its early part, which has already been
+fixed. Less volatility means a cheaper option:
+
+<AsianMC client:visible />
+
+<p class="try-this"><strong>Try this:</strong> compare the Asian's price with the vanilla's: about 60% of it. Raise the
+volatility and both grow, but the Asian stays well below. Look at the two Monte Carlo lines in the readout: the
+control variate's error bar is tiny compared with plain Monte Carlo's, using the same paths.</p>
+
+## <span class="section-tag">Formalisation</span>Reflection, barriers and averages
+
+**Reflection principle.** For a Brownian motion $W$ started at 0, a level $b > 0$ and $x \le b$,
+
+$$
+\mathbb{P}\Big(\max_{s \le t} W_s \ge b,\; W_t \le x\Big) = \mathbb{P}\big(W_t \ge 2b - x\big) .
+$$
+
+With drift, a Girsanov change of measure (Chapter 40) adds a factor, and in price terms that factor becomes
+$(H/\Spot{S})^{2\lambda}$ with $\lambda = (\Rate{r} - q + \tfrac12\Vol{\sigma}^2)/\Vol{\sigma}^2$.
+
+**Down-and-out call** with barrier $H \le \Strike{K}$, continuously monitored and no rebate (Merton, 1973):
+
+$$
+\Call{C}_{\text{do}} = \Call{C}_{\text{BS}} - \Call{C}_{\text{di}}, \qquad
+\Call{C}_{\text{di}} = \Spot{S}e^{-q\Time{T}}\Big(\frac{H}{\Spot{S}}\Big)^{2\lambda}N(y) - \Strike{K}e^{-\Rate{r}\Time{T}}\Big(\frac{H}{\Spot{S}}\Big)^{2\lambda - 2}N\big(y - \Vol{\sigma}\sqrt{\Time{T}}\big),
+$$
+
+with $y = \dfrac{\ln\big(H^2/(\Spot{S}\Strike{K})\big)}{\Vol{\sigma}\sqrt{\Time{T}}} + \lambda\Vol{\sigma}\sqrt{\Time{T}}$.
+The knock-in term is the price of a call on the reflected stock $H^2/\Spot{S}$: the mirror image in the widget
+above. The eight barrier types (up/down, in/out, call/put) all follow similar formulas, and **in + out = vanilla**
+always.
+
+**Discrete monitoring.** Real barriers are usually checked once a day at the close. Fewer checks mean fewer
+knock-outs. Broadie, Glasserman and Kou (1997) showed that the continuous formula still works if the barrier is moved
+away from the spot by the factor $e^{\pm 0.5826\,\Vol{\sigma}\sqrt{\Delta t}}$.
+
+**Asians.** With fixings $t_i = i\Time{T}/n$:
+
+- The **geometric** average $G = (\prod \Spot{S}_{t_i})^{1/n}$ is lognormal, because $\ln G$ is an average of normal
+  variables. So the geometric Asian has a closed form, with
+  $\ln G \sim N\big(\ln\Spot{S} + (\Rate{r} - q - \tfrac12\Vol{\sigma}^2)\tfrac{\Time{T}(n+1)}{2n},\; \Vol{\sigma}^2\Time{T}\tfrac{(n+1)(2n+1)}{6n^2}\big)$.
+  For continuous averaging the effective volatility is $\Vol{\sigma}/\sqrt3$.
+- The **arithmetic** average, which is what contracts use, is a sum of lognormals and has no closed form. Monte Carlo
+  with the geometric Asian as a **control variate** (Kemna and Vorst, 1990) is the standard method. The two payoffs
+  are correlated above 0.99, so the variance drops by a factor of a hundred or more (Chapter 33). By the AM–GM
+  inequality the arithmetic Asian is always worth more than the geometric one.
+
+**Lookbacks**, which pay on the maximum or minimum of the path, also have closed forms by the reflection principle.
+
+## <span class="section-tag">Playground</span>Knock-outs and averages
+
+<BarrierReflection client:visible />
+
+<div class="try-this">
+
+- **How much does a barrier save?** Find the barrier at which the down-and-out call costs half the vanilla.
+- **Close to the spot.** Set the barrier at \$99. Why is the option almost worthless, even though the strike is
+  \$100?
+- **Reflection by eye.** Click <em>Another path</em> several times. Do the twins look like plausible paths in their
+  own right?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A vanilla call costs \$10.45 and the down-and-in call with the same strike and a barrier at \$85 costs \$0.50. What is the down-and-out call worth?"
+  answer={9.95}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="In + out = vanilla: $10.45 - 0.50 = 9.95$ dollars. Whatever happens, exactly one of the two is alive at expiry."
+/>
+
+<Quiz
+  client:visible
+  question="Why is the arithmetic Asian option priced by Monte Carlo rather than by a formula?"
+  options={[
+    "Because averages are always lognormal",
+    "Because a sum of lognormal variables has no simple distribution",
+    "Because Asian options are American",
+    "Because the payoff is discontinuous",
+  ]}
+  answer={1}
+  explanation="The geometric average is lognormal, so it has a closed form. The arithmetic average is a sum of lognormals with no closed-form distribution, so we simulate it, using the geometric one as a control variate."
+/>
+
+<Quiz
+  client:visible
+  question="A barrier monitored only once a day, compared with the same barrier monitored continuously..."
+  options={[
+    "knocks out more often, so a knock-out is cheaper",
+    "knocks out less often, so a knock-out is more expensive",
+    "has the same price",
+    "can't be priced",
+  ]}
+  answer={1}
+  explanation="Between checks the price can cross the barrier and come back unnoticed. Fewer knock-outs make knock-out options more valuable, which the Broadie–Glasserman–Kou shift captures by moving the barrier away from the spot."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Barrier options** switch on (in) or off (out) when the price touches a level. In + out = vanilla.
+- The **reflection principle** turns hitting probabilities into end-point probabilities, giving closed forms for
+  continuously monitored barriers. Discrete monitoring is handled by shifting the barrier.
+- **Asian options** pay on an average, which is less volatile, so they're cheaper. Geometric Asians have closed forms;
+  arithmetic Asians use Monte Carlo with the geometric one as a control variate.
+
+**Next up:** options on more than one asset. Chapter 39 prices the option to exchange one stock for another, and
+shows how correlation drives baskets and spreads.
+
+### Further reading
+
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 4.
+- M. Broadie, P. Glasserman and S. Kou, "A continuity correction for discrete barrier options" (1997).
+- A. Kemna and A. Vorst, "A pricing method for options based on average asset values" (1990).

@@ -389,8 +389,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price barrier options with the reflection principle. Price Asian and lookback options, and know
   which ones have closed forms.
 - **Key math:** the reflection principle; down-and-out call formula; the geometric Asian closed form.
-- **Widgets:** a path hitting a barrier, with its reflected twin drawn alongside. A Monte Carlo pricer for
-  arithmetic Asians.
+- **Widgets:** `BarrierReflection`: a driftless path touching the barrier and its mirror image after the first
+  touch, plus the down-and-out call's value for every barrier level. `AsianMC`: a path with its running average and
+  the arithmetic Asian by Monte Carlo, plain and with the geometric control variate, against the geometric closed
+  form and the vanilla.
 - **Prereqs:** 15, 33.
 
 ### 39. Multi-asset options
@@ -473,6 +475,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `CharFnArrows`, `COSReconstruction` | 35 | — |
 | `LSMScatter` | 36 | — |
 | `DigitalSpread` | 37 | — |
+| `BarrierReflection`, `AsianMC` | 38 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
