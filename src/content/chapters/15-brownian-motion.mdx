@@ -1,0 +1,180 @@
+---
+title: "Random walks → Brownian motion"
+part: 4
+chapter: 15
+difficulty: 2
+prerequisites: [14]
+summary: "Shrink a coin-flip walk the right way and you get Brownian motion: continuous, nowhere smooth, and growing like √t."
+---
+import BrownianZoom from '../../components/plots/BrownianZoom';
+import PathSimulator from '../../components/plots/PathSimulator';
+import QuadraticVariationDemo from '../../components/plots/QuadraticVariationDemo';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>What does an infinitely fine tree look like, path by path?
+
+In Chapter 14 we let a binomial tree's steps shrink and watched the *distribution* of the final price become
+lognormal. Now look at a single *path* through the tree: a jagged line, moving up or down by
+$\pm\Vol{\sigma}\sqrt{\Delta t}$ at every tick. What does that path turn into when the ticks become infinitely
+frequent?
+
+The answer is one of the most important objects in all of mathematics: **Brownian motion**. It was first studied
+in pollen grains jiggling in water. Louis Bachelier used it to model the Paris stock exchange in 1900, five years
+before Einstein. It's the engine inside Black–Scholes, and it's genuinely strange: continuous everywhere,
+smooth nowhere.
+
+## <span class="section-tag">Intuition</span>Coin flips with the right step size
+
+Take a fair coin. Every $\Delta t$, step up by $\sqrt{\Delta t}$ on heads and down by $\sqrt{\Delta t}$ on tails.
+After time $t$ you've made $t/\Delta t$ independent steps, each with variance $\Delta t$, so
+
+$$
+\text{variance at time } t = \frac{t}{\Delta t} \times \Delta t = t .
+$$
+
+The step size $\sqrt{\Delta t}$ is exactly what keeps the spread fixed as the steps shrink. Steps of size
+$\Delta t$ would make the walk freeze into a flat line. Steps of size $\Delta t^{1/4}$ would make it explode. This
+is the $\sqrt{\Delta t}$ we met in the CRR tree.
+
+<PathSimulator client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start with 16 coin-flip steps, then slide the number of steps up
+to 2,048. The staircase becomes a fuzzy line. Switch to <em>Brownian motion</em>: you can't tell them apart. And
+whatever the step count, about two-thirds of paths stay inside the inner dashed band, $\pm\sqrt{t}$.</p>
+
+Two things happen in the limit. By the central limit theorem, the position at any time becomes **normally
+distributed** with variance $t$. And because the steps shrink to nothing, the path becomes **continuous**: no
+jumps.
+
+## <span class="section-tag">Intuition</span>Continuous, but nowhere smooth
+
+A smooth curve looks like a straight line if you zoom in far enough. That's what having a derivative means. Try
+that with Brownian motion:
+
+<BrownianZoom client:visible />
+
+<p class="try-this"><strong>Try this:</strong> zoom in ×4, ×16, ×64, … all the way to ×4,096. If you stretch the
+vertical axis by the square root of the zoom factor, every picture looks equally rough. Brownian motion is
+<strong>self-similar</strong>, and it never straightens out.</p>
+
+The reason is the square root again. Over a short time $h$, the path moves about $\sqrt{h}$, so its average slope
+over that interval is about $\sqrt{h}/h = 1/\sqrt{h}$, which blows up as $h \to 0$. Brownian motion has **no
+derivative anywhere**. We can't write "$dW/dt$", and that's why stochastic calculus needs its own rules.
+
+## <span class="section-tag">Intuition</span>The one thing that isn't random
+
+Here's the most important fact about Brownian motion for finance. Add up the **squares** of the little steps
+along a path:
+
+$$
+\sum (\Delta W)^2 .
+$$
+
+Each square is about $\Delta t$ on average, and there are $t/\Delta t$ of them, so the sum is about $t$. But it's
+better than "about": as the steps shrink, the sum converges to **exactly $t$**, along every path, with no
+randomness left.
+
+<QuadraticVariationDemo client:visible />
+
+<p class="try-this"><strong>Try this:</strong> slide the steps from 4 to 65,536. The blue sum of squares wobbles
+around the line $y = t$ for coarse steps and locks onto it for fine ones. The sum of <em>absolute</em> steps, the
+path's length, does the opposite and grows without limit.</p>
+
+<Callout type="key" title="The rule (dW)² = dt">
+Along a Brownian path, the squared increments are not negligible: they add up to elapsed time. In the shorthand
+of stochastic calculus, $(dW)^2 = dt$. That's the single new rule behind Itô's lemma (Chapter 17), and through it
+the extra $-\tfrac12\Vol{\sigma}^2$ terms that keep appearing in option pricing.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Definition and key properties
+
+A **standard Brownian motion** is a random function $W_t$, $t \ge 0$, with:
+
+1. $W_0 = 0$;
+2. **independent increments**: $W_{t_1} - W_{t_0}, W_{t_2} - W_{t_1}, \dots$ are independent for $t_0 < t_1 < \dots$;
+3. **Gaussian increments**: $W_t - W_s \sim \mathcal{N}(0,\, t - s)$ for $s < t$;
+4. **continuous paths**: $t \mapsto W_t$ is continuous.
+
+**From walks to Brownian motion (Donsker's theorem).** If $X_k = \pm 1$ are fair coin flips, the scaled walk
+$W^{(n)}_t = \frac{1}{\sqrt n}\sum_{k \le nt} X_k$ converges in distribution, as a whole path, to Brownian motion.
+
+**Useful consequences.** $\mathbb{E}[W_t] = 0$, $\operatorname{Var}(W_t) = t$, and
+$\operatorname{Cov}(W_s, W_t) = \min(s, t)$. **Scaling**: for any $c > 0$, $\tfrac{1}{\sqrt c}W_{ct}$ is again a
+standard Brownian motion. That's the self-similarity in the zoom widget.
+
+**Quadratic variation.** For a partition of $[0, t]$ into $n$ steps of size $\Delta t = t/n$,
+
+$$
+Q_n = \sum_{k=1}^{n} \big(W_{t_k} - W_{t_{k-1}}\big)^2 \;\longrightarrow\; t .
+$$
+
+*Proof sketch.* Each term $(\Delta W)^2$ has mean $\Delta t$ and variance $2\Delta t^2$ (because
+$\mathbb{E}[Z^4] = 3$ for $Z \sim \mathcal{N}(0,1)$). The terms are independent, so $\mathbb{E}[Q_n] = t$ and
+$\operatorname{Var}(Q_n) = 2t\,\Delta t \to 0$. A random quantity with fixed mean and vanishing variance converges
+to its mean.
+
+**Total variation is infinite.** $\mathbb{E}\sum|\Delta W| = n\sqrt{2\Delta t/\pi} = \sqrt{2nt/\pi} \to \infty$.
+Brownian paths have infinite length on every interval, which is why ordinary (Riemann–Stieltjes) integrals
+$\int f\,dW$ can't be defined path by path.
+
+## <span class="section-tag">Playground</span>Make your own Brownian motion
+
+<PathSimulator client:visible />
+
+<div class="try-this">
+
+- **With 60 paths**, how many end outside $\pm 2$? The theory says about 5%, so around 3.
+- **With just 2 coin-flip steps**, the walk can only end at $-\sqrt2$, $0$ or $+\sqrt2$. How many steps until the
+  endpoints look continuous?
+- **In the quadratic-variation widget**, compare two different paths at 16 steps and at 65,536 steps. At which
+  resolution do they agree?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="What is the variance of W₄ − W₁ for a standard Brownian motion?"
+  answer={3}
+  tolerance={0.0001}
+  explanation="Increments are normal with variance equal to the elapsed time, $4 - 1 = 3$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="What does the sum of squared increments of W over [0, 2] converge to as the partition gets finer?"
+  answer={2}
+  tolerance={0.0001}
+  explanation="The quadratic variation of Brownian motion over $[0, t]$ is $t$, here 2, along every path."
+/>
+
+<Quiz
+  client:visible
+  question="Why does the CRR tree (and the coin-flip walk) use steps of size √Δt?"
+  options={[
+    "So the walk stays positive",
+    "So the variance at time t stays equal to t (times σ²) as the steps shrink",
+    "So the walk is differentiable in the limit",
+    "So the steps are easy to compute",
+  ]}
+  answer={1}
+  explanation="With $t/\Delta t$ independent steps of variance $\Delta t$, the total variance is $t$. Any other scaling makes the limit trivial or infinite."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Brownian motion** is the limit of coin-flip walks with steps $\pm\sqrt{\Delta t}$: start at 0, independent
+  Gaussian increments with variance = elapsed time, continuous paths.
+- Its spread grows like $\sqrt{t}$. It's **self-similar** and **nowhere differentiable**.
+- Its **quadratic variation** is exactly $t$: $\sum(\Delta W)^2 \to t$, written $(dW)^2 = dt$. Its total
+  variation is infinite.
+
+**Next up:** Brownian motion can go negative; stock prices can't. In Chapter 16 we use it to drive *percentage*
+changes instead, and get geometric Brownian motion and the lognormal distribution.
+
+### Further reading
+
+- S. E. Shreve, *Stochastic Calculus for Finance II*, chapter 3.
+- L. Bachelier, *Théorie de la spéculation* (1900).
