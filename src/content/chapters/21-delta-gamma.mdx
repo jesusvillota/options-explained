@@ -1,0 +1,163 @@
+---
+title: "Delta & Gamma"
+part: 5
+chapter: 21
+difficulty: 2
+prerequisites: [20]
+summary: "Delta is the slope of the price curve, gamma its curvature, and together they say how an option reacts to the stock."
+---
+import TangentParabola from '../../components/plots/TangentParabola';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The stock just moved \$1. What happened to my option?
+
+A trader with a book of options doesn't recompute Black–Scholes every time the stock ticks. They carry a few
+numbers in their head that say *how much* each position moves when the stock moves. Those numbers are the
+**Greeks**, and the first two are the most important.
+
+**Delta** answers "if the stock rises \$1, how much does my option change?" **Gamma** answers "and how fast is
+that answer itself changing?" Geometrically, they're nothing more than the **slope** and the **curvature** of the
+price curve from Chapter 20.
+
+## <span class="section-tag">Intuition</span>Slope: delta
+
+Draw the option's price against the stock price. At any point, the **tangent line**, the straight line that just
+touches the curve, has a slope. That slope is delta, $\Delta = \partial V/\partial \Spot{S}$.
+
+- A **call's** delta runs from 0 (deep out of the money: the option barely reacts) to 1 (deep in the money: it
+  moves dollar for dollar with the stock). At the money it's about 0.5 to 0.6.
+- A **put's** delta runs from 0 to $-1$.
+
+Delta also has two other meanings you've already met. It's the **hedge ratio**, the number of shares in the
+replicating portfolio (Chapters 11 and 19), and for a call it's $N(d_1)$ from the Black–Scholes formula
+(Chapter 18).
+
+<TangentParabola client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the blue point along the price curve. The tangent swings: flat
+far left, steep far right. Below, the delta curve is an S-shape climbing from 0 to 1. Now shrink the time to
+expiry to 0.02 years. The S-curve becomes a near-vertical step at the strike. Close to expiry, delta jumps from 0
+to 1 abruptly.</p>
+
+## <span class="section-tag">Intuition</span>Curvature: gamma
+
+The tangent line is a good guide for *small* moves. For bigger ones, the curve bends away from it, and that bend
+is **gamma**, $\Gamma = \partial^2 V/\partial \Spot{S}^2$, the rate at which delta changes.
+
+Gamma adds the next term of a Taylor expansion:
+
+$$
+\Delta V \;\approx\; \Delta \cdot \Delta\Spot{S} \;+\; \tfrac12\,\Gamma\,(\Delta\Spot{S})^2 .
+$$
+
+The purple dashed parabola in the widget is exactly this approximation. For a long option, gamma is **always
+positive**: the price curve bends upwards, as Chapter 3 showed, so the parabola sits above the tangent. If the
+stock jumps either way, you do *better* than delta alone predicts.
+
+<Callout type="key" title="Long options are long gamma">
+Positive gamma means big moves help you in either direction: up moves add delta, down moves remove it. That's the
+convexity we've been tracking since Chapter 3. Gamma is largest <strong>at the money</strong> and <strong>near
+expiry</strong>, where the price curve bends most sharply around the strike.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Delta and gamma in Black–Scholes
+
+With $d_1$ as in Chapter 18 and $\varphi$ the standard normal density:
+
+$$
+\Delta_{\text{call}} = e^{-q\Time{\tau}}N(d_1), \qquad \Delta_{\text{put}} = -e^{-q\Time{\tau}}N(-d_1) = \Delta_{\text{call}} - e^{-q\Time{\tau}},
+$$
+
+$$
+\Gamma = \frac{e^{-q\Time{\tau}}\,\varphi(d_1)}{\Spot{S}\,\Vol{\sigma}\sqrt{\Time{\tau}}}\quad(\text{same for calls and puts}).
+$$
+
+The put's delta follows from parity: $\Call{C} - \Put{P} = \Spot{S}e^{-q\Time{\tau}} - \Strike{K}e^{-\Rate{r}\Time{\tau}}$,
+so the deltas differ by $e^{-q\Time{\tau}}$ and the gammas are identical.
+
+<details>
+<summary>Why ∂C/∂S is simply N(d₁)</summary>
+
+Differentiate $\Call{C} = \Spot{S}N(d_1) - \Strike{K}e^{-\Rate{r}\Time{\tau}}N(d_2)$:
+$\partial\Call{C}/\partial\Spot{S} = N(d_1) + \big[\Spot{S}\varphi(d_1) - \Strike{K}e^{-\Rate{r}\Time{\tau}}\varphi(d_2)\big]\,\partial d_1/\partial \Spot{S}$,
+using $\partial d_2/\partial\Spot{S} = \partial d_1/\partial\Spot{S}$. The bracket is zero, because
+$\Spot{S}\varphi(d_1) = \Strike{K}e^{-\Rate{r}\Time{\tau}}\varphi(d_2)$ (expand both densities and use
+$d_1^2 - d_2^2 = 2\ln(\Spot{S}/\Strike{K}) + 2\Rate{r}\Time{\tau}$). So $\Delta = N(d_1)$.
+
+</details>
+
+**Shape of gamma.** Gamma peaks near the strike, close to $\Spot{S} = \Strike{K}e^{-(\Rate{r} - q + \frac32\Vol{\sigma}^2)\Time{\tau}}$.
+At the money it scales like $1/(\Spot{S}\Vol{\sigma}\sqrt{\Time{\tau}})$, so it blows up as expiry approaches. A
+short-dated at-the-money option has a delta that can swing from 0 to 1 on a small move, which makes it hard to
+hedge (Chapter 24).
+
+**P&L expansion.** For a small move $d\Spot{S}$ over a short time $dt$, Itô's lemma (Chapter 17) gives the
+position's change exactly to this order:
+
+$$
+dV = \Delta\,d\Spot{S} + \tfrac12\Gamma\,(d\Spot{S})^2 + \Theta\,dt .
+$$
+
+The theta term is the subject of Chapter 22.
+
+**Dollar delta and dollar gamma.** Desks often quote $\Delta\cdot\Spot{S}$ (the stock-equivalent exposure in
+dollars) and $\Gamma\cdot\Spot{S}^2/100$ (the change in dollar delta for a 1% move), because they add up across
+positions on different stocks.
+
+## <span class="section-tag">Playground</span>Approximate the move
+
+<TangentParabola client:visible />
+
+<div class="try-this">
+
+- **Set the move to +\$20 and then −\$20.** Delta alone underestimates the gain on the way up and overestimates the
+  loss on the way down. Gamma fixes both.
+- **At the money with 0.02 years left**, how big is gamma compared with 2 years left?
+- **Switch to a put.** Its delta curve is the call's, shifted down by about 1. Its gamma? Identical.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A call has Δ = 0.6 and Γ = 0.02. Using delta and gamma, by how much does its price change if the stock rises \$5?"
+  answer={3.25}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="$\Delta\cdot 5 + \tfrac12\Gamma\cdot 25 = 3 + 0.25 = 3.25$."
+/>
+
+<Quiz
+  client:visible
+  question="Where is the gamma of a call largest?"
+  options={["Deep in the money, long-dated", "At the money, close to expiry", "Deep out of the money", "It's constant"]}
+  answer={1}
+  explanation="Gamma measures how sharply the price curve bends, which happens most around the strike and most of all just before expiry, when the curve approaches the hockey stick's kink."
+/>
+
+<Quiz
+  client:visible
+  question="A call has delta 0.45. What is the delta of the put with the same strike and expiry (no dividends)?"
+  options={["0.45", "−0.45", "−0.55", "0.55"]}
+  answer={2}
+  explanation="By put–call parity, $\Delta_{\text{put}} = \Delta_{\text{call}} - 1 = -0.55$ when there are no dividends."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Delta** = slope = hedge ratio: $e^{-q\Time{\tau}}N(d_1)$ for a call, between 0 and 1. A put's delta is the
+  call's minus $e^{-q\Time{\tau}}$.
+- **Gamma** = curvature = how fast delta changes: $e^{-q\Time{\tau}}\varphi(d_1)/(\Spot{S}\Vol{\sigma}\sqrt{\Time{\tau}})$.
+  It's the same for calls and puts and largest at the money near expiry.
+- $\Delta V \approx \Delta\,\Delta\Spot{S} + \tfrac12\Gamma(\Delta\Spot{S})^2$. Long options have positive gamma and
+  benefit from big moves either way.
+
+**Next up:** positive gamma is a gift that has to be paid for. Chapter 22 shows who pays, and how much: **theta**,
+the daily cost of holding convexity.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 19 (the Greek letters).
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 2.
