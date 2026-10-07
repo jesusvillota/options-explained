@@ -72,8 +72,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Discount cash flows with discrete and continuous compounding. Price a forward by cost of carry and
   explain why it doesn't depend on anyone's forecast.
 - **Key math:** $B(0,T) = e^{-rT}$; $F = S e^{(r-q)T}$; the cash-and-carry arbitrage argument.
-- **Widgets:** compounding frequency slider showing convergence to $e^{rT}$. An arbitrage "machine" in which the
-  reader sets a mispriced forward and the profitable trade appears.
+- **Widgets:** `CompoundingStaircase` (interest credited n times a year vs the smooth $e^{rt}$) and
+  `ForwardArbitrageMachine` (drag a mispriced forward and the cash-and-carry or reverse trade appears, with cash
+  flows).
 - **Prereqs:** 1.
 
 ### 7. Arbitrage bounds
@@ -398,6 +399,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
 | `OptionChain` | 4 | 25, 26 |
+| `CompoundingStaircase` | 6 | — |
+| `ForwardArbitrageMachine` | 6 | 8 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

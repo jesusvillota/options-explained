@@ -3,3 +3,4 @@ dist/
 .astro/
 screenshots/
 .DS_Store
+scripts/_*.tmp.mjs

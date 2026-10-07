@@ -21,7 +21,8 @@ Deployed to GitHub Pages by `.github/workflows/ci.yml`.
   and fails on console errors, KaTeX errors, or horizontal overflow.
 
 ## Rules
-- **One chapter per PR**, written in curriculum order unless asked otherwise. A chapter lives in
+- **One commit per chapter, one PR per Part** (sessions can usually push to a single branch), written in
+  curriculum order unless asked otherwise. A chapter lives in
   `src/content/chapters/NN-slug.mdx`, with frontmatter as in the style guide. It appears in the navigation on
   its own once the file exists. Keep `src/data/curriculum.ts` in sync with `docs/CURRICULUM.md`.
 - **Follow the chapter template exactly:** Hook → Intuition → Formalisation → Playground → Check yourself →
