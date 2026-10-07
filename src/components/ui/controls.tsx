@@ -71,3 +71,25 @@ export function Button({ children, onClick, disabled }: { children: React.ReactN
     </button>
   );
 }
+
+interface SelectProps<T extends string> {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}
+
+/** A labelled native drop-down. */
+export function Select<T extends string>({ label, value, options, onChange }: SelectProps<T>) {
+  const id = useId();
+  return (
+    <div className="ctl-select">
+      <label htmlFor={id} className="ctl-label">{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value as T)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}

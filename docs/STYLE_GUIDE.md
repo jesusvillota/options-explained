@@ -72,6 +72,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\Delta, \Gamma, \Theta, \mathcal{V}, \rho$ | Delta, gamma, theta, vega, rho. Write vega as $\mathcal{V}$ so it isn't confused with $\nu$ |
 | $(x)^+$ | $\max(x, 0)$ |
 | $m$, $n$ | Contract multiplier (100 shares for US stock options) and number of contracts |
+| $n_i$, $p_i$ | Signed quantity of leg $i$ in a strategy (positive long, negative short) and its price per unit |
 | $b$, $a$ | Bid and ask prices (per share) |
 
 Conventions:

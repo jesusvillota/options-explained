@@ -55,11 +55,13 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Prereqs:** 2.
 
 ### 5. Options as Lego: strategies
-- **Goals:** Build bull/bear spreads, straddles, strangles, butterflies, condors, collars, and covered calls.
-  Read each one's view on direction and volatility from its shape.
-- **Key math:** a portfolio's payoff is the sum of its legs' payoffs.
-- **Widgets:** `StrategyBuilder`: add and remove legs, and watch the combined payoff with each leg ghosted
-  behind it. Includes presets.
+- **Goals:** Build bull/bear spreads, straddles, strangles, butterflies, iron condors, collars, covered calls and
+  protective puts. Read each one's view on direction and volatility from its shape.
+- **Key math:** a portfolio's payoff is the sum of its legs' payoffs (kinks at strikes, slopes add); breakevens
+  per linear piece; every piecewise-linear payoff is cash + shares + calls,
+  $f(S) = f(0) + s_0 S + \sum_k (s_k - s_{k-1})(S - K_k)^+$, so a put is $K - S + (S - K)^+$ at expiry.
+- **Widgets:** `StrategyBuilder`: presets plus editable legs (call/put/stock, buy/sell, quantity, strike), with
+  each leg ghosted behind the total and net cost, best/worst case and breakevens computed exactly.
 - **Prereqs:** 2, 3.
 
 ---

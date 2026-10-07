@@ -118,3 +118,23 @@
 .chain .chain-spot td { text-align: center; padding: 0.15rem; font-size: 0.72rem; color: var(--c-spot); background: color-mix(in srgb, var(--c-spot) 10%, transparent); letter-spacing: 0.04em; }
 .chain-detail { display: grid; gap: 0.8rem; margin-top: 0.9rem; }
 @media (min-width: 900px) { .chain-detail { grid-template-columns: 1.3fr 1fr; align-items: start; } }
+
+/* Select */
+.ctl-select { display: flex; flex-direction: column; gap: 0.15rem; }
+.ctl-select select {
+  min-height: 40px; padding: 0 2rem 0 0.8rem; border-radius: 8px; font: inherit; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-inset); color: var(--text);
+}
+
+/* Strategy builder (Chapter 5) */
+.strategy-controls { display: grid; gap: 0.8rem; width: 100%; }
+.legs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.legs .leg { border: 1px solid var(--border); border-left: 3px solid var(--leg); border-radius: 8px; padding: 0.5rem 0.7rem; background: var(--bg-inset); }
+.leg-name { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.leg-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; margin-top: 0.4rem; }
+.leg-edit .ctl-slider { flex: 1 1 12rem; }
+.leg-qty { display: inline-flex; align-items: center; gap: 0.4rem; }
+.leg-qty .ctl-button { min-width: 38px; padding: 0; }
+.leg-remove { margin-left: auto; }
+.widget-side .widget-controls:has(.strategy-controls) { display: block; }
+.strategy-controls > .ctl-button { justify-self: start; }
