@@ -1,0 +1,200 @@
+---
+title: "Shape constraints"
+part: 2
+chapter: 10
+difficulty: 2
+prerequisites: [5, 7]
+summary: "Across strikes, call prices must fall, not too fast, and curve upwards, and that curvature hides probabilities."
+---
+import ConvexityEditor from '../../components/plots/ConvexityEditor';
+import StrategyBuilder from '../../components/plots/StrategyBuilder';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Can any list of prices be a chain?
+
+Look at a row of one-year call prices for strikes \$90, \$100 and \$110: \$16.70, \$10.45, \$6.04. They fall
+as the strike rises, which makes sense. But could the middle one be \$12 instead? Or \$17?
+
+\$17 is impossible: a call with a *higher* strike can't cost more. The \$12 case is subtler. The three prices would
+still fall, yet a trader could make money for nothing by buying one \$90 call, selling two \$100 calls and buying
+one \$110 call.
+
+This chapter finds every rule that a row of call prices across strikes has to obey. There are exactly three.
+The last one, that prices must **curve upwards**, is the most interesting: hidden in that curvature is the
+market's view of *how likely each stock price is*.
+
+## <span class="section-tag">Intuition</span>Three rules, three spreads
+
+Each rule comes from a spread from Chapter 5 whose payoff we know the sign of.
+
+**1. Prices fall as the strike rises.** A **bull call spread** (buy the lower strike, sell the higher) never pays
+less than zero. So it can't cost less than zero:
+$\Call{C}(\Strike{K_1}) \ge \Call{C}(\Strike{K_2})$ for $\Strike{K_1} < \Strike{K_2}$.
+
+**2. But not too fast.** The same spread never pays *more* than $\Strike{K_2} - \Strike{K_1}$. So it can't cost
+more than that amount's present value: $\Call{C}(\Strike{K_1}) - \Call{C}(\Strike{K_2}) \le (\Strike{K_2} - \Strike{K_1})e^{-\Rate{r}\Time{T}}$.
+Per \$1 of strike, the price can drop by at most about \$0.95 here.
+
+**3. The curve bends upwards (convexity).** A **butterfly** (buy one low call, sell two middle, buy one high)
+never pays less than zero either. It's the tent shape from Chapter 5:
+
+<StrategyBuilder client:visible preset="long-butterfly" presetPicker={false} editable={false} mode="payoff" initialSpot={100} title="A butterfly's payoff is never negative" />
+
+So a butterfly can't have a negative price: $\Call{C}(90) - 2\,\Call{C}(100) + \Call{C}(110) \ge 0$. In words,
+the middle price must be **at most the average of its neighbours**. Join the points, and the curve sags below
+its chords. That's what *convex* means.
+
+Now break the rules yourself:
+
+<ConvexityEditor client:visible />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Push the \$100 call up</em>. The curve gets a bump
+at \$100 and the butterfly becomes a free lunch. Look at the bars below: the bump turns the bar at \$100
+<strong>negative</strong>. Then try <em>Overprice the \$110 call</em>, which breaks the first rule as well.</p>
+
+## <span class="section-tag">Intuition</span>Curvature is probability
+
+Why would the bars turn negative? Here's the idea behind them.
+
+A butterfly centred at $\Strike{K}$ only pays off if the stock ends *near* $\Strike{K}$, within one strike gap
+on either side, and it pays at most one gap's worth. Make the wings narrow, and a butterfly becomes a bet that
+pays out **only if the stock lands in a small window around $\Strike{K}$**.
+
+The price of such a bet tells you how likely the market thinks that window is. Read across all strikes,
+butterfly prices draw a **probability distribution** for where the stock will end up. For the fair prices above,
+it's the familiar hump, centred a little above \$100.
+
+So the three rules aren't arbitrary:
+
+- **Convexity** says these probabilities are **non-negative**. A dent in the curve would mean a negative chance
+  of landing near that strike, which is nonsense, and the butterfly arbitrage cashes in on it.
+- The **slope** of the curve (rules 1 and 2) is tied to the probability of finishing *above* each strike, which
+  must lie between 0 and 1.
+
+<Callout type="key" title="Prices encode probabilities">
+The first derivative of the call price with respect to the strike gives the chance the stock ends above
+$\Strike{K}$. The second derivative gives the probability density of where it ends. The no-arbitrage shape
+rules are exactly the rules that make these genuine probabilities. Chapter 27 turns this into a precise tool,
+the Breeden–Litzenberger formula.
+</Callout>
+
+These aren't real-world probabilities. They're the probabilities *implied by prices*, which build in how much
+people dislike risk. Chapter 12 explains this carefully. For now, the shape rules are all we need.
+
+## <span class="section-tag">Formalisation</span>The constraints in symbols
+
+Fix the expiry $\Time{T}$, and write $\Call{C}(\Strike{K})$ for the call price as a function of the strike. For
+any $\Strike{K_1} < \Strike{K_2} < \Strike{K_3}$:
+
+$$
+0 \;\le\; \Call{C}(\Strike{K_1}) - \Call{C}(\Strike{K_2}) \;\le\; (\Strike{K_2} - \Strike{K_1})\,e^{-\Rate{r}\Time{T}},
+$$
+
+$$
+\Call{C}(\Strike{K_2}) \;\le\; \lambda\,\Call{C}(\Strike{K_1}) + (1 - \lambda)\,\Call{C}(\Strike{K_3}), \qquad \lambda = \frac{\Strike{K_3} - \Strike{K_2}}{\Strike{K_3} - \Strike{K_1}}.
+$$
+
+The second line uses an unevenly spaced butterfly: $\lambda$ calls at $\Strike{K_1}$, $-1$ at $\Strike{K_2}$, and
+$1 - \lambda$ at $\Strike{K_3}$. Its payoff is a tent that is never negative.
+
+If $\Call{C}$ is smooth in $\Strike{K}$, the rules become derivative conditions:
+
+$$
+-e^{-\Rate{r}\Time{T}} \;\le\; \frac{\partial \Call{C}}{\partial \Strike{K}} \;\le\; 0, \qquad\qquad \frac{\partial^2 \Call{C}}{\partial \Strike{K}^2} \;\ge\; 0 .
+$$
+
+The probabilistic reading previews Chapters 27 and 37. Writing $\mathbb{Q}$ for the pricing probabilities,
+
+$$
+-e^{\Rate{r}\Time{T}}\,\frac{\partial \Call{C}}{\partial \Strike{K}} = \mathbb{Q}(\Spot{S_T} > \Strike{K}), \qquad
+e^{\Rate{r}\Time{T}}\,\frac{\partial^2 \Call{C}}{\partial \Strike{K}^2} = f_{\mathbb{Q}}(\Strike{K}).
+$$
+
+<details>
+<summary>Why the first derivative is a probability</summary>
+
+A call spread with strikes $\Strike{K}$ and $\Strike{K} + h$, scaled by $1/h$, pays 1 if
+$\Spot{S_T} \ge \Strike{K} + h$, 0 if $\Spot{S_T} \le \Strike{K}$, and something in between otherwise. As
+$h \to 0$ it becomes a **digital** option paying 1 exactly when $\Spot{S_T} > \Strike{K}$. Its price is
+$-\partial \Call{C}/\partial \Strike{K}$, and a sure \$1 at $\Time{T}$ costs $e^{-\Rate{r}\Time{T}}$. Dividing
+gives the probability the market implicitly assigns to finishing above $\Strike{K}$. Rules 1 and 2 say exactly
+that it lies between 0 and 1.
+
+</details>
+
+**Puts** obey the mirror-image rules: put prices *rise* with the strike, no faster than $e^{-\Rate{r}\Time{T}}$
+per unit, and are also convex in $\Strike{K}$. By put–call parity, $\Put{P}(\Strike{K}) = \Call{C}(\Strike{K}) - \Spot{S} + \Strike{K}e^{-\Rate{r}\Time{T}}$
+differs from the call by a straight line in $\Strike{K}$, which doesn't change the curvature.
+
+**Across expiries**, American options can only gain value with more time: a longer option includes all the
+choices of a shorter one. European calls on non-dividend stocks also increase with $\Time{T}$, but European
+puts need not, because waiting longer delays receiving the strike.
+
+## <span class="section-tag">Playground</span>Shape the market
+
+<ConvexityEditor client:visible />
+
+<div class="try-this">
+
+- **Move the prices so that all the probability sits near \$100.** What shape does the price curve need? (Hint:
+  make it bend sharply at \$100 and be nearly straight elsewhere.)
+- **Make the probability bars lopsided**, more weight below \$100 than above. Real equity markets look like
+  this, and Chapter 26 calls it **skew**.
+- **Find the steepest legal drop** between \$70 and \$80. What happens one cent beyond it?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="The \$90 call trades at \$14 and the \$100 call (same expiry) at \$15. What's the arbitrage?"
+  options={[
+    "Sell the \$90 call, buy the \$100 call.",
+    "Buy the \$90 call, sell the \$100 call.",
+    "Buy both calls.",
+    "There isn't one.",
+  ]}
+  answer={1}
+  explanation="A lower strike can't be cheaper. Buying the \$90 call and selling the \$100 call pays you \$1 today, and the bull spread's payoff is never negative."
+/>
+
+<NumericQuiz
+  client:visible
+  question="One-year calls cost \$16.70 (strike 90), \$10.45 (100) and \$6.04 (110). What does the 90/100/110 butterfly cost?"
+  answer={1.84}
+  tolerance={0.005}
+  prefix="\$"
+  explanation="$16.70 - 2 \times 10.45 + 6.04 = 1.84$. It's positive, as convexity requires. Scaled by $e^{0.05}/10$, that's about a 19% implied chance of ending within \$5 of \$100."
+/>
+
+<Quiz
+  client:visible
+  question="A dent in the call price curve (a middle strike above the average of its neighbours) corresponds to..."
+  options={[
+    "a probability greater than 1",
+    "a negative implied probability",
+    "a high interest rate",
+    "an American option",
+  ]}
+  answer={1}
+  explanation="The curvature $\partial^2 \Call{C}/\partial \Strike{K}^2$ is the implied density. Bending the wrong way means a negative density, and a butterfly arbitrage."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Across strikes, call prices must **fall**, **not faster than** $e^{-\Rate{r}\Time{T}}$ per unit of strike, and
+  be **convex**. Each rule comes from a spread with a known-sign payoff: bull spread and butterfly.
+- Breaking any rule hands someone a riskless profit.
+- The slope of the call curve gives the implied chance of finishing **above** the strike. Its curvature gives the
+  implied **density**. The shape rules are exactly what makes these valid probabilities.
+
+**Next up:** that's the end of Part II. Arbitrage alone has fenced prices in, related calls to puts and to each
+other, and hinted at probabilities. To get a *single* price, we need a model. Part III starts with the simplest
+possible one, a stock that can only go up or down, and gets a remarkable amount out of it.
+
+### Further reading
+
+- R. C. Merton, "Theory of rational option pricing" (1973).
+- D. T. Breeden and R. H. Litzenberger, "Prices of state-contingent claims implicit in option prices" (1978).

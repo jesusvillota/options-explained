@@ -107,8 +107,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Show that the call price falls and is convex in $K$, and that the butterfly spread has
   non-negative value. Link this to probabilities (a preview of Ch. 27).
 - **Key math:** $-e^{-rT} \le \partial C/\partial K \le 0$; $\partial^2 C/\partial K^2 \ge 0$.
-- **Widgets:** a $C(K)$ curve the reader can edit by dragging control points. Any point where the curve is
-  non-convex lights up with the butterfly arbitrage that exploits it.
+- **Widgets:** `ConvexityEditor`: seven draggable call prices across strikes. A broken rule lights up with the
+  spread or butterfly arbitrage, and a second panel turns butterflies into implied probabilities.
 - **Prereqs:** 5, 7.
 
 ---
@@ -409,6 +409,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ParityLine` | 8 | 27 |
 | `EarlyExerciseValue` | 9 | 13, 36 |
 | `ExerciseBoundary` | 9 | 13, 36 |
+| `ConvexityEditor` | 10 | 27 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |
