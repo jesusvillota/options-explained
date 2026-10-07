@@ -366,8 +366,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 36. American options by simulation
 - **Goals:** Price American options with Longstaff–Schwartz regression.
 - **Key math:** the continuation value regressed on basis functions; the exercise rule.
-- **Widgets:** a scatter of discounted continuation values against $S$ with the fitted regression curve, and
-  the exercise boundary emerging as time steps back.
+- **Widgets:** `LSMScatter`: at a chosen exercise date, the realised discounted cash flows of in-the-money paths,
+  the quadratic regression and the exercise payoff; below, the boundary from every date against the binomial tree's.
+  Readouts compare the price with an 800-step tree and the Black–Scholes European put. Library:
+  `src/lib/numerics/lsm.ts`.
 - **Prereqs:** 13, 33.
 
 ---
@@ -438,15 +440,15 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
 | `ParityLine` | 8 | — |
-| `EarlyExerciseValue` | 9 | 13, 36 |
-| `ExerciseBoundary` | 9 | 13, 36 |
+| `EarlyExerciseValue` | 9 | 13 |
+| `ExerciseBoundary` | 9 | 13 |
 | `ConvexityEditor` | 10 | — |
 | `OneStepReplication` | 11 | 12 |
 | `RiskNeutralSlider` | 12 | 40 |
-| `BinomialTreeAnimated` | 13 | 36 |
-| `TreeConvergence` | 14 | 33 |
-| `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16, 24, 33 |
-| `GBMHistogram` | 16 | 33 |
+| `BinomialTreeAnimated` | 13 | — |
+| `TreeConvergence` | 14 | — |
+| `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16 |
+| `GBMHistogram` | 16 | — |
 | `ItoComparison` | 17 | — |
 | `BSIntegrand` | 18 | 37, 40 |
 | `HeatDiffusion` | 19 | — |
@@ -467,6 +469,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `MCConvergence`, `MCErrorScaling` | 33 | — |
 | `FDStability`, `FDConvergence` | 34 | — |
 | `CharFnArrows`, `COSReconstruction` | 35 | — |
+| `LSMScatter` | 36 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

@@ -1,0 +1,152 @@
+---
+title: "American options by simulation"
+part: 8
+chapter: 36
+difficulty: 3
+prerequisites: [13, 33]
+summary: "Early exercise needs the value of waiting, which needs the future. Longstaff and Schwartz estimate it by regression across simulated paths."
+---
+import LSMScatter from '../../components/plots/LSMScatter';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Simulation looks forward; exercise looks back
+
+Monte Carlo (Chapter 33) simulates paths forward in time. Pricing an American option works backwards: at each date,
+the holder compares exercising now with the value of continuing, and the value of continuing depends on what will be
+optimal later (Chapter 13). On a tree, each node knows its children. On a simulated path, a point at time $t$ has
+exactly one future, so it can't tell you the *expected* value of continuing.
+
+The brute-force fix, a fresh simulation from every point of every path, is hopelessly expensive. In 2001 Francis
+Longstaff and Eduardo Schwartz found a way to get the continuation values from the same set of paths by
+**regression**.
+
+## <span class="section-tag">Intuition</span>Learning the value of waiting
+
+Fix one exercise date. Every in-the-money path has a stock price there and, further along, an actual cash flow it went
+on to earn under the exercise rule for later dates. Plot one against the other: a noisy cloud, because each path saw
+only one of many possible futures. But a curve fitted through the cloud estimates the *average* future cash flow given
+today's stock price. That's the continuation value.
+
+<LSMScatter client:visible />
+
+<p class="try-this"><strong>Try this:</strong> at t = 0.5 the purple regression curve crosses the red exercise line
+near \$86: below that it's better to exercise now. Slide the date towards expiry and the crossing moves up, towards
+the strike. The bottom panel collects these crossings into the exercise boundary, and it follows the binomial tree's
+boundary (dashed) from Chapter 9.</p>
+
+The algorithm works backwards from expiry. At each date it regresses, decides which paths exercise, and updates
+their cash flows. At the end, the price is the average discounted cash flow over all paths.
+
+<Callout type="key" title="Two sources of error, opposite signs">
+The exercise rule found by regression is never quite optimal, and a suboptimal rule earns less. So Longstaff–Schwartz
+is biased <strong>low</strong>. The regression also sees the same noise it's tested on, which biases it slightly
+high. Using the realised cash flows (not the fitted values) for the price keeps the net effect a small low bias.
+Andersen and Broadie's dual method gives a matching upper bound.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Optimal stopping by regression
+
+The American price is an optimal stopping problem over exercise dates $t_1 < \dots < t_M = \Time{T}$:
+
+$$
+V_0 = \sup_{\tau}\;\mathbb{E}^{\mathbb{Q}}\big[e^{-\Rate{r}\tau}g(\Spot{S_\tau})\big],
+\qquad g(s) = (\Strike{K} - s)^+ .
+$$
+
+Dynamic programming gives the backward recursion
+
+$$
+V_{t_m} = \max\Big(g(\Spot{S_{t_m}}),\; C_{t_m}\Big), \qquad C_{t_m} = \mathbb{E}^{\mathbb{Q}}\big[e^{-\Rate{r}\Delta t}V_{t_{m+1}} \,\big|\, \Spot{S_{t_m}}\big] .
+$$
+
+The conditional expectation $C$ is a function of the current state. **Longstaff–Schwartz** approximates it by a linear
+combination of basis functions, here $1, x, x^2$ with $x = \Spot{S}/\Strike{K}$:
+
+$$
+C_{t_m}(s) \approx \beta_0 + \beta_1 x + \beta_2 x^2, \qquad \hat\beta = \arg\min_\beta \sum_{\text{paths in the money}} \Big(Y_j - \sum_k \beta_k\,x_j^k\Big)^2,
+$$
+
+where $Y_j$ is the discounted cash flow path $j$ actually earned after $t_m$. Three choices matter:
+
+- **Regress only in-the-money paths.** Out-of-the-money paths never exercise, and including them distorts the fit
+  where it matters.
+- **Use realised cash flows, not fitted values,** when moving to the previous date. This keeps the estimate from
+  compounding regression errors.
+- **Exercise where $g(s) > \hat C(s)$**, and record the payoff as the path's new cash flow.
+
+With $N$ paths and $M$ dates, the cost is $O(NM)$, the same as a European Monte Carlo. The method extends to many
+underlyings, where trees and grids are impossible, by choosing basis functions of all the state variables.
+
+**Accuracy.** In the paper's test case, $\Spot{S} = 36$, $\Strike{K} = 40$, $\Vol{\sigma} = 20\%$, $\Rate{r} = 6\%$,
+$\Time{T} = 1$ with 50 exercise dates, Longstaff–Schwartz gives about $4.47$, against $4.48$ from a fine finite
+difference grid. The code in this course reproduces it in its test suite.
+
+## <span class="section-tag">Playground</span>Fewer paths, noisier boundary
+
+<LSMScatter client:visible />
+
+<div class="try-this">
+
+- **Few paths.** With 2,000 paths, press <em>New paths</em> several times. How much do the price and the boundary
+  wander?
+- **The early-exercise premium.** Compare the American and European prices from the same paths. How much is the
+  right to exercise early worth here?
+- **Near expiry.** At the last dates, how close does the boundary get to the strike? Why does it have to end at
+  \$100?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="In Longstaff–Schwartz, what is regressed on the current stock price at each exercise date?"
+  options={[
+    "The payoff from exercising now",
+    "The discounted cash flows that each path actually earned later, under the rule for later dates",
+    "The Black–Scholes price",
+    "The number of paths in the money",
+  ]}
+  answer={1}
+  explanation="The realised future cash flows are noisy samples of the continuation value. The regression averages them into an estimate of the conditional expectation."
+/>
+
+<Quiz
+  client:visible
+  question="Why is the Longstaff–Schwartz price typically biased slightly low?"
+  options={[
+    "Because of discounting",
+    "Because the regression-based exercise rule is suboptimal, and any suboptimal rule earns less",
+    "Because Monte Carlo always underestimates",
+    "Because it ignores the last exercise date",
+  ]}
+  answer={1}
+  explanation="The true price is the supremum over all stopping rules. An estimated rule can only do worse, on average, than the optimal one."
+/>
+
+<NumericQuiz
+  client:visible
+  question="With 10,000 paths and 50 exercise dates, how many least-squares regressions does Longstaff–Schwartz run for one price?"
+  answer={49}
+  tolerance={0.001}
+  explanation="One per exercise date before expiry: $50 - 1 = 49$. At expiry the decision is just the payoff."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- American pricing needs continuation values, which a single simulated path can't provide.
+- **Longstaff–Schwartz** estimates them by regressing realised future cash flows of in-the-money paths on basis
+  functions of the state, working backwards from expiry.
+- The resulting exercise rule is slightly suboptimal, so prices are biased a little low. Dual methods give upper
+  bounds.
+- Cost is $O(NM)$, and it works in many dimensions.
+
+**Next up:** Part IX turns to exotic options. Chapter 37 starts with the simplest departures from calls and puts:
+digital, gap and power options, and the replication tricks that price them.
+
+### Further reading
+
+- F. Longstaff and E. Schwartz, "Valuing American options by simulation: a simple least-squares approach" (2001).
+- L. Andersen and M. Broadie, "Primal-dual simulation algorithm for pricing multidimensional American options" (2004).
+- P. Glasserman, *Monte Carlo Methods in Financial Engineering*, chapter 8.
