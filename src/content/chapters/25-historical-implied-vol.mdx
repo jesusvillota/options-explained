@@ -1,0 +1,188 @@
+---
+title: "Historical vs implied volatility"
+part: 6
+chapter: 25
+difficulty: 2
+prerequisites: [23]
+summary: "Two ways to put a number on volatility: measure it from past prices, or read it off today's option prices."
+---
+import HistoricalVolEstimator from '../../components/plots/HistoricalVolEstimator';
+import NewtonIV from '../../components/plots/NewtonIV';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>"The 100 strike is trading at 21 vol"
+
+Listen to an options desk and you'll rarely hear a price in dollars. Traders say "the December 100 calls are 21 bid,
+22 offered", and they mean *volatility*, in percent. The dollar price is something you work out afterwards.
+
+That's odd. Volatility was the one Black–Scholes input you couldn't look up (Chapter 20). So where does the 21
+come from? There are two answers. One looks **backwards**: measure how much the stock has moved. The other looks
+**forwards**: ask what volatility makes Black–Scholes reproduce the price the market is already paying. This
+chapter covers both, and why they disagree.
+
+## <span class="section-tag">Intuition</span>Measuring volatility from history
+
+Volatility is the standard deviation of returns, scaled to a year. So take a price history, compute the daily
+log returns $\ln(\Spot{S}_{i+1}/\Spot{S}_i)$, find their standard deviation, and multiply by $\sqrt{252}$, the
+square root of the number of trading days in a year (variance grows linearly with time, as in Chapter 15).
+
+The catch is choosing *how much* history to use:
+
+<HistoricalVolEstimator client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the regime change switched on, set the window to 10 days. The
+estimate jumps to 40% within days of the change, but it's jagged the whole time. Now try 250 days: smooth, but it
+takes most of a year to catch up. No window is right for both jobs.</p>
+
+A short window **reacts** quickly but is **noisy**. A long window is **precise** but **stale**. With $n$ returns,
+the estimate has a standard error of about $\Vol{\sigma}/\sqrt{2n}$: roughly ±0.9 points for a year of daily data
+at 20% volatility, and ±3 points for a month. That's why practitioners weight recent returns more heavily
+(exponentially weighted estimates, or GARCH models) rather than picking one window.
+
+Here's a surprise: volatility is much easier to measure than the drift. Sampling more often sharpens the
+volatility estimate, because the squares of small moves add up to $\Vol{\sigma}^2t$ (the quadratic variation of
+Chapter 15). But the drift estimate depends only on where the stock started and ended, so its error,
+$\Vol{\sigma}/\sqrt{\Time{T}}$, doesn't shrink however often you look. With 20% volatility and ten years of data,
+you know the drift only to about ±6%. Black–Scholes needs $\Vol{\sigma}$ but not $\mu$, and that's lucky.
+
+## <span class="section-tag">Intuition</span>Reading volatility from a price
+
+Now turn the formula around. Every other input is observable, so the market price of an option pins down the one
+volatility that Black–Scholes would need to reproduce it. That number is the option's **implied volatility**.
+
+It always exists and is unique. Vega is positive, so the price **rises steadily** with $\Vol{\sigma}$. Chapter 20
+showed that it sweeps the whole no-arbitrage band, from the lower bound as $\Vol{\sigma} \to 0$ to the upper bound
+as $\Vol{\sigma} \to \infty$. Any price inside the band is hit exactly once.
+
+There's no closed form for the inverse, so we solve numerically:
+
+<NewtonIV client:visible />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Play</em> with Newton. From a 60% guess it reaches 29.6%,
+then 28.02%, then 27.9938%. The pricing error goes 0.5, 0.007, 0.000002: it roughly squares at every step. Switch to bisection: after eight
+halvings the answer is pinned down only to within a fifth of a point.</p>
+
+<Callout type="key" title="Implied is not realised">
+Historical volatility describes the past. Implied volatility is a price: what the market charges today for the
+volatility to come. On average, implied volatility sits a few points <strong>above</strong> the volatility that
+is later realised. Option sellers are paid a premium for bearing the risk of sudden crashes. Chapter 24's
+simulator showed what that gap is worth to a delta-hedged seller.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Two estimators
+
+**Historical volatility.** From prices $\Spot{S}_0, \dots, \Spot{S}_n$ observed every $\Delta t$ years, let
+$u_i = \ln(\Spot{S}_i/\Spot{S}_{i-1})$ with mean $\bar u$. Then
+
+$$
+\hat{\Vol{\sigma}} = \frac{1}{\sqrt{\Delta t}}\sqrt{\frac{1}{n-1}\sum_{i=1}^n (u_i - \bar u)^2},
+\qquad \operatorname{se}(\hat{\Vol{\sigma}}) \approx \frac{\Vol{\sigma}}{\sqrt{2n}} .
+$$
+
+With daily data, $1/\sqrt{\Delta t} = \sqrt{252}$. The standard error comes from the variance of a sample
+variance: for normal returns, $\operatorname{Var}(\hat{\Vol{\sigma}}^2) \approx 2\Vol{\sigma}^4/n$, and the delta
+method halves the relative error when you take the square root.
+
+**Implied volatility.** Given a market price $\Call{C}^{\text{mkt}}$, solve $\Call{C}_{\text{BS}}(\Vol{\sigma}) = \Call{C}^{\text{mkt}}$
+for $\Vol{\sigma}$. A solution exists if and only if the price is inside the bounds of Chapter 7,
+
+$$
+\big(\Spot{S}e^{-q\Time{T}} - \Strike{K}e^{-\Rate{r}\Time{T}}\big)^+ < \Call{C}^{\text{mkt}} < \Spot{S}e^{-q\Time{T}},
+$$
+
+and it's unique because $\partial\Call{C}/\partial\Vol{\sigma} = \mathcal{V} > 0$.
+
+**Newton–Raphson** replaces the curve by its tangent at the current guess and solves the tangent instead:
+
+$$
+\Vol{\sigma}_{n+1} = \Vol{\sigma}_n - \frac{\Call{C}_{\text{BS}}(\Vol{\sigma}_n) - \Call{C}^{\text{mkt}}}{\mathcal{V}(\Vol{\sigma}_n)} .
+$$
+
+Near the root the error is squared at each step, so the number of correct digits roughly doubles. Far from it,
+Newton can misbehave. When vega is tiny, as for a deep out-of-the-money or very short-dated option, the tangent
+is nearly flat and one step can throw the guess far away, even below zero.
+
+A safe start exists. As a function of $\Vol{\sigma}$, the call price is convex below the point where volga
+vanishes (Chapter 23) and concave above it. That point is
+
+$$
+\Vol{\sigma}^\ast = \sqrt{\frac{2\,\big|\ln(\Spot{S}/\Strike{K}) + (\Rate{r} - q)\Time{T}\big|}{\Time{T}}} ,
+$$
+
+and Newton started there converges monotonically (Manaster and Koehler, 1982). Production code adds a
+**bisection** fallback: keep a bracket $[a, b]$ with $\Call{C}(a) < \Call{C}^{\text{mkt}} < \Call{C}(b)$ and halve
+it. Each halving buys one binary digit: slow, but it can't fail.
+
+**A rule of thumb.** For an option struck at the forward, $d_{1,2} = \pm\tfrac12\Vol{\sigma}\sqrt{\Time{T}}$, and
+expanding $N$ around zero gives the undiscounted price $\Call{C} \approx \Spot{S}\Vol{\sigma}\sqrt{\Time{T}}/\sqrt{2\pi} \approx 0.4\,\Spot{S}\Vol{\sigma}\sqrt{\Time{T}}$. Inverting,
+
+$$
+\Vol{\sigma} \approx \sqrt{\frac{2\pi}{\Time{T}}}\;\frac{\Call{C}}{\Spot{S}} .
+$$
+
+This is Brenner and Subrahmanyam's (1988) approximation: a trader's back-of-the-envelope implied volatility.
+
+## <span class="section-tag">Playground</span>Break the solver
+
+<NewtonIV client:visible />
+
+<div class="try-this">
+
+- **Make Newton fail.** Set the strike to \$150, the market price to its lowest value, and the starting guess to
+  5%. The first tangent is almost flat. Where does it send the next guess?
+- **Now start at $\Vol{\sigma}^\ast$.** With $\Spot{S} = 100$, $\Strike{K} = 150$, $\Rate{r} = 5\%$ and $\Time{T} = 1$,
+  the formula gives $\Vol{\sigma}^\ast \approx 84\%$. Start at 85%. Does Newton converge?
+- **Count the steps** bisection needs to match Newton's third iterate. Why does it never speed up?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A stock's daily log returns have a standard deviation of 1.5%. What is its annualised volatility, in %? (Use 252 trading days.)"
+  answer={23.8}
+  tolerance={0.01}
+  explanation="$1.5\% \times \sqrt{252} \approx 1.5\% \times 15.87 \approx 23.8\%$."
+/>
+
+<Quiz
+  client:visible
+  question="Why does every option price inside the no-arbitrage bounds have exactly one implied volatility?"
+  options={[
+    "Because volatility is always positive",
+    "Because the Black–Scholes price is strictly increasing in σ and spans the bounds",
+    "Because Newton's method always converges",
+    "Because the market sets volatility, not prices",
+  ]}
+  answer={1}
+  explanation="Vega is positive, so the price is strictly increasing in $\Vol{\sigma}$. It tends to the lower bound as $\Vol{\sigma} \to 0$ and to the upper bound as $\Vol{\sigma} \to \infty$, so every price in between is reached exactly once."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A 3-month option struck at the forward costs \$4 on a \$100 stock (ignore discounting). Using Brenner–Subrahmanyam, what's its implied volatility, in %?"
+  answer={20}
+  tolerance={0.02}
+  explanation="$\sqrt{2\pi/0.25} \times 4/100 = \sqrt{25.13} \times 0.04 \approx 5.01 \times 0.04 \approx 20\%$."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Historical volatility**: $\sqrt{252}\times$ the standard deviation of daily log returns. Short windows are
+  noisy, long ones are stale, and the standard error is about $\Vol{\sigma}/\sqrt{2n}$.
+- **Implied volatility**: the unique $\Vol{\sigma}$ with $\Call{C}_{\text{BS}}(\Vol{\sigma}) = \Call{C}^{\text{mkt}}$.
+  It exists because vega is positive and the price spans the arbitrage bounds.
+- Solve it with **Newton** (fast, using vega as the slope), started at the inflection point
+  $\Vol{\sigma}^\ast$, with **bisection** as a fallback.
+- Markets quote options by implied volatility, which usually sits above the volatility later realised.
+
+**Next up:** if Black–Scholes were right, every option on the same stock would have the same implied volatility.
+They don't. Chapter 26 plots implied volatility against strike and maturity, and finds a **smile**.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapters 15 and 23 (estimating volatility, GARCH).
+- S. Manaster and G. Koehler, "The calculation of implied variances from the Black–Scholes model" (1982).
+- M. Brenner and M. Subrahmanyam, "A simple formula to compute the implied standard deviation" (1988).

@@ -247,7 +247,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   Newton–Raphson, with a bisection fallback.
 - **Key math:** $\hat\sigma = \sqrt{252}\,\mathrm{sd}(\ln S_{i+1}/S_i)$; the Newton step
   $\sigma_{n+1} = \sigma_n - (C(\sigma_n) - C^{mkt})/\mathcal{V}(\sigma_n)$.
-- **Widgets:** an animated Newton iteration on the $C(\sigma)$ curve.
+- **Widgets:** `HistoricalVolEstimator`: a rolling-window estimate on a simulated history whose volatility jumps
+  from 15% to 40%, trading noise against lag. `NewtonIV`: Newton's tangents (or bisection's bracket) stepping
+  along the $C(\sigma)$ curve to the market price, with an iteration table and a visible failure from a bad start.
+  Library: `src/lib/vol/impliedVol.ts`.
 - **Prereqs:** 23.
 
 ### 26. Smile, skew and the volatility surface
@@ -404,7 +407,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
-| `OptionChain` | 4 | 25, 26 |
+| `OptionChain` | 4 | — |
 | `CompoundingStaircase` | 6 | — |
 | `ForwardArbitrageMachine` | 6 | 8 |
 | `BoundsRegion` | 7 | 9, 10 |
@@ -427,6 +430,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ThetaGammaBars` | 22 | 28 |
 | `GreekExplorer` | 23 | — |
 | `HedgeSimulator` | 24 | 28 |
+| `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

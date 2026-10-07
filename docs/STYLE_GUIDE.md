@@ -70,6 +70,8 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $N(\cdot)$, $\varphi(\cdot)$ | Standard normal CDF and PDF |
 | $d_1, d_2$ | $d_{1,2} = \dfrac{\ln(S/K) + (r - q \pm \tfrac12\sigma^2)\tau}{\sigma\sqrt{\tau}}$ |
 | $\Delta, \Gamma, \Theta, \mathcal{V}, \rho$ | Delta, gamma, theta, vega, rho. Write vega as $\mathcal{V}$ so it isn't confused with $\nu$ |
+| $\hat\sigma$ | An estimate of $\sigma$ from data (historical volatility) |
+| $C^{\text{mkt}}$ | An observed market price, as opposed to a model price such as $C_{\text{BS}}$ |
 | $\sigma_I$, $\sigma_R$ | Implied volatility (used to price and hedge) and realised volatility (what the stock actually does) |
 | $N$ (as a count) | Number of rebalances or time steps, when it can't be confused with the normal CDF $N(\cdot)$ |
 | $(x)^+$ | $\max(x, 0)$ |
