@@ -412,8 +412,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** State the fundamental theorems of asset pricing. Use Girsanov's theorem and change of numeraire.
   Reconnect each earlier "trick" to this one framework.
 - **Key math:** $\frac{d\mathbb{Q}}{d\mathbb{P}}$; Girsanov; $V_t/N_t$ is a martingale under $\mathbb{Q}^N$.
-- **Widgets:** the same paths reweighted under $\mathbb{P}$ and $\mathbb{Q}$, with the density shifting as the
-  measure changes.
+- **Widgets:** `MeasureChange`: 20,000 outcomes simulated under $\mathbb{P}$ whose histogram morphs onto the
+  risk-neutral density when reweighted by $d\mathbb{Q}/d\mathbb{P}$, the weight function, and the unweighted (wrong)
+  and weighted (Black–Scholes) prices. Library: `src/lib/theory/measure.ts`.
 - **Prereqs:** 18, 39.
 
 ### 41. Interest-rate options
@@ -450,7 +451,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ExerciseBoundary` | 9 | 13 |
 | `ConvexityEditor` | 10 | — |
 | `OneStepReplication` | 11 | 12 |
-| `RiskNeutralSlider` | 12 | 40 |
+| `RiskNeutralSlider` | 12 | — |
 | `BinomialTreeAnimated` | 13 | — |
 | `TreeConvergence` | 14 | — |
 | `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16 |
@@ -479,6 +480,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `DigitalSpread` | 37 | — |
 | `BarrierReflection`, `AsianMC` | 38 | — |
 | `CorrelationBasket` | 39 | — |
+| `MeasureChange` | 40 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

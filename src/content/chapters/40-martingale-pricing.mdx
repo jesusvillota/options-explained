@@ -1,0 +1,187 @@
+---
+title: "Martingale pricing, rigorously"
+part: 10
+chapter: 40
+difficulty: 3
+prerequisites: [18, 39]
+summary: "No arbitrage means prices are expectations under some measure. Girsanov's theorem and the change of numeraire turn every trick in this course into one idea."
+---
+import MeasureChange from '../../components/plots/MeasureChange';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>One idea, many disguises
+
+Look back at the tools we've used to price options:
+
+- replication in a one-step tree (Chapter 11);
+- risk-neutral probabilities (Chapter 12);
+- the Black–Scholes PDE (Chapter 19);
+- the mysterious $N(d_1)$ (Chapter 18);
+- Margrabe's trick of measuring in units of another stock (Chapter 39);
+- the reflection principle with drift (Chapter 38);
+- importance sampling (Chapter 33).
+
+They look like separate inventions. They are all one theorem: **in a market without arbitrage, every price is
+an expectation under a suitable probability measure**. Changing that measure, and the unit you measure prices in,
+is the whole art. This chapter states the theory properly and shows how each trick fits.
+
+## <span class="section-tag">Intuition</span>Same outcomes, different probabilities
+
+The real world has its own probabilities, $\mathbb{P}$, under which the stock grows at some expected rate $\mu$. The
+pricing world $\mathbb{Q}$ has the *same possible outcomes*, but reweighted so that the stock grows only at the
+risk-free rate. Nothing about what can happen changes, only how likely each outcome is.
+
+<MeasureChange client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with a 15% real-world drift, average the discounted payoff over the
+simulated outcomes: the readout shows a price well above Black–Scholes. That's the expected payoff in the real world,
+and it's the wrong price. Now switch to <em>Reweighted</em>. The histogram slides left onto the risk-neutral
+density, and the weighted average lands on Black–Scholes. Change μ: the unweighted price moves, the weighted one
+doesn't.</p>
+
+The weights in the bottom panel are the **Radon–Nikodym derivative** $d\mathbb{Q}/d\mathbb{P}$. With $\mu > \Rate{r}$,
+the good outcomes (high prices) are down-weighted and the bad ones up-weighted. That's the risk premium removed. The
+weights are positive everywhere, so the two measures agree on what's possible: they're **equivalent**.
+
+## <span class="section-tag">Intuition</span>Choosing the unit of account
+
+Expectations under $\mathbb{Q}$ discount with the bank account: the price is $e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[\text{payoff}]$.
+But the bank account isn't special. Measure prices in units of *any* traded asset with a positive price, a
+**numeraire**, and there's a matching measure under which every price in those units is a martingale:
+
+| Numeraire | Measure | Where we used it |
+|---|---|---|
+| Bank account $e^{\Rate{r}t}$ | risk-neutral $\mathbb{Q}$ | Chapters 12, 18 |
+| The stock itself | share measure $\mathbb{Q}^S$ | $N(d_1)$ in Black–Scholes |
+| Another stock | $\mathbb{Q}^{S_2}$ | Margrabe (Chapter 39) |
+| Zero-coupon bond maturing at $\Time{T}$ | forward measure $\mathbb{Q}^{\Time{T}}$ | caps (Chapter 41) |
+| Swap annuity | annuity measure | swaptions (Chapter 41) |
+
+Picking the numeraire that matches the payoff often makes the expectation trivial.
+
+<Callout type="key" title="The fundamental theorems of asset pricing">
+<strong>First:</strong> the market has no arbitrage if and only if there exists an equivalent measure under which
+all discounted prices are martingales. <strong>Second:</strong> that measure is unique if and only if every payoff can
+be replicated (the market is complete). Black–Scholes is complete. Heston and jump models (Chapters 30–31) are not:
+many measures are consistent with no arbitrage, and the market's prices pick one.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Martingales, Girsanov, numeraires
+
+**Pricing.** Let $B_t = e^{\Rate{r}t}$ be the bank account. If $\mathbb{Q}$ is an equivalent martingale measure, then
+for any attainable payoff $V_{\Time{T}}$,
+
+$$
+V_t = B_t\,\mathbb{E}^{\mathbb{Q}}\Big[\frac{V_{\Time{T}}}{B_{\Time{T}}}\,\Big|\,\mathcal{F}_t\Big],
+$$
+
+because $V/B$ is a $\mathbb{Q}$-martingale. Any other price would allow an arbitrage against the replicating
+strategy. This is the first theorem (Harrison and Kreps, 1979; Harrison and Pliska, 1981; in full generality
+Delbaen and Schachermayer, 1994).
+
+**Girsanov's theorem.** Let $W$ be a $\mathbb{P}$-Brownian motion and $\theta$ a (suitably bounded) process. Define
+
+$$
+\frac{d\mathbb{Q}}{d\mathbb{P}}\Big|_{\mathcal{F}_{\Time{T}}} = Z_{\Time{T}} = \exp\Big(-\int_0^{\Time{T}}\theta_s\,dW_s - \tfrac12\int_0^{\Time{T}}\theta_s^2\,ds\Big).
+$$
+
+Then $W^{\mathbb{Q}}_t = W_t + \int_0^t\theta_s\,ds$ is a $\mathbb{Q}$-Brownian motion. For the stock,
+$d\Spot{S} = \mu\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW$, and choosing the **market price of risk**
+$\theta = (\mu - \Rate{r})/\Vol{\sigma}$ gives
+
+$$
+d\Spot{S} = \Rate{r}\Spot{S}\,dt + \Vol{\sigma}\Spot{S}\,dW^{\mathbb{Q}} .
+$$
+
+The volatility is unchanged, only the drift moves. That's why $\mu$ never appears in an option price. The widget's
+weights are exactly $Z_{\Time{T}}$ with constant $\theta$.
+
+**Change of numeraire.** For a numeraire $N$ (a positive traded price), define $\mathbb{Q}^N$ by
+
+$$
+\frac{d\mathbb{Q}^N}{d\mathbb{Q}} = \frac{N_{\Time{T}}/N_0}{B_{\Time{T}}/B_0} .
+$$
+
+Then $V_t/N_t$ is a $\mathbb{Q}^N$-martingale, so $V_0 = N_0\,\mathbb{E}^{\mathbb{Q}^N}[V_{\Time{T}}/N_{\Time{T}}]$.
+
+**Example: what $N(d_1)$ means.** The asset-or-nothing call pays $\Spot{S_T}\mathbf{1}\{\Spot{S_T} > \Strike{K}\}$. With the
+stock as numeraire,
+
+$$
+V_0 = \Spot{S_0}\,\mathbb{E}^{\mathbb{Q}^S}\big[\mathbf{1}\{\Spot{S_T} > \Strike{K}\}\big] = \Spot{S_0}\,\mathbb{Q}^S(\Spot{S_T} > \Strike{K}) .
+$$
+
+Under $\mathbb{Q}^S$, Girsanov with $\theta = -\Vol{\sigma}$ gives the stock drift $\Rate{r} + \Vol{\sigma}^2$, and the
+probability works out to $N(d_1)$. So Black–Scholes is $\Spot{S_0}\,\mathbb{Q}^S(\text{exercise}) - \Strike{K}e^{-\Rate{r}\Time{T}}\,\mathbb{Q}(\text{exercise})$:
+the same event, under two measures.
+
+**Margrabe revisited.** With $\Spot{S}_2$ as numeraire, $(\Spot{S}_1 - \Spot{S}_2)^+/\Spot{S}_2 = (R - 1)^+$, where
+$R = \Spot{S}_1/\Spot{S}_2$ is a $\mathbb{Q}^{S_2}$-martingale, a driftless GBM. That's Black's formula with zero
+rate, as in Chapter 39.
+
+**Incompleteness.** With stochastic volatility, the second Brownian motion has its own market price of risk, which
+the stock can't pin down. Each choice gives a different equivalent martingale measure, and option prices differ.
+Calibration to traded options selects one.
+
+## <span class="section-tag">Playground</span>Real-world drift doesn't matter
+
+<MeasureChange client:visible />
+
+<div class="try-this">
+
+- **Negative drift.** Set μ = −10%. Which outcomes get weights above one now? What does the unweighted price do?
+- **μ = r.** Set the drift to 5%. What do the weights look like, and why?
+- **Count the cost.** At μ = 30%, the weights get extreme in the left tail. What does that do to the Monte Carlo
+  error of the weighted estimate? (This is why importance sampling needs care.)
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A stock has expected return μ = 12%, volatility 25%, and the risk-free rate is 2%. What is its market price of risk θ = (μ − r)/σ?"
+  answer={0.4}
+  tolerance={0.01}
+  explanation="$\theta = (0.12 - 0.02)/0.25 = 0.4$: each unit of volatility earns 0.4 units of excess return."
+/>
+
+<Quiz
+  client:visible
+  question="Under the risk-neutral measure, what is the drift of a stock that pays no dividends?"
+  options={["Its real-world expected return μ", "The risk-free rate r", "Zero", "r + σ²"]}
+  answer={1}
+  explanation="Girsanov removes the risk premium: under $\mathbb{Q}$ the discounted stock is a martingale, so it drifts at $\Rate{r}$. ($\Rate{r} + \Vol{\sigma}^2$ is its drift under the share measure.)"
+/>
+
+<Quiz
+  client:visible
+  question="By the second fundamental theorem, a market in which some payoffs can't be replicated..."
+  options={[
+    "has arbitrage",
+    "has more than one equivalent martingale measure",
+    "has no equivalent martingale measure",
+    "has a unique risk-neutral price for every option",
+  ]}
+  answer={1}
+  explanation="No arbitrage gives at least one martingale measure; completeness is what makes it unique. Incomplete markets (stochastic volatility, jumps) have many."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **First FTAP**: no arbitrage ⟺ an equivalent martingale measure exists. **Second**: it's unique ⟺ the market is
+  complete.
+- **Girsanov**: changing measure by $Z = e^{-\int\theta\,dW - \frac12\int\theta^2dt}$ shifts the drift by $-\theta$
+  and leaves volatility alone. That's why $\mu$ doesn't affect prices.
+- **Change of numeraire**: any positive traded asset defines a measure under which relative prices are martingales.
+  $N(d_1)$ is the exercise probability under the share measure.
+
+**Next up:** interest rates are not constant, and for interest-rate options they're the whole point. Chapter 41 uses
+the forward and annuity measures to price caps and swaptions with Black's formula.
+
+### Further reading
+
+- T. Björk, *Arbitrage Theory in Continuous Time* (4th ed., 2020), chapters 10–13 and 26.
+- S. Shreve, *Stochastic Calculus for Finance II* (2004), chapter 5.
+- H. Geman, N. El Karoui and J.-C. Rochet, "Changes of numéraire, changes of probability measure and option pricing" (1995).
