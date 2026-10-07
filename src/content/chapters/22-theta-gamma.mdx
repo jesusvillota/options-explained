@@ -1,0 +1,159 @@
+---
+title: "Theta and the Θ–Γ trade-off"
+part: 5
+chapter: 22
+difficulty: 2
+prerequisites: [19, 21]
+summary: "Options lose value every day, and that steady loss is exactly the price of the convexity they provide."
+---
+import ThetaGammaBars from '../../components/plots/ThetaGammaBars';
+import TimeValueDiagram from '../../components/plots/TimeValueDiagram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The option that melts
+
+Buy an at-the-money call and do nothing. If the stock just sits there, your option is worth a little less
+tomorrow, and a little less the day after, and on expiry day it's worth nothing at all. Option traders call this
+**time decay**, and the Greek that measures it is **theta**.
+
+It's tempting to think of theta as a fee for nothing. It's actually the exact price of something valuable: the
+**gamma** from Chapter 21, the way a long option profits from big moves in either direction. You can't have one
+without paying the other, and the exchange rate between them is set by the volatility.
+
+## <span class="section-tag">Intuition</span>Watch the value melt
+
+Theta is the slope of the price with respect to time: how much value disappears per day, with everything else
+held fixed. Run the clock on an at-the-money call and the time value drains away, slowly at first and then faster
+and faster as expiry approaches:
+
+<TimeValueDiagram client:visible typeToggle={false} initialSpot={100} title="Time decay at the money" />
+
+<p class="try-this"><strong>Try this:</strong> set the stock to \$100 and run the clock. The at-the-money time value
+falls like $\sqrt{\Time{\tau}}$ (Chapter 3), so the <em>rate</em> of decay, which is theta, speeds up near expiry.
+The last month costs far more per day than the first.</p>
+
+## <span class="section-tag">Intuition</span>A day in the life of a hedged option
+
+Now remove direction from the picture. Own the call, and short $\Delta$ shares so that small moves cancel out
+(Chapter 21). Over one day, two things happen to this **delta-hedged** position:
+
+- **Gamma gain.** Whatever the stock does, up or down, the curvature earns $\tfrac12\Gamma(\Delta\Spot{S})^2$, where
+  $\Delta\Spot{S}$ is the day's move. Bigger moves, more profit, quadratically.
+- **Theta cost.** Regardless of the move, a day's time value disappears: $\Theta\,dt$.
+
+<ThetaGammaBars client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the day's move. Small moves lose money (theta wins) and large
+moves make money (gamma wins). The break-even points sit at exactly $\pm\Vol{\sigma}/\sqrt{252}$, about ±1.26% for
+20% volatility. Raise the implied volatility: the option costs more theta per day, and the break-even moves out.</p>
+
+The break-even move is **the daily move implied by the option's volatility**. If the stock moves more than the
+market's volatility implies, the long-gamma holder wins. If it moves less, the theta paid wins.
+
+<Callout type="key" title="Theta pays for gamma">
+For a delta-hedged option, over each instant, $\Theta \approx -\tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma$ (ignoring interest).
+Long options pay theta to own gamma. Short options collect theta and are exposed to gamma. Whether owning gamma
+paid off depends on one comparison: <strong>realised volatility vs implied volatility</strong>.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The theta–gamma identity
+
+Rearranging the Black–Scholes PDE (Chapter 19), with $\Theta = \partial V/\partial t$:
+
+$$
+\Theta + \tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma + (\Rate{r} - q)\Spot{S}\Delta - \Rate{r}V = 0 .
+$$
+
+The last two terms are the interest on the hedge: the cost of carrying $\Delta$ shares and the interest earned on
+the option's value. For a delta-hedged position they're part of the daily bill, and the PDE says the total is
+exactly $\Theta + (\Rate{r} - q)\Spot{S}\Delta - \Rate{r}V = -\tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma$. With small rates,
+$\Theta \approx -\tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma$ on its own. Theta and gamma have opposite signs. (The
+widget charges the full bill, which is why its break-even is exactly $\Vol{\sigma}\sqrt{dt}$.)
+
+**Hedged P&L over one period.** From Itô's lemma, a long option hedged with $\Delta$ shares (financing aside)
+earns over $dt$:
+
+$$
+d\Pi = \tfrac12\Gamma\,(d\Spot{S})^2 + \Theta\,dt = \tfrac12\Gamma\Spot{S}^2\Big[\Big(\frac{d\Spot{S}}{\Spot{S}}\Big)^2 - \Vol{\sigma}^2\,dt\Big].
+$$
+
+If the stock actually moves with **realised** volatility $\Vol{\sigma}_R$, then $(d\Spot{S}/\Spot{S})^2 \approx \Vol{\sigma}_R^2\,dt$
+on average, so
+
+$$
+\mathbb{E}[d\Pi] \approx \tfrac12\Gamma\Spot{S}^2\big(\Vol{\sigma}_R^2 - \Vol{\sigma}_I^2\big)\,dt,
+$$
+
+where $\Vol{\sigma}_I$ is the implied volatility used to price and hedge. Over the option's life these add up,
+weighted by the dollar gamma along the path. This formula is the foundation of volatility trading (Chapter 28).
+
+**Black–Scholes theta.** For a call,
+
+$$
+\Theta_{\text{call}} = -\frac{\Spot{S}e^{-q\Time{\tau}}\varphi(d_1)\Vol{\sigma}}{2\sqrt{\Time{\tau}}} - \Rate{r}\Strike{K}e^{-\Rate{r}\Time{\tau}}N(d_2) + q\Spot{S}e^{-q\Time{\tau}}N(d_1),
+$$
+
+per year (divide by 365 for "per day"). The first term is the volatility decay, which dominates at the money. The
+others are carry: interest on the borrowed strike, and dividends missed.
+
+## <span class="section-tag">Playground</span>Price the break-even
+
+<ThetaGammaBars client:visible />
+
+<div class="try-this">
+
+- **Set implied volatility to 40%.** What's the break-even daily move now? Check: $0.40/\sqrt{252} \approx 2.5\%$.
+- **Shorten the time to expiry to 0.05 years.** Both theta and gamma grow, but the break-even move stays the same.
+  Why?
+- **For a short option**, every curve flips sign. Describe the "short gamma" trader's ideal day.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With implied volatility 32%, what daily stock move (in %) makes a delta-hedged long option break even? (Use 256 trading days for easy arithmetic.)"
+  answer={2}
+  tolerance={0.01}
+  explanation="$\Vol{\sigma}/\sqrt{256} = 0.32/16 = 0.02$, so 2%. Traders call this the 'rule of 16'."
+/>
+
+<Quiz
+  client:visible
+  question="A delta-hedged long call is expected to make money if..."
+  options={[
+    "the stock rises",
+    "realised volatility exceeds implied volatility",
+    "implied volatility exceeds realised volatility",
+    "interest rates rise",
+  ]}
+  answer={1}
+  explanation="The hedge removes direction. What's left is $\tfrac12\Gamma\Spot{S}^2(\Vol{\sigma}_R^2 - \Vol{\sigma}_I^2)\,dt$: you profit if the stock moves more than the option's price assumed."
+/>
+
+<Quiz
+  client:visible
+  question="For a long option, theta and gamma usually have..."
+  options={["the same sign", "opposite signs", "no relationship", "both zero at the money"]}
+  answer={1}
+  explanation="The Black–Scholes PDE ties them: $\Theta \approx -\tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma$ for a hedged position. Positive gamma comes with negative theta."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Theta** is the value lost per day. For a long option it's negative, and it accelerates near expiry at the
+  money.
+- For a delta-hedged option, **theta pays for gamma**: $\Theta \approx -\tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma$.
+- Daily break-even move = $\Vol{\sigma}/\sqrt{252}$ (the "rule of 16"). Hedged P&L ≈
+  $\tfrac12\Gamma\Spot{S}^2(\Vol{\sigma}_R^2 - \Vol{\sigma}_I^2)\,dt$.
+- Long options win when **realised > implied** volatility. Short options win when it's the other way round.
+
+**Next up:** delta, gamma and theta react to the stock and the clock. Chapter 23 adds sensitivity to volatility
+and rates, **vega** and **rho**, plus the second-order Greeks that tie them all together.
+
+### Further reading
+
+- E. Derman, "Trading volatility as an asset class" (Goldman Sachs Quantitative Strategies notes).
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 19.

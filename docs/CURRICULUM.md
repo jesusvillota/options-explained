@@ -209,32 +209,33 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   hedge ratio.
 - **Key math:** $\Delta_C = e^{-q\tau}N(d_1)$; $\Gamma = \frac{e^{-q\tau}\varphi(d_1)}{S\sigma\sqrt{\tau}}$;
   the Taylor expansion of P&L.
-- **Widgets:** a tangent line and an osculating parabola that follow a draggable $S$ along the price curve.
-  $\Delta(S)$ and $\Gamma(S)$ drawn below as $\tau$ shrinks.
+- **Widgets:** `TangentParabola`: the tangent line (delta) and the parabola that matches the curvature (gamma)
+  at a draggable $S$, compared with the real price after a move; $\Delta(S)$ drawn below as $\tau$ shrinks.
 - **Prereqs:** 20.
 
 ### 22. Theta and the Θ–Γ trade-off
 - **Goals:** Understand time decay. Show that a long-gamma position pays for its convexity through theta.
 - **Key math:** $\Theta + \tfrac12\sigma^2S^2\Gamma + (r-q)S\Delta = rV$; for a delta-hedged position,
   $\text{P\&L} \approx \tfrac12\Gamma S^2(\sigma_{\text{realised}}^2 - \sigma^2)\,dt$.
-- **Widgets:** a decay animation as $T \to 0$. Bars comparing the daily theta cost with the gamma gain for a
-  range of realised moves.
+- **Widgets:** `TimeValueDiagram` running the clock at the money. `ThetaGammaBars`: one day's hedged P&L as a
+  parabola in the day's move against the theta cost net of financing, breaking even at $\pm\sigma\sqrt{dt}$.
 - **Prereqs:** 19, 21.
 
 ### 23. Vega, Rho & second-order Greeks
 - **Goals:** Measure sensitivity to $\sigma$ and $r$. Know the cross-Greeks vanna, volga, and charm and where
   each matters.
 - **Key math:** closed forms for $\mathcal{V}$, $\rho$, vanna, volga, charm.
-- **Widgets:** a Greek explorer in which the reader picks any Greek and sees it plotted against $S$ and $\tau$
-  as a heatmap.
+- **Widgets:** `GreekExplorer`: pick any of delta, gamma, vega, theta, rho, vanna, volga or charm and see it as a
+  `Heatmap` over $(S, \tau)$, with two colours for the two signs.
 - **Prereqs:** 21.
 
 ### 24. Delta hedging in practice
 - **Goals:** Simulate hedging at discrete times. See the error shrink like $1/\sqrt{n}$. See P&L depend on
   realised vs implied volatility. Understand gamma scalping.
 - **Key math:** the hedging error variance; the P&L formula from Ch. 22.
-- **Widgets:** `HedgeSimulator`: pick the hedge frequency and the realised and implied $\sigma$, simulate many
-  paths, and see the histogram of final P&L.
+- **Widgets:** `HedgeSimulator`: pick the hedge frequency and the realised and implied $\sigma$, simulate 400
+  seeded paths (`src/lib/pricing/hedging.ts`), and compare the histogram of final P&L with the Derman–Kamal
+  rule of thumb.
 - **Prereqs:** 22.
 
 ---
@@ -422,10 +423,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HeatDiffusion` | 19 | 34 |
 | `Heatmap`, `BSPricer` | 20 | 23, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
-| `BinomialTree` | 11 | 12, 13, 14 |
-| `PathSimulator` | 15 | 16, 24, 33, 38, 39 |
-| `BSPricer` | 20 | 21–25 |
-| `Surface3D` | 20 | 23, 26, 29 |
+| `TangentParabola` | 21 | — |
+| `ThetaGammaBars` | 22 | 28 |
+| `GreekExplorer` | 23 | — |
+| `HedgeSimulator` | 24 | 28 |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

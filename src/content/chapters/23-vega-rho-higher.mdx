@@ -1,0 +1,156 @@
+---
+title: "Vega, Rho & second-order Greeks"
+part: 5
+chapter: 23
+difficulty: 3
+prerequisites: [21]
+summary: "Sensitivity to volatility and rates, and the cross-Greeks (vanna, volga, charm) that make hedging a moving target."
+---
+import GreekExplorer from '../../components/plots/GreekExplorer';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Nothing moved, but my P&L did
+
+The stock closed exactly where it opened. A day passed, which you expected to cost you a bit of theta. Yet your
+long options are *up*. What happened? The market's **implied volatility** rose. Every option got more expensive,
+because volatility is an input to the price (Chapter 20), and it moves.
+
+This chapter covers the remaining first-order Greeks, **vega** (volatility) and **rho** (interest rates), and then
+the most important second-order Greeks. Those measure how the first-order ones themselves change, and they're what
+make real hedging hard.
+
+## <span class="section-tag">Intuition</span>Vega: exposure to volatility
+
+**Vega**, written $\mathcal{V}$, is the change in an option's price for a one-point change in volatility, say from
+20% to 21%. Since
+more volatility helps both calls and puts, vega is **positive for every long option**. It's the same for a call
+and a put with the same strike (by parity, since the stock and the bond don't depend on volatility).
+
+Vega is largest **at the money** and **for long-dated options**. A two-year option is far more sensitive to the
+volatility assumption than a two-week one, the opposite of gamma, which is largest near expiry.
+
+<GreekExplorer client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with <em>Vega</em> selected, find the brightest region: at the
+money, at the top (long-dated). Now switch to <em>Gamma</em>: its brightest region is at the money near the
+<em>bottom</em> (short-dated). Gamma and vega are concentrated in different places, which is why traders treat
+"short-dated gamma" and "long-dated vega" as different risks.</p>
+
+## <span class="section-tag">Intuition</span>Rho: exposure to interest rates
+
+**Rho** is the change in price for a one-point change in the interest rate. Higher rates make calls dearer and
+puts cheaper. Paying the strike later is worth more when money earns more, and receiving it later is worth less
+(Chapter 20's table). For short-dated equity options rho is small. For long-dated options, and especially in
+currency and interest-rate markets, it matters a lot.
+
+## <span class="section-tag">Intuition</span>Greeks of Greeks
+
+Every Greek is itself a function of the stock price, time and volatility, so each one has its own sensitivities.
+Three matter most in practice:
+
+- **Vanna**, $\partial\Delta/\partial\Vol{\sigma}$: how your delta shifts when volatility changes. If volatility
+  jumps, a "delta-neutral" book suddenly isn't.
+- **Volga** (or vomma), $\partial\mathcal{V}/\partial\Vol{\sigma}$: how vega changes with volatility, the
+  convexity of the option in volatility. It's large for out-of-the-money options, and it's part of the story behind
+  the volatility smile (Chapter 26).
+- **Charm**, $\partial\Delta/\partial t$: how delta drifts as time passes with nothing else moving. It's why
+  traders re-hedge on Monday morning even after a quiet weekend.
+
+<Callout type="key" title="Hedging is a moving target">
+First-order Greeks tell you your exposures now. Second-order Greeks tell you how fast those exposures change. A
+book that is delta-neutral and vega-neutral today can drift out of balance when the stock moves (gamma), time
+passes (charm), or volatility moves (vanna and volga).
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Closed forms
+
+With $d_{1,2}$ as before, $\varphi$ the standard normal density, and $\Time{\tau}$ the time to expiry:
+
+$$
+\mathcal{V} = \frac{\partial V}{\partial\Vol{\sigma}} = \Spot{S}e^{-q\Time{\tau}}\varphi(d_1)\sqrt{\Time{\tau}}, \qquad
+\rho_{\text{call}} = \Strike{K}\Time{\tau}e^{-\Rate{r}\Time{\tau}}N(d_2), \quad \rho_{\text{put}} = -\Strike{K}\Time{\tau}e^{-\Rate{r}\Time{\tau}}N(-d_2).
+$$
+
+$$
+\text{vanna} = \frac{\partial\Delta}{\partial\Vol{\sigma}} = -e^{-q\Time{\tau}}\varphi(d_1)\frac{d_2}{\Vol{\sigma}}, \qquad
+\text{volga} = \frac{\partial\mathcal{V}}{\partial\Vol{\sigma}} = \mathcal{V}\frac{d_1 d_2}{\Vol{\sigma}},
+$$
+
+$$
+\text{charm}_{\text{call}} = \frac{\partial\Delta}{\partial t} = qe^{-q\Time{\tau}}N(d_1) - e^{-q\Time{\tau}}\varphi(d_1)\,\frac{2(\Rate{r} - q)\Time{\tau} - d_2\Vol{\sigma}\sqrt{\Time{\tau}}}{2\Time{\tau}\Vol{\sigma}\sqrt{\Time{\tau}}}.
+$$
+
+The widget quotes vega per volatility point ($\times 0.01$), rho per rate point, and theta and charm per calendar
+day.
+
+**Relations.** Vega and gamma are linked: $\mathcal{V} = \Vol{\sigma}\Time{\tau}\Spot{S}^2\Gamma$. So gamma and vega
+are two views of the same convexity, one per unit of stock move and one per unit of volatility. Volga is
+**zero at the money** (where $d_1 d_2 \approx 0$) and positive away from it, so out-of-the-money options are convex
+in volatility. That's a reason a trader might pay extra for them, and we'll see it again in the smile.
+
+**Portfolio Greeks** are additive: the delta of a book is the sum of its positions' deltas. A trader manages the
+book's net delta, gamma, vega and so on, not each option separately.
+
+## <span class="section-tag">Playground</span>Map every sensitivity
+
+<GreekExplorer client:visible />
+
+<div class="try-this">
+
+- **Charm for a call**: where is it most negative? Why does an out-of-the-money call's delta drift towards zero as
+  expiry nears?
+- **Vanna**: it changes sign at the money. Explain why raising volatility *raises* the delta of an out-of-the-money
+  call but *lowers* the delta of an in-the-money one.
+- **Volga at the money vs at \$70**: confirm it's near zero at the strike and positive in the wings.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="An option has vega 0.38 (per volatility point). Implied volatility rises from 20% to 23%. Roughly how much does its price change?"
+  answer={1.14}
+  tolerance={0.005}
+  prefix="\$"
+  explanation="$3 \text{ points} \times 0.38 = 1.14$ dollars."
+/>
+
+<Quiz
+  client:visible
+  question="Which options have the most vega?"
+  options={[
+    "Short-dated, at the money",
+    "Long-dated, at the money",
+    "Deep in the money, any maturity",
+    "Deep out of the money, short-dated",
+  ]}
+  answer={1}
+  explanation="Vega $= \Spot{S}\varphi(d_1)\sqrt{\Time{\tau}}$ is largest when $d_1 \approx 0$ (at the money) and grows with $\sqrt{\Time{\tau}}$."
+/>
+
+<Quiz
+  client:visible
+  question="Your delta-hedged book is long out-of-the-money calls. Volatility jumps. What happens to your delta?"
+  options={["It rises (vanna > 0 for OTM calls)", "It falls", "Nothing: you're delta-hedged", "It becomes exactly zero"]}
+  answer={0}
+  explanation="For out-of-the-money calls, $d_2 < 0$, so vanna $= -\varphi(d_1)d_2/\Vol{\sigma} > 0$. Higher volatility raises their delta, and your hedge is now too small."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Vega**: sensitivity to volatility, positive for long options, largest at the money and long-dated:
+  $\Spot{S}e^{-q\Time{\tau}}\varphi(d_1)\sqrt{\Time{\tau}}$.
+- **Rho**: sensitivity to rates, positive for calls and negative for puts, growing with maturity.
+- **Second-order**: vanna ($\partial\Delta/\partial\Vol{\sigma}$), volga ($\partial\mathcal{V}/\partial\Vol{\sigma}$),
+  charm ($\partial\Delta/\partial t$). They describe how a hedge drifts.
+- $\mathcal{V} = \Vol{\sigma}\Time{\tau}\Spot{S}^2\Gamma$: gamma and vega are the same convexity in different units.
+
+**Next up:** theory says continuous delta hedging removes all risk. In practice you hedge at discrete times, the
+volatility you priced with isn't the one that happens, and the stock jumps. Chapter 24 simulates it all.
+
+### Further reading
+
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 2 (Greeks, including higher order).
+- N. N. Taleb, *Dynamic Hedging* (1997).

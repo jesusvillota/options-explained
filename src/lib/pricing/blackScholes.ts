@@ -94,3 +94,30 @@ export function greeks(type: OptionType, input: BSInput): Greeks {
     rho: -K * T * dfr * cdf(-d2),
   };
 }
+
+export interface SecondOrderGreeks {
+  /** ∂Δ/∂σ = ∂vega/∂S */
+  vanna: number;
+  /** ∂vega/∂σ (also called vomma) */
+  volga: number;
+  /** ∂Δ/∂t, per year (delta decay) */
+  charm: number;
+  /** ∂Γ/∂S */
+  speed: number;
+}
+
+/** Closed-form second-order Black–Scholes Greeks (Chapter 23). Requires T > 0 and σ > 0. */
+export function secondOrderGreeks(type: OptionType, input: BSInput): SecondOrderGreeks {
+  const { S, T, r, sigma, q = 0 } = input;
+  const { d1, d2 } = d1d2(input);
+  const sqrtT = Math.sqrt(T);
+  const dfq = Math.exp(-q * T);
+  const vega = S * dfq * pdf(d1) * sqrtT;
+  const vanna = (-dfq * pdf(d1) * d2) / sigma;
+  const volga = (vega * d1 * d2) / sigma;
+  const common = dfq * pdf(d1) * ((2 * (r - q) * T - d2 * sigma * sqrtT) / (2 * T * sigma * sqrtT));
+  const charm = type === 'call' ? q * dfq * cdf(d1) - common : -q * dfq * cdf(-d1) - common;
+  const gamma = (dfq * pdf(d1)) / (S * sigma * sqrtT);
+  const speed = (-gamma / S) * (d1 / (sigma * sqrtT) + 1);
+  return { vanna, volga, charm, speed };
+}
