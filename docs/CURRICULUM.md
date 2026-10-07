@@ -420,7 +420,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 41. Interest-rate options
 - **Goals:** Price caps, floors, and swaptions with Black-76, and see the forward measure in use.
 - **Key math:** Black-76; caplets as options on forward rates; the annuity measure for swaptions.
-- **Widgets:** a yield curve that the reader shifts, with caplet prices updating.
+- **Widgets:** `YieldCurveCaplets`: a Nelson–Siegel curve (level, slope, hump) with zero and 3-month forward rates,
+  a 5-year quarterly cap as Black-76 caplets, the floor, cap − floor = swap, and a 1y × 4y swaption against the
+  caplets on the same periods. Library: `src/lib/rates/curve.ts` (curve, Black-76, Bachelier, caps, annuity, swap
+  rate, swaptions).
 - **Prereqs:** 40.
 
 ### 42. Options everywhere
@@ -472,7 +475,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
 | `HestonSmile`, `HestonPaths` | 30 | — |
 | `JumpPaths`, `JumpSmile` | 31 | — |
-| `SABRSmileFit`, `RoughPaths` | 32 | 41 |
+| `SABRSmileFit`, `RoughPaths` | 32 | — |
 | `MCConvergence`, `MCErrorScaling` | 33 | — |
 | `FDStability`, `FDConvergence` | 34 | — |
 | `CharFnArrows`, `COSReconstruction` | 35 | — |
@@ -481,6 +484,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `BarrierReflection`, `AsianMC` | 38 | — |
 | `CorrelationBasket` | 39 | — |
 | `MeasureChange` | 40 | — |
+| `YieldCurveCaplets` | 41 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

@@ -1,0 +1,159 @@
+---
+title: "Interest-rate options"
+part: 10
+chapter: 41
+difficulty: 3
+prerequisites: [40]
+summary: "Caps, floors and swaptions are options on interest rates. The right choice of numeraire turns each one into Black's formula."
+---
+import YieldCurveCaplets from '../../components/plots/YieldCurveCaplets';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Insurance against rising rates
+
+A company has borrowed \$100 million at a floating rate, resetting every three months. If rates spike, its interest
+bill spikes too. A **cap** puts a ceiling on the rate it pays: whenever the 3-month rate fixes above, say, 3.5%, the
+cap pays the difference. A **floor** does the opposite for a lender. A **swaption** gives the right to enter an
+interest-rate swap later at a rate fixed today. Together these are among the largest options markets in the world.
+
+They're harder than stock options in one way: the "underlying" is a whole yield curve, and the discount rate is
+itself random. But with the change of numeraire from Chapter 40, each of them reduces to Black's formula.
+
+## <span class="section-tag">Intuition</span>The yield curve and its forwards
+
+The **zero curve** gives the rate for borrowing from today until each maturity. From it come **forward rates**: the
+rate, agreed today, for borrowing between two future dates. A cap is a strip of **caplets**, one per 3-month period,
+each a call option on that period's forward rate:
+
+<YieldCurveCaplets client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the curve starts upward-sloping. Caplets on later periods have higher
+forwards and more time to expiry, so they're worth more: the bars grow. Make the slope positive, so short rates are
+above long ones (an inverted curve): early caplets become the valuable ones. Set the strike to the 5-year swap rate
+and read the cap and floor prices: they're equal, because cap − floor is a swap at the strike.</p>
+
+Each caplet is priced as if its forward rate were a lognormal stock price, with Black's 1976 formula. That's not an
+approximation. It's exact under the right measure.
+
+<Callout type="key" title="The forward measure">
+A caplet pays at the end of its period, $t_i$. Use the zero-coupon bond maturing at $t_i$ as numeraire. Under the
+matching <strong>forward measure</strong> $\mathbb{Q}^{t_i}$, the forward rate for that period is a martingale, so
+only its volatility matters, and discounting is just the bond price. One numeraire per caplet, and each is a
+Black–Scholes problem with no interest rate.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Black-76, caps and swaptions
+
+**Curve.** Write $P(0, t)$ for today's price of \$1 paid at $t$ (a discount factor). The simply compounded forward
+rate for $[t_{i-1}, t_i]$, with $\tau = t_i - t_{i-1}$, is
+
+$$
+F_i = \frac{1}{\tau}\Big(\frac{P(0, t_{i-1})}{P(0, t_i)} - 1\Big) .
+$$
+
+The widget builds $P$ from the **Nelson–Siegel** zero curve
+$z(t) = \beta_0 + \beta_1\frac{1 - e^{-t/\lambda}}{t/\lambda} + \beta_2\Big(\frac{1 - e^{-t/\lambda}}{t/\lambda} - e^{-t/\lambda}\Big)$:
+level, slope, hump.
+
+**Caplets.** The caplet on $[t_{i-1}, t_i]$ pays $\tau(L_i - \Strike{K})^+$ at $t_i$, where $L_i$ is the rate fixed at
+$t_{i-1}$. Under $\mathbb{Q}^{t_i}$, with $P(\cdot, t_i)$ as numeraire, $F_i(t)$ is a martingale. If it's lognormal
+with volatility $\Vol{\sigma}_i$,
+
+$$
+\text{caplet}_i = \tau\,P(0, t_i)\,\big[F_iN(d_1) - \Strike{K}N(d_2)\big], \qquad d_{1,2} = \frac{\ln(F_i/\Strike{K}) \pm \frac12\Vol{\sigma}_i^2t_{i-1}}{\Vol{\sigma}_i\sqrt{t_{i-1}}} .
+$$
+
+A cap is the sum of its caplets, and a floor the sum of the matching puts. **Cap − floor = swap**: each caplet minus
+floorlet pays $\tau(L_i - \Strike{K})$, which is one leg of a payer swap at rate $\Strike{K}$.
+
+**Swaptions.** A payer swaption with expiry $\Time{T}$ gives the right to pay fixed $\Strike{K}$ on a swap with payment
+dates $T_1, \dots, T_n$. Its value at $\Time{T}$ is $A(\Time{T})\,(S(\Time{T}) - \Strike{K})^+$, where
+
+$$
+A(t) = \sum_j \tau_j P(t, T_j), \qquad S(t) = \frac{P(t, \Time{T}) - P(t, T_n)}{A(t)}
+$$
+
+are the **annuity** and the forward **swap rate**. Using the annuity as numeraire, $S$ is a martingale under the
+**annuity measure**, and
+
+$$
+\text{payer swaption} = A(0)\,\big[S(0)N(d_1) - \Strike{K}N(d_2)\big] .
+$$
+
+**Market conventions.** Caplet and swaption volatilities are quoted per expiry and strike, and they smile, which is
+where SABR (Chapter 32) comes in. Since rates went negative in the 2010s, markets mostly quote **normal (Bachelier)
+volatility**, in basis points: the forward moves by $\Vol{\sigma}_N\sqrt{\Time{T}}$ in absolute terms, and the price is
+$P\,[(F - \Strike{K})N(d) + \Vol{\sigma}_N\sqrt{\Time{T}}\,\varphi(d)]$ with $d = (F - \Strike{K})/(\Vol{\sigma}_N\sqrt{\Time{T}})$.
+This works for any sign of $F$. Black's formula needs positive rates, which is why the widget's caplets drop to their
+intrinsic value if you push forwards below zero.
+
+**Beyond Black.** Caps and swaptions each fit one market, but pricing products that depend on the whole curve's
+evolution (Bermudan swaptions, callable bonds) needs a model of the entire curve: short-rate models (Vasicek,
+Hull–White), or the LIBOR market model, which makes all forward rates lognormal at once.
+
+## <span class="section-tag">Playground</span>Shape the curve
+
+<YieldCurveCaplets client:visible />
+
+<div class="try-this">
+
+- **Flat curve.** Set slope and hump to zero. Are all caplets equal? Why not, even with flat forwards?
+- **Vol sensitivity.** Double the volatility. Which caplets gain most, the early ones or the late ones?
+- **Swaption vs caplets.** The 1y × 4y payer swaption covers the same periods as the caplets fixing from year 1.
+  Why is it always cheaper than those caplets? (A swaption is one option on a basket of rates; the caplets are a
+  basket of options, and you can exercise each separately.)
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Discount factors are P(0, 1) = 0.97 and P(0, 1.25) = 0.9620. What's the simply compounded forward rate for the 3-month period from 1 year to 1.25 years, in %?"
+  answer={3.33}
+  tolerance={0.01}
+  explanation="$F = \frac{1}{0.25}\big(\frac{0.97}{0.9620} - 1\big) = 4 \times 0.008316 \approx 0.0333$, i.e. 3.33%."
+/>
+
+<Quiz
+  client:visible
+  question="Under which measure is the forward rate for the period [t_{i−1}, t_i] a martingale?"
+  options={[
+    "The risk-neutral measure with the bank account as numeraire",
+    "The forward measure with the zero-coupon bond maturing at t_i as numeraire",
+    "The real-world measure",
+    "The share measure",
+  ]}
+  answer={1}
+  explanation="$F_i = (P(t, t_{i-1}) - P(t, t_i))/(\tau P(t, t_i))$ is a traded price divided by the numeraire $P(t, t_i)$, so it's a martingale under $\mathbb{Q}^{t_i}$."
+/>
+
+<Quiz
+  client:visible
+  question="A 5-year cap and a 5-year floor have the same strike. The cap costs more. What does that tell you?"
+  options={[
+    "The strike is below the 5-year swap rate",
+    "The strike is above the 5-year swap rate",
+    "Volatility is negative",
+    "The curve is flat",
+  ]}
+  answer={0}
+  explanation="Cap − floor = payer swap at the strike, worth $A(S - \Strike{K})$. It's positive exactly when the strike is below the swap rate."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Caps** and **floors** are strips of options on forward rates. **Swaptions** are options on a forward swap rate.
+- Under the **forward measure** (numeraire: the zero bond paying at $t_i$), each forward rate is a martingale, so
+  caplets are Black-76. Under the **annuity measure**, so are swaptions.
+- Cap − floor = swap. Negative rates call for normal (Bachelier) volatility.
+
+**Next up:** the final chapter steps outside the options market, to find options in a company's balance sheet,
+in investment decisions, and in the daily P&L of an options desk.
+
+### Further reading
+
+- D. Brigo and F. Mercurio, *Interest Rate Models: Theory and Practice* (2nd ed., 2006), chapters 1 and 6.
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 29.
+- F. Black, "The pricing of commodity contracts" (1976).
