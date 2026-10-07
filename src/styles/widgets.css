@@ -95,3 +95,26 @@
   width: 8rem; min-height: 40px; padding: 0 0.7rem; border-radius: 8px; font: inherit;
   border: 1px solid var(--border); background: var(--bg-inset); color: var(--text);
 }
+
+/* Option chain (Chapter 4) */
+.chain-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+.chain { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+.chain th, .chain td { padding: 0.3rem 0.5rem; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.chain thead th { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-inset); }
+.chain .chain-sides th { text-align: center; font-size: 0.78rem; }
+.chain .chain-sides .calls { color: var(--c-call); }
+.chain .chain-sides .puts { color: var(--c-put); }
+.chain .strike { text-align: center; font-weight: 700; color: var(--c-strike); background: var(--bg-inset); }
+.chain td.itm-call, .chain td.chain-quote.itm-call { background: color-mix(in srgb, var(--c-call) 9%, transparent); }
+.chain td.itm-put { background: color-mix(in srgb, var(--c-put) 9%, transparent); }
+.chain .chain-quote { padding: 0; }
+.chain .chain-quote button {
+  width: 100%; min-height: 36px; padding: 0.3rem 0.5rem; border: 0; background: transparent; color: var(--text);
+  font: inherit; text-align: right; cursor: pointer; border-radius: 4px;
+}
+.chain .chain-quote button:hover { background: color-mix(in srgb, var(--c-spot) 14%, transparent); }
+.chain .chain-quote.active button { background: var(--c-spot); color: var(--bg); font-weight: 700; }
+.chain .selected-row td { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--c-spot) 40%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--c-spot) 40%, transparent); }
+.chain .chain-spot td { text-align: center; padding: 0.15rem; font-size: 0.72rem; color: var(--c-spot); background: color-mix(in srgb, var(--c-spot) 10%, transparent); letter-spacing: 0.04em; }
+.chain-detail { display: grid; gap: 0.8rem; margin-top: 0.9rem; }
+@media (min-width: 900px) { .chain-detail { grid-template-columns: 1.3fr 1fr; align-items: start; } }

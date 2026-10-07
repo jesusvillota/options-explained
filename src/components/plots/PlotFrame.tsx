@@ -2,7 +2,7 @@ import { Line, Mafs, useTransformContext, vec } from 'mafs';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 /** Pixel space reserved around the data area for tick labels and axis titles. */
-const MARGIN = { left: 48, right: 30, top: 14, bottom: 44 };
+const DEFAULT_MARGIN = { left: 48, right: 30, top: 14, bottom: 44 };
 
 interface PlotFrameProps {
   x: [number, number];
@@ -16,6 +16,8 @@ interface PlotFrameProps {
   yLabel?: ReactNode;
   /** Draw a stronger horizontal line at this y (e.g. zero profit). */
   baseline?: number;
+  /** Pixel room for the y tick labels (widen for long labels like "+2,000"). */
+  marginLeft?: number;
   children: ReactNode;
 }
 
@@ -24,7 +26,8 @@ interface PlotFrameProps {
  * x = 0 and y = 0, which is often off-screen for prices). Children draw in
  * data coordinates as usual.
  */
-export function PlotFrame({ x, y, height, xTicks, yTicks, formatX = String, formatY = String, xLabel, yLabel, baseline, children }: PlotFrameProps) {
+export function PlotFrame({ x, y, height, xTicks, yTicks, formatX = String, formatY = String, xLabel, yLabel, baseline, marginLeft, children }: PlotFrameProps) {
+  const MARGIN = { ...DEFAULT_MARGIN, left: marginLeft ?? DEFAULT_MARGIN.left };
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {

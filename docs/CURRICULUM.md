@@ -49,8 +49,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Explain the difference between European and American exercise, the contract multiplier, bid/ask,
   cash vs physical settlement, open interest, and how to read an option chain.
 - **Key math:** none.
-- **Widgets:** a stylised option chain (`OptionChain`) with synthetic but realistic data. Hovering a row
-  highlights that option's payoff.
+- **Widgets:** `OptionChain`: a synthetic but realistic chain (Black–Scholes prices on the tick grid, seeded
+  volume and open interest) for three expiries. Clicking a bid or ask selects that trade and shows its cost,
+  worst case, breakeven and profit per contract.
 - **Prereqs:** 2.
 
 ### 5. Options as Lego: strategies
@@ -394,6 +395,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
+| `OptionChain` | 4 | 25, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |
