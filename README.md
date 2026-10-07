@@ -4,8 +4,8 @@ An interactive, visual course on financial options. It runs from *"what is a cal
 volatility, numerical methods, and martingale pricing. The style is inspired by 3Blue1Brown: draw the picture
 first, then write down the formula, and let the reader move the sliders.
 
-> **Status:** the site is set up and Chapters 1–2 are written. The other 40 chapters are listed on the home page
-> as "coming soon".
+> **Status:** all 42 chapters are written, each with interactive figures, TeX derivations and quizzes, backed by a
+> tested pricing library.
 
 ## What you'll find here
 
@@ -38,8 +38,12 @@ src/content/chapters/    one .mdx file per chapter (prose + TeX + widgets)
 src/components/plots/    interactive figures: PlotFrame, OptionTimeline, PayoffTracer, PayoffDiagram, ...
 src/components/ui/       Slider, Segmented, Quiz, Callout, Tex/RichText, WidgetFrame
 src/components/layout/   course navigation, theme toggle
-src/lib/math/            normal pdf/cdf/inverse, seeded RNG + Brownian bridge, root finding
-src/lib/pricing/         payoffs, Black–Scholes price and Greeks, CRR binomial tree
+src/lib/math/            normal pdf/cdf/inverse, seeded RNG, Brownian motion, root finding, complex numbers, fBM
+src/lib/pricing/         payoffs, Black–Scholes and Greeks, binomial trees, hedging, exotics
+src/lib/vol/             implied volatility, smiles (SVI/SSVI), implied densities, variance swaps
+src/lib/models/          Fourier pricing, Heston, jumps, local volatility, SABR
+src/lib/numerics/        finite differences, Monte Carlo, COS, Longstaff–Schwartz
+src/lib/rates/, theory/  yield curves and Black-76; measure change, Merton credit, P&L explain
 src/data/curriculum.ts   the 42-chapter outline used by the navigation
 src/styles/              colour tokens (theme.css), prose, widgets
 tests/                   Vitest checks of the math and pricing library
@@ -51,7 +55,7 @@ scripts/screenshots.mjs  visual check of every page (themes × desktop/phone)
 1. ✅ Curriculum and style guide
 2. ✅ Scaffold: Astro, theme, core components, tested pricing library, Pages deployment
 3. ✅ Chapters 1–2 as the reference implementation
-4. ⬜ The remaining chapters, roughly one per PR, in order
+4. ✅ Chapters 3–42, one commit per chapter and one PR per part
 
 ## Running locally
 

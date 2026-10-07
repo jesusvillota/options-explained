@@ -431,12 +431,15 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   credit model), and real options appear in investment decisions. Close with portfolio Greeks and a P&L
   explain.
 - **Key math:** Merton's model with $E = $ a call on $A$ struck at $D$; the credit spread it implies.
-- **Widgets:** firm value paths and the default probability. A P&L explain waterfall for an options book.
+- **Widgets:** `MertonCredit`: firm-value paths against the debt, equity/debt values, risk-neutral default
+  probability and the credit-spread term structure. `PnLExplainWaterfall`: a small book's P&L for a chosen stock
+  move, volatility move and days passed, split into delta, gamma, vega, theta, vanna and unexplained. Library:
+  `src/lib/theory/credit.ts`, `src/lib/theory/pnlExplain.ts`.
 - **Prereqs:** 18, 23.
 
 ---
 
-## Shared components (planned)
+## Shared components
 
 | Component | First used | Reused in |
 |---|---|---|
@@ -485,14 +488,24 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `CorrelationBasket` | 39 | — |
 | `MeasureChange` | 40 | — |
 | `YieldCurveCaplets` | 41 | — |
+| `MertonCredit`, `PnLExplainWaterfall` | 42 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
-## Shared pricing library (planned, `src/lib/`)
+## Shared pricing library (`src/lib/`)
 
-`normal` (pdf, cdf, inverse cdf) · `rng` (seeded, Box–Muller) · `rootFind` (Newton, bisection) · `blackScholes`
-(price, Greeks) · `binomial` (European/American, CRR) · `monteCarlo` (GBM paths, estimators, variance reduction)
-· `finiteDifference` (explicit/implicit/CN) · `impliedVol` · `heston` (char. function, COS) · `merton` (jump
-series) · `barrier`, `asian`, `margrabe`, `black76`.
+- **`math/`**: `normal` (pdf, cdf, inverse cdf), `rng` (seeded uniforms and normals, GBM paths, Brownian bridge),
+  `brownian`, `lognormal`, `rootFind` (Newton, bisection), `complex`, `optimize` (Nelder–Mead), `fbm` (fractional
+  Brownian motion, Hurst estimation).
+- **`pricing/`**: `payoff`, `blackScholes` (price, Greeks, second-order Greeks), `binomial` (CRR, American,
+  exercise boundary), `rates`, `bounds`, `parity`, `american`, `shape`, `strategy`, `oneStep`, `hedging`, `exotics`
+  (digitals, gap, power, barriers, Asians, Margrabe, baskets).
+- **`market/`**: `optionChain`.
+- **`vol/`**: `impliedVol`, `smile` (SVI, SSVI, delta conventions), `density` (Breeden–Litzenberger),
+  `varianceSwap` (log-contract strip, VIX).
+- **`models/`**: `fourier` (Lewis pricing), `heston`, `jumps` (Merton, Kou), `localVol` (Dupire), `sabr`.
+- **`numerics/`**: `finiteDifference` (θ-scheme, Rannacher), `monteCarlo`, `cos`, `lsm`.
+- **`rates/`**: `curve` (Nelson–Siegel, Black-76, Bachelier, caps, swaptions).
+- **`theory/`**: `measure` (Girsanov), `credit` (Merton), `pnlExplain`.
 
 Each module comes with Vitest checks against reference values from the published literature, for example Hull's
 textbook examples, Haug's *Complete Guide to Option Pricing Formulas*, and Heston (1993).
