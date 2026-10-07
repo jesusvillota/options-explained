@@ -36,27 +36,32 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 
 ### 3. Moneyness, intrinsic & time value
 - **Goals:** Classify options as ITM, ATM, or OTM. Split a price into intrinsic value and time value, and
-  explain why time value is positive.
-- **Key math:** intrinsic $= (S-K)^+$; time value $=$ price $-$ intrinsic.
-- **Widgets:** price curve before expiry drawn over the payoff "hockey stick", with the gap between them shaded
-  as time value. A slider for time left that shows the gap closing as $T \to 0$. This is a first look at
-  Black–Scholes, used as a black box for now.
+  explain where time value comes from (the kink plus uncertainty), and why it can be negative for a deep
+  in-the-money European put.
+- **Key math:** intrinsic $= (S-K)^+$; time value $=$ price $-$ intrinsic; two-outcome time value
+  $\tfrac12(u - |S-K|)^+$ (Jensen); $\text{TV}_C - \text{TV}_P = K(1 - e^{-rT})$; $C_{ATM} \approx 0.4\,\sigma\sqrt{T} S$.
+- **Widgets:** `ConvexityChord`: two equally likely futures on the hockey stick, with the chord's midpoint above
+  it. `TimeValueDiagram`: the Black–Scholes price over the hockey stick, with time value shaded and a "run the
+  clock" button. Black–Scholes is used as a black box for now.
 - **Prereqs:** 2.
 
 ### 4. How options trade
 - **Goals:** Explain the difference between European and American exercise, the contract multiplier, bid/ask,
   cash vs physical settlement, open interest, and how to read an option chain.
 - **Key math:** none.
-- **Widgets:** a stylised option chain (`OptionChain`) with synthetic but realistic data. Hovering a row
-  highlights that option's payoff.
+- **Widgets:** `OptionChain`: a synthetic but realistic chain (Black–Scholes prices on the tick grid, seeded
+  volume and open interest) for three expiries. Clicking a bid or ask selects that trade and shows its cost,
+  worst case, breakeven and profit per contract.
 - **Prereqs:** 2.
 
 ### 5. Options as Lego: strategies
-- **Goals:** Build bull/bear spreads, straddles, strangles, butterflies, condors, collars, and covered calls.
-  Read each one's view on direction and volatility from its shape.
-- **Key math:** a portfolio's payoff is the sum of its legs' payoffs.
-- **Widgets:** `StrategyBuilder`: add and remove legs, and watch the combined payoff with each leg ghosted
-  behind it. Includes presets.
+- **Goals:** Build bull/bear spreads, straddles, strangles, butterflies, iron condors, collars, covered calls and
+  protective puts. Read each one's view on direction and volatility from its shape.
+- **Key math:** a portfolio's payoff is the sum of its legs' payoffs (kinks at strikes, slopes add); breakevens
+  per linear piece; every piecewise-linear payoff is cash + shares + calls,
+  $f(S) = f(0) + s_0 S + \sum_k (s_k - s_{k-1})(S - K_k)^+$, so a put is $K - S + (S - K)^+$ at expiry.
+- **Widgets:** `StrategyBuilder`: presets plus editable legs (call/put/stock, buy/sell, quantity, strike), with
+  each leg ghosted behind the total and net cost, best/worst case and breakevens computed exactly.
 - **Prereqs:** 2, 3.
 
 ---
@@ -390,6 +395,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `OptionTimeline` | 1 | 3, 9 |
 | `PayoffTracer` | 2 | — |
 | `PayoffDiagram` | 2 | 3, 5, 8, 37 |
+| `ConvexityChord` | 3 | 10, 22 |
+| `TimeValueDiagram` | 3 | 9, 20, 21 |
+| `OptionChain` | 4 | 25, 26 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

@@ -21,15 +21,15 @@
   border-left: 3px solid var(--c-strike); color: var(--text-muted); font-style: italic;
 }
 
-.prose table {
+.prose > table {
   width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;
   font-family: var(--font-ui); font-size: 0.9rem; line-height: 1.45;
   display: block; overflow-x: auto;
 }
-.prose table > * { display: table; width: 100%; }
-.prose table thead, .prose table tbody { display: table-row-group; }
-.prose th, .prose td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-.prose th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.prose > table > * { display: table; width: 100%; }
+.prose > table thead, .prose > table tbody { display: table-row-group; }
+.prose > table th, .prose > table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.prose > table th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
 .prose details {
   border: 1px solid var(--border); border-radius: var(--radius);

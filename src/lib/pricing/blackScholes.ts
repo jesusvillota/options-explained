@@ -46,6 +46,16 @@ export function price(type: OptionType, input: BSInput): number {
     : K * dfr * cdf(-d2) - S * dfq * cdf(-d1);
 }
 
+/**
+ * Time value = price − intrinsic value, where intrinsic value is the payoff if
+ * the option could be exercised right now, (S − K)⁺ or (K − S)⁺.
+ * Positive for calls without dividends; can be negative for deep in-the-money
+ * European puts, because receiving K later is worth less than K today.
+ */
+export function timeValue(type: OptionType, input: BSInput): number {
+  return price(type, input) - payoff(type, input.S, input.K);
+}
+
 export interface Greeks {
   delta: number;
   gamma: number;

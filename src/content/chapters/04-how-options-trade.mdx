@@ -1,0 +1,233 @@
+---
+title: "How options trade"
+part: 1
+chapter: 4
+difficulty: 1
+prerequisites: [2]
+summary: "Contracts, bid and ask, exercise and settlement: how to read the wall of numbers in an option chain."
+---
+import OptionChain from '../../components/plots/OptionChain';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A wall of numbers
+
+You've decided to buy a call. You open your broker's app, type in the stock, and get something like this: two
+columns of prices around a column of strikes, small numbers labelled *volume* and *open interest*, and a menu of
+expiry dates. It's called an **option chain**, and it's how every trader sees the options market.
+
+The theory so far has been tidy: one option, one premium, one payoff. A real market adds some practical
+details. Options come in contracts of 100 shares, there are two prices instead of one, and you need to know who
+can exercise, when, and what changes hands. None of it is hard, and by the end of this chapter you'll be able to
+read every number in the chain.
+
+## <span class="section-tag">Intuition</span>Contracts: options come in packs of 100
+
+On a stock exchange you can buy a single share. On an options exchange the smallest unit is a **contract**,
+and for US stock options one contract covers **100 shares**. The prices in the chain are still quoted *per
+share*, so the cash involved is 100 times the quoted number:
+
+- a call quoted at \$10.45 costs **\$1,045** per contract;
+- if it ends up paying \$20 per share, one contract pays **\$2,000**.
+
+That 100 is called the **contract multiplier**. Other markets use other multipliers, but the idea is always the
+same: quote per unit, trade in packs.
+
+Listed options are also **standardised**. The exchange decides which strikes and expiry dates exist, so that
+everyone trading "the \$105 call expiring in March" is trading exactly the same thing. That's what makes it
+possible to buy an option from one person today and sell it to someone else tomorrow.
+
+Behind every trade stands a **clearing house**: in the US it's the Options Clearing Corporation. It becomes the
+buyer to every seller and the seller to every buyer, so you never have to worry about whether the person who
+wrote your option will pay up. To make that guarantee safe, writers must post **margin**: collateral that
+covers what they could owe.
+
+## <span class="section-tag">Intuition</span>Two prices: bid and ask
+
+In Chapters 1–3 an option had one price. In a market it has two:
+
+- the **bid**: the highest price someone is currently willing to pay. It's what *you* get if you **sell**;
+- the **ask** (or *offer*): the lowest price someone is currently willing to sell at. It's what *you* pay if
+  you **buy**.
+
+The ask is always above the bid. The gap is the **bid–ask spread**, and it's how **market makers**, the firms
+that stand ready to buy or sell at all times, get paid for providing that service. For you, the spread is a
+cost: buy at the ask and immediately sell at the bid, and you've lost the spread without the stock moving at
+all.
+
+The halfway point between bid and ask, the **mid**, is the market's best guess of the option's fair value.
+That's the number the theory in this course is trying to explain.
+
+<Callout type="note">
+Spreads matter most on cheap options. A \$4.50 / \$4.80 quote is a spread of about 6% of the price. A
+\$0.10 / \$0.25 quote on a far-out-of-the-money option is a spread of more than 80%. Cheap options can be
+expensive to trade.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Reading the chain
+
+Here's a chain for a stock trading at \$100, with all the pieces together. Calls are on the left, puts on the
+right, and the strikes run down the middle. Click any **ask** to buy that option, or any **bid** to sell it.
+
+<OptionChain client:visible />
+
+Things to notice, all of which you can now explain:
+
+- **Shaded cells are in the money** (Chapter 3): calls with strikes below \$100 and puts with strikes above it.
+- **Calls get cheaper as the strike rises, and puts get more expensive.** A call with a higher strike needs a
+  bigger rise to pay anything.
+- **Longer expiries cost more.** Switch between *1 month*, *3 months* and *1 year* and watch the at-the-money
+  prices grow, roughly like the square root of time.
+- **Open interest** is the number of contracts that exist right now: opened and not yet closed. **Volume** is
+  how many traded today. Both cluster near the money and at round strikes, where most of the interest is.
+
+<p class="try-this"><strong>Try this:</strong> pick the 3-month \$105 call and click its ask. You pay
+\$2.55 × 100 = \$255. If you changed your mind a second later and sold at the bid, \$2.40, you'd get \$240
+back: the spread just cost you \$15.</p>
+
+## <span class="section-tag">Intuition</span>Exercise, assignment, settlement
+
+What actually happens when an option is used?
+
+**Exercise style.** A **European** option can only be exercised on its expiry date. An **American** option can be
+exercised on any trading day up to expiry. The names have nothing to do with geography: in the US, options on
+individual stocks are American, while the big index options, such as those on the S&P 500, are European.
+
+**Assignment.** When a holder exercises, the clearing house picks a writer of that option, essentially at random,
+and **assigns** the obligation to them. That writer must then deliver (for a call) or buy (for a put) the shares
+at the strike.
+
+**Settlement.** Stock options are usually **physically settled**: shares really change hands. Index options are
+**cash-settled**. There is no way to deliver "one S&P 500", so the writer simply pays the holder the option's
+payoff in cash, $(\Spot{S_T} - \Strike{K})^+$ times the multiplier.
+
+**At expiry**, options that finish in the money by at least a cent are normally exercised automatically, so you
+don't need to remember to do it.
+
+<Callout type="key" title="Most options are never exercised">
+Most option positions are **closed** before expiry rather than exercised. A holder who wants out simply sells
+the option back into the market, and a writer buys it back. That's why the bid and ask matter so much, and why
+the price of an option *before* expiry, its time value and all, is what most traders actually care about.
+</Callout>
+
+**Expiry dates.** Monthly options on US stocks traditionally expire on the third Friday of the month. Many
+underlyings also have weekly expiries, and long-dated options, two or more years out, are known as *LEAPS*.
+
+## <span class="section-tag">Formalisation</span>The arithmetic of trading
+
+A little notation makes the bookkeeping precise. Write $m$ for the contract multiplier (100 here), $n$ for the
+number of contracts, and $b$ and $a$ for the bid and ask.
+
+**Cost of a trade.** Buying $n$ contracts costs $n \cdot m \cdot a$. Selling brings in $n \cdot m \cdot b$.
+
+**Profit at expiry** for $n$ bought calls, paid at the ask:
+
+$$
+\text{profit} = n\,m\,\Big[(\Spot{S_T} - \Strike{K})^+ - a\Big].
+$$
+
+This is Chapter 2's profit diagram, scaled by $n\,m$, with the premium you actually paid. The breakeven is
+$\Strike{K} + a$ rather than $\Strike{K}$ plus the mid.
+
+**Mid and spread.** The mid is $\tfrac12(b + a)$ and the spread is $a - b$. A round trip (buy, then immediately
+sell) costs
+
+$$
+n\,m\,(a - b),
+$$
+
+or $(a-b)/\tfrac12(a+b)$ as a fraction of the option's value.
+
+**American is worth at least as much as European.** An American option gives you every right a European one
+does, plus the right to exercise early. Extra rights can't have negative value, so for the same strike and expiry
+
+$$
+\Call{C}^{\text{Am}} \ge \Call{C}^{\text{Eu}}, \qquad\qquad \Put{P}^{\text{Am}} \ge \Put{P}^{\text{Eu}}.
+$$
+
+For our default stock, the at-the-money one-year American put is worth about \$6.09, against \$5.57 for the
+European one. For calls on a stock that pays no dividends, the two are worth exactly the same. That isn't a
+coincidence, and Chapter 9 explains why.
+
+**Open interest bookkeeping.** Each trade has a buyer and a seller, and each of them is either *opening* a new
+position or *closing* an old one. Open interest changes by:
+
+| Buyer | Seller | Change in open interest |
+|---|---|---|
+| opens a long | opens a short (writes) | $+1$ contract |
+| closes a short | closes a long | $-1$ contract |
+| opens a long | closes a long | $0$ (the position changes hands) |
+| closes a short | opens a short | $0$ |
+
+## <span class="section-tag">Playground</span>Shop the chain
+
+Use the chain to answer these. Remember to multiply by 100.
+
+<OptionChain client:visible initialExpiry="1m" initialSelection={{ type: 'put', strike: 95, side: 'long' }} title="Playground: option chain" />
+
+<div class="try-this">
+
+- **You expect the stock to rise above \$110 within a month.** Which call costs least per contract? What's its
+  breakeven, and what does the spread cost you as a percentage of the price?
+- **Sell (write) the 1-month \$95 put.** How much do you collect, and what's the worst case? Compare that with
+  the 1-year \$95 put.
+- **Compare the at-the-money \$100 call at 1 month and at 1 year.** Twelve times the time, but how many times
+  the price? *(Chapter 3 said the answer should be close to $\sqrt{12} \approx 3.5$.)*
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A call is quoted 2.25 bid, 2.35 ask. How much do you pay, in dollars, to buy 3 contracts (100 shares each)?"
+  answer={705}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="You buy at the ask: $3 \times 100 \times 2.35 = 705$ dollars."
+/>
+
+<Quiz
+  client:visible
+  question="Same stock, strike and expiry. Which is true?"
+  options={[
+    "The European option is worth at least as much as the American one.",
+    "The American option is worth at least as much as the European one.",
+    "They are always worth exactly the same.",
+    "It depends on whether it's a call or a put.",
+  ]}
+  answer={1}
+  explanation="An American option includes every right of the European one plus the right to exercise early, which can't be worth less than nothing. Sometimes the extra right is worth exactly zero, as for calls on non-dividend stocks (Chapter 9), but never less."
+/>
+
+<Quiz
+  client:visible
+  question="You buy 1 contract from a trader who is closing a long position they already held. What happens to open interest?"
+  options={[
+    "It goes up by 1",
+    "It goes down by 1",
+    "It doesn't change",
+  ]}
+  answer={2}
+  explanation="You open a long and the seller closes theirs. The same contract just changes hands, so the number of open contracts stays the same."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Listed options are **standardised contracts**, usually on **100 shares**, quoted per share and guaranteed by a
+  **clearing house**.
+- You **buy at the ask** and **sell at the bid**. The **spread** is a trading cost, and it's largest, in
+  percentage terms, for cheap options.
+- An **option chain** lists calls and puts by strike and expiry, with **volume** (traded today) and **open
+  interest** (contracts outstanding).
+- **European** options can only be exercised at expiry and **American** ones at any time, so American options
+  are worth at least as much. Settlement is **physical** (shares) or **cash**.
+- Most positions are **closed** in the market rather than exercised.
+
+**Next up:** one option at a time is only the beginning. In Chapter 5 we'll snap options together like Lego:
+spreads, straddles, butterflies and collars, each built for a different view of the market.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 10 (mechanics of options markets).
+- The Options Industry Council's educational material on exercise, assignment and settlement.

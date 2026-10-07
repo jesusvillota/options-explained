@@ -35,3 +35,15 @@ export function legProfit(leg: Leg, spotAtExpiry: number): number {
 export function breakeven(type: OptionType, strike: number, premium: number): number {
   return type === 'call' ? strike + premium : strike - premium;
 }
+
+export type Moneyness = 'ITM' | 'ATM' | 'OTM';
+
+/**
+ * In, at or out of the money: would the option pay something if it expired now?
+ * "At the money" means the spot is within `tolerance` (as a fraction of K) of the strike.
+ */
+export function moneyness(type: OptionType, spot: number, strike: number, tolerance = 0.01): Moneyness {
+  if (Math.abs(spot - strike) <= tolerance * strike) return 'ATM';
+  const inTheMoney = type === 'call' ? spot > strike : spot < strike;
+  return inTheMoney ? 'ITM' : 'OTM';
+}

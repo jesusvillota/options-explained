@@ -1,0 +1,231 @@
+---
+title: "Options as Lego: strategies"
+part: 1
+chapter: 5
+difficulty: 1
+prerequisites: [2, 3]
+summary: "Snap calls, puts and stock together to build a payoff for almost any view of the market."
+---
+import StrategyBuilder from '../../components/plots/StrategyBuilder';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A bet on "something big"
+
+A company reports its earnings tomorrow. You're fairly sure the stock will move a lot, but you have no idea
+which way. A call only pays if it rises and a put only pays if it falls. Neither one fits your view.
+
+So buy **both**. If the stock jumps, the call pays. If it crashes, the put pays. If it barely moves, you lose
+both premiums. This combination has a name, a **straddle**, and its profit diagram is a V:
+
+<StrategyBuilder client:visible preset="long-straddle" presetPicker={false} editable={false} initialSpot={125} title="Call + put = straddle" />
+
+That's the idea of this chapter. Single options are building blocks, and by snapping them together you can
+build a payoff for almost any view of the market. You've already seen every building block. All that's left
+is learning to combine them.
+
+## <span class="section-tag">Intuition</span>Payoffs add up
+
+The rule behind every strategy is simple: **the payoff of a portfolio is the sum of the payoffs of its legs.**
+At each stock price, add the heights of the dashed lines and you get the thick one.
+
+Adding straight-line pieces has two consequences:
+
+- **The kinks stay at the strikes.** Each option bends only at its own strike, so the total can only bend
+  there too.
+- **Slopes add.** A long call adds $+1$ to the slope above its strike, a short call adds $-1$, and so on. Read
+  any diagram from left to right and you can rebuild it from the slopes.
+
+The simplest useful combination caps a call. You buy the \$100 call and **sell** a \$115 call. Above \$115 the
+two slopes cancel, so the gains stop growing. In exchange, the call you sold pays for part of the call you
+bought.
+
+<StrategyBuilder client:visible preset="bull-call-spread" presetPicker={false} initialSpot={110} title="Bull call spread" />
+
+That's a **bull call spread**. It costs \$5.98 instead of \$10.45 for the call alone, and its breakeven is
+lower too, \$105.98 instead of \$110.45. The price is that you can't make more than \$9.02, however high the
+stock goes.
+
+<p class="try-this"><strong>Try this:</strong> drag the strike of the call you sold (leg 2) from \$115 up to
+\$140. The cap moves up and the strategy becomes more expensive. Bring it down to \$105 and it gets cheap, but
+the most you can make is small. Each choice of strike is a different trade-off.</p>
+
+## <span class="section-tag">Intuition</span>Betting on volatility, not direction
+
+The straddle from the hook doesn't care which way the stock moves, only **how far**. That's a bet on
+**volatility**. There's a family of these positions:
+
+- **Long straddle** (call + put at the same strike): profits from a big move in either direction. It costs
+  \$16.02 here, so the stock has to end outside \$83.98–\$116.02 for you to make money.
+- **Long strangle** (an out-of-the-money call + an out-of-the-money put): the same idea, cheaper (\$8.35), but
+  it needs an even bigger move.
+- **Short straddle and iron condor**: the other side of these bets. They earn money if the stock stays
+  *calm*. A short straddle has unlimited risk, and an iron condor caps it by buying protection further out.
+- **Long butterfly**: a cheap bet (\$1.84) that the stock ends **near one price**, here \$100.
+
+Pick one from the list and look at its shape:
+
+<StrategyBuilder client:visible preset="long-butterfly" editable={false} initialSpot={100} title="Volatility strategies" />
+
+<Callout type="key" title="Two questions, not one">
+Every options strategy answers two questions. *Where do I think the stock will go?* (direction) and *How much
+will it move?* (volatility). A stock position can only express the first. Options can express both, which is a
+big part of why they exist.
+</Callout>
+
+| Strategy | Direction view | Volatility view | Cost today |
+|---|---|---|---|
+| Long call | up | — | debit |
+| Bull call spread | moderately up | — | smaller debit |
+| Long put | down | — | debit |
+| Long straddle / strangle | either | **high** | debit |
+| Short straddle | either | **low** | credit |
+| Long butterfly | stays near the middle strike | **low** | small debit |
+| Iron condor | stays inside a range | **low** | credit |
+
+## <span class="section-tag">Intuition</span>Adding the stock
+
+The last building block is the **stock** itself: a straight line with slope 1, crossing zero profit at the
+price you paid. Combine it with options and you get some of the most widely used strategies of all.
+
+- **Protective put** (own the stock + buy a put): the insurance policy from Chapter 1. Below the put's strike
+  your losses stop.
+- **Covered call** (own the stock + sell a call): you collect the call's premium and give up the stock's gains
+  above the strike. It suits people who expect the stock to drift sideways.
+- **Collar** (own the stock + buy a put + sell a call): the call's premium pays for most of the put. The result
+  is a stock position fenced in on both sides.
+
+<StrategyBuilder client:visible preset="collar" editable={false} initialSpot={115} title="Strategies with the stock" />
+
+<p class="try-this"><strong>Try this:</strong> choose <em>Protective put</em>. Its shape should look familiar:
+it's a <strong>call</strong>, shifted. Owning the stock and a put at strike $\Strike{K}$ has the same shape as a
+call at strike $\Strike{K}$. The formula below shows why, and Chapter 8 turns it into one of the most important
+identities in finance.</p>
+
+## <span class="section-tag">Formalisation</span>The algebra of Lego
+
+Write a strategy as a list of legs. Leg $i$ has a **signed** quantity $n_i$, positive for long and negative
+for short, and a payoff $f_i(\Spot{S_T})$: $(\Spot{S_T} - \Strike{K_i})^+$ for a call,
+$(\Strike{K_i} - \Spot{S_T})^+$ for a put, or $\Spot{S_T}$ for a share. Then
+
+$$
+\text{payoff}(\Spot{S_T}) = \sum_i n_i\, f_i(\Spot{S_T}),
+\qquad
+\text{profit}(\Spot{S_T}) = \sum_i n_i\,\big[f_i(\Spot{S_T}) - p_i\big],
+$$
+
+where $p_i$ is the price paid per unit today. The total $\sum_i n_i p_i$ is the **net cost**: positive is a
+*debit*, negative a *credit*.
+
+**Breakevens** are where the profit crosses zero. Because the profit is a straight line between consecutive
+strikes, each breakeven can be found by solving a linear equation on one piece. For a long straddle with
+total premium $\Call{C} + \Put{P}$:
+
+$$
+\Spot{S_T^{*}} = \Strike{K} \pm (\Call{C} + \Put{P}).
+$$
+
+### Any payoff from calls
+
+Here's the remarkable part. Suppose you draw *any* payoff made of straight pieces, continuous, with kinks at
+$\Strike{K_1} < \Strike{K_2} < \dots < \Strike{K_m}$. Call its slope $s_0$ before the first kink and $s_k$
+just after the $k$-th. Then
+
+$$
+f(\Spot{S_T}) \;=\; \underbrace{f(0)}_{\text{cash}} \;+\; \underbrace{s_0\,\Spot{S_T}}_{\text{shares}} \;+\; \sum_{k=1}^{m} \underbrace{(s_k - s_{k-1})}_{\text{how many}}\,\big(\Spot{S_T} - \Strike{K_k}\big)^+ .
+$$
+
+In words, **every piecewise-linear payoff is some cash, some shares, and some calls**, with one call position
+at each kink, sized by how much the slope changes there.
+
+<details>
+<summary>Why it works</summary>
+
+Both sides are continuous and piecewise linear, with kinks only at the $\Strike{K_k}$, so it's enough to check
+that they agree at $\Spot{S_T} = 0$ and have the same slope on every piece. At $\Spot{S_T} = 0$ every call is
+worth nothing and the right side is $f(0)$. Below $\Strike{K_1}$ the right side has slope $s_0$. Each time we
+pass a kink $\Strike{K_k}$, the term $(s_k - s_{k-1})(\Spot{S_T} - \Strike{K_k})^+$ switches on and adds
+$s_k - s_{k-1}$ to the slope, taking it from $s_{k-1}$ to $s_k$. So the slopes match everywhere, and the two
+sides are the same function.
+
+</details>
+
+Two examples:
+
+- **The butterfly.** Its payoff starts flat ($s_0 = 0$), rises with slope $+1$ from 90 to 100, falls with slope
+  $-1$ from 100 to 110, and is flat again after that. The slope changes are $+1$, $-2$, $+1$, so you buy one 90
+  call, **sell two** 100 calls and buy one 110 call. That's exactly the preset.
+- **A put, from calls.** The payoff $(\Strike{K} - \Spot{S_T})^+$ starts at $f(0) = \Strike{K}$, has slope $-1$,
+  and becomes flat after $\Strike{K}$, a slope change of $+1$. So
+  $$
+  (\Strike{K} - \Spot{S_T})^+ = \Strike{K} - \Spot{S_T} + (\Spot{S_T} - \Strike{K})^+ .
+  $$
+  A put is cash $\Strike{K}$, minus one share, plus a call. Rearranged, *stock + put = call + cash*, which is why
+  the protective put looked like a call. This is **put–call parity** at expiry, and Chapter 8 will price it.
+
+The same idea, pushed to smooth payoffs with infinitely many tiny kinks, will let us read *probabilities* out of
+option prices in Chapter 27.
+
+## <span class="section-tag">Playground</span>Build your own
+
+Pick a preset or start from one, then change anything: buy or sell, call, put or stock, quantity and strike.
+Add up to five legs.
+
+<StrategyBuilder client:visible preset="iron-condor" initialSpot={100} title="Playground: strategy builder" />
+
+<div class="try-this">
+
+- **Build a butterfly out of puts** (strikes 90, 100, 110). Does it have the same shape as the call version?
+  Compare their net costs. Is it a coincidence? *(Chapter 8 has the answer.)*
+- **Turn the iron condor into a short strangle** by removing the two outer legs. What happens to the worst
+  case?
+- **Build a "ratio spread"**: buy one \$100 call and sell two \$110 calls. Where does it make the most money,
+  and what happens if the stock rockets?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="You buy a \$100 call for \$10 and a \$100 put for \$6. Above what stock price at expiry do you make money on the upside?"
+  answer={116}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="The straddle costs $10 + 6 = 16$ in total. On the upside only the call pays, so you need $\Spot{S_T} - 100 > 16$, that is $\Spot{S_T} > 116$. On the downside, the breakeven is $100 - 16 = 84$."
+/>
+
+<Quiz
+  client:visible
+  question="Which strategy makes the most money if the stock ends exactly where it started, and never loses more than its small cost?"
+  options={["Long straddle", "Long butterfly", "Bull call spread", "Protective put"]}
+  answer={1}
+  explanation="A long butterfly peaks at its middle strike and its worst case is the small debit you pay. A long straddle does the opposite: its worst outcome is the stock not moving."
+/>
+
+<Quiz
+  client:visible
+  question="To build a butterfly from calls with strikes 90, 100 and 110, how many 100-strike calls do you trade?"
+  options={["Buy 1", "Buy 2", "Sell 1", "Sell 2"]}
+  answer={3}
+  explanation="The slope goes from $+1$ to $-1$ at 100, a change of $-2$. So you sell two 100-strike calls, alongside buying one 90 and one 110."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Payoffs add.** A strategy's payoff is the sum of its legs': kinks stay at the strikes and slopes add up.
+- **Spreads** cap a bet to make it cheaper. **Straddles, strangles, butterflies and condors** are bets on
+  *volatility*, high or low, rather than direction.
+- **With the stock**: a protective put insures it, a covered call sells its upside, and a collar does both.
+- **Every piecewise-linear payoff is cash + shares + calls**, with $(s_k - s_{k-1})$ calls at each kink. In
+  particular, *stock + put = call + cash* at expiry.
+
+**Next up:** Part I is done. You know what options are, what they pay, and how to combine them. Part II asks
+what we can say about their **prices** using one powerful idea: that there's no such thing as a free lunch. It
+starts in Chapter 6 with the time value of money and forward prices.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 12 (trading strategies involving options).
+- P. Carr and D. Madan, "Towards a theory of volatility trading" (1998), for the smooth version of the
+  "any payoff from calls" result.
