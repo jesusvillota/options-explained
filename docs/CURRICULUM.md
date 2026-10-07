@@ -313,8 +313,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Add jumps to explain fat tails and steep short-dated skew. Understand that the market is
   incomplete.
 - **Key math:** jump-diffusion SDE; Merton's series formula; compensator.
-- **Widgets:** paths with visible jumps. A comparison of the jump model's terminal density with the
-  lognormal, and of its smile across maturities.
+- **Widgets:** `JumpPaths`: seeded Merton paths with up- and down-jumps marked. `JumpSmile`: the log-return
+  density on a log scale against a normal with the same variance (1 week, 1 month, 1 year), and Merton smiles at
+  four maturities with the 95–105 skew term structure. Library: `src/lib/models/jumps.ts` (Merton series and
+  characteristic function, Kou characteristic function, paths).
 - **Prereqs:** 26.
 
 ### 32. SABR and rough volatility
@@ -449,7 +451,8 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
 | `LogContractStrip`, `VixContributions` | 28 | — |
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
-| `HestonSmile`, `HestonPaths` | 30 | 31 |
+| `HestonSmile`, `HestonPaths` | 30 | — |
+| `JumpPaths`, `JumpSmile` | 31 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

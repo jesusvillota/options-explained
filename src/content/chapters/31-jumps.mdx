@@ -1,0 +1,181 @@
+---
+title: "Jumps (Merton, Kou)"
+part: 7
+chapter: 31
+difficulty: 3
+prerequisites: [26]
+summary: "Prices sometimes gap. Adding jumps fattens the tails, steepens the short-dated skew, and makes perfect hedging impossible."
+---
+import JumpPaths from '../../components/plots/JumpPaths';
+import JumpSmile from '../../components/plots/JumpSmile';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Overnight, the stock fell 12%
+
+A company reports earnings after the close. The next morning its stock opens 12% lower. No trade happened at any
+price in between: the stock **jumped**.
+
+Every model so far has had continuous paths. Over a short time $dt$, a diffusion moves by about
+$\Vol{\sigma}\sqrt{dt}$. With 20% volatility, a one-day move of 12% is a nine-standard-deviation event, so a week-dated
+put struck 10% below the market should be almost worthless. In reality such puts trade at prices that only make sense
+if the market believes in gaps. Jumps are the missing ingredient.
+
+## <span class="section-tag">Intuition</span>Paths with gaps
+
+Robert Merton's 1976 model adds jumps to geometric Brownian motion. They arrive at random times, on average $\lambda$
+per year, and each multiplies the price by a random factor:
+
+<JumpPaths client:visible />
+
+<p class="try-this"><strong>Try this:</strong> raise the jump rate to 10 a year with an average jump of −10%. The paths
+become staircases with diffusive noise on each step. Now set the average jump to zero with a 15% spread: jumps go both
+ways, like earnings surprises.</p>
+
+Between jumps, nothing changes: the stock is ordinary GBM. The jumps add a second source of randomness, independent of
+the Brownian motion.
+
+## <span class="section-tag">Intuition</span>Why jumps steepen the short end
+
+Over a horizon $\Time{T}$, the diffusion's typical move grows like $\Vol{\sigma}\sqrt{\Time{T}}$, but a jump is the same
+size whenever it happens. Over a week, a −8% jump is about four diffusion standard deviations, an extreme tail event
+that only jumps can produce. Over a year it's half a standard deviation, lost among the ordinary moves.
+
+<JumpSmile client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the density horizon at <em>1 week</em>, the jump density (solid)
+has a thick shoulder far out in the left tail, where the normal (dashed) has almost nothing. Switch to <em>1 year</em>: the two
+curves nearly agree. In the smiles below, the 1-week skew is several times steeper than the 1-year skew.</p>
+
+That's the pattern in real index options: very steep skews at short maturities that flatten quickly. Heston's
+stochastic volatility can't produce it (Chapter 30), because volatility needs time to react. Jumps produce it
+instantly.
+
+<Callout type="key" title="Jump risk can't be delta-hedged">
+A delta hedge protects against small moves. A jump of size $J$ costs a delta-hedged short option about
+$\tfrac12\Gamma(\Spot{S}J)^2$ at once (Chapter 24), however often you rebalance. With jumps of random size, no
+position in the stock removes the risk: the market is <strong>incomplete</strong>. Jump risk is hedged with other
+options, typically out-of-the-money puts, and its price is set by supply and demand for that protection.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Jump-diffusions
+
+Let $N_t$ be a Poisson process with intensity $\lambda$ and $J_1, J_2, \dots$ independent jump sizes. Under the
+risk-neutral measure,
+
+$$
+\frac{d\Spot{S_t}}{\Spot{S_{t^-}}} = (\Rate{r} - q - \lambda\bar k)\,dt + \Vol{\sigma}\,dW_t + (e^{J} - 1)\,dN_t, \qquad \bar k = \mathbb{E}[e^J - 1] .
+$$
+
+The term $-\lambda\bar k\,dt$ is the **compensator**. Jumps add $\lambda\bar k$ to the expected return, so the drift
+gives it back and the discounted stock remains a martingale. The solution is
+
+$$
+\Spot{S_T} = \Spot{S_0}\exp\Big(\big(\Rate{r} - q - \lambda\bar k - \tfrac12\Vol{\sigma}^2\big)\Time{T} + \Vol{\sigma}W_{\Time{T}} + \sum_{i=1}^{N_{\Time{T}}} J_i\Big) .
+$$
+
+**Merton: normal jumps.** With $J \sim N(\mu_J, \delta^2)$, $\bar k = e^{\mu_J + \delta^2/2} - 1$. Given $n$ jumps,
+$\ln\Spot{S_T}$ is normal, so the price is a Poisson-weighted sum of Black–Scholes prices:
+
+$$
+V = \sum_{n=0}^{\infty} e^{-\lambda'\Time{T}}\frac{(\lambda'\Time{T})^n}{n!}\,V_{\text{BS}}(\Vol{\sigma}_n, \Rate{r}_n),
+\qquad \lambda' = \lambda(1 + \bar k),\quad \Vol{\sigma}_n^2 = \Vol{\sigma}^2 + \frac{n\delta^2}{\Time{T}},\quad \Rate{r}_n = \Rate{r} - \lambda\bar k + \frac{n\ln(1 + \bar k)}{\Time{T}} .
+$$
+
+The density of the log-return is likewise a Poisson mixture of normals, which is what the widget draws.
+
+**The characteristic function.** Every jump-diffusion of this kind has a characteristic function of the
+**Lévy–Khintchine** form. For $X = \ln(\Spot{S_T}/F_{\Time{T}})$,
+
+$$
+\ln\varphi(u) = \Time{T}\Big[-\tfrac12\Vol{\sigma}^2(iu + u^2) - iu\lambda\bar k + \lambda\big(\mathbb{E}[e^{iuJ}] - 1\big)\Big],
+$$
+
+so the Fourier formula of Chapter 30 prices any of them. The test suite checks that Merton's series and the Fourier
+integral agree.
+
+**Kou: double-exponential jumps.** Kou (2002) uses jumps that are exponential on each side: up with probability $p$
+and mean $1/\eta_1$, down with mean $1/\eta_2$, so
+
+$$
+\mathbb{E}[e^{iuJ}] = \frac{p\,\eta_1}{\eta_1 - iu} + \frac{(1 - p)\,\eta_2}{\eta_2 + iu} .
+$$
+
+Exponential tails are fatter than normal ones and, being memoryless, give closed forms for barrier and lookback
+options.
+
+**Skew term structure.** As $\Time{T} \to 0$, jump models make the at-the-money skew grow like $1/\Time{T}$.
+Stochastic volatility keeps it bounded. Markets sit in between, roughly like $1/\sqrt{\Time{T}}$, which is one
+motivation for rough volatility (Chapter 32).
+
+**Total variance.** The annualised variance of the log-return is $\Vol{\sigma}^2 + \lambda(\mu_J^2 + \delta^2)$. A
+variance swap pays on all of it, but the log-contract replication of Chapter 28 captures jumps differently
+(through $2(e^J - 1 - J)$ instead of $J^2$), so the option strip misprices variance when the stock can gap.
+
+## <span class="section-tag">Playground</span>Crash insurance
+
+<JumpSmile client:visible />
+
+<div class="try-this">
+
+- **One big jump a decade.** Set λ = 0.1 and an average jump of −25%. How much skew does that create at one week,
+  compared with one year?
+- **Same total variance, different shape.** Note the total volatility with λ = 1. Now set λ = 4 and shrink the jumps
+  until the total volatility is the same. How do the smiles differ?
+- **Symmetric jumps.** Set the average jump to 0. Is there still a skew? What shape is the smile?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Why do jumps affect short-dated smiles much more than long-dated ones?"
+  options={[
+    "Jumps are more frequent in the short term",
+    "Diffusive moves grow like √T but a jump's size doesn't, so jumps dominate short horizons",
+    "Short-dated options have less vega",
+    "Interest rates matter less at short maturities",
+  ]}
+  answer={1}
+  explanation="Over a short horizon the diffusion barely moves, so a jump is a huge tail event. Over a long horizon, many diffusive moves swamp the jumps."
+/>
+
+<NumericQuiz
+  client:visible
+  question="In Merton's model, jumps arrive once a year on average with μ_J = −10% and δ = 10%. By how much (in % per year) does the compensator raise the diffusion's drift to keep the discounted price a martingale?"
+  answer={9.06}
+  tolerance={0.02}
+  explanation="$\bar k = e^{-0.1 + 0.005} - 1 = e^{-0.095} - 1 \approx -0.0906$. The drift term is $-\lambda\bar k = +9.06\%$ a year, making up for the expected losses from jumps."
+/>
+
+<Quiz
+  client:visible
+  question="A dealer is short a 1-week put and delta-hedges every minute. The stock gaps down 10% overnight. Which statement is right?"
+  options={[
+    "The frequent hedging protects them fully",
+    "They lose roughly ½Γ(S·0.1)², and only other options could have hedged it",
+    "They make money, because the put's delta was negative",
+    "Nothing happens until the hedge is rebalanced",
+  ]}
+  answer={1}
+  explanation="A gap can't be traded through, so rebalancing doesn't help. The loss comes from gamma. Jump risk is hedged with options, not with the stock."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Jump-diffusions** add Poisson jumps to GBM. The compensator $-\lambda\bar k\,dt$ keeps the discounted price a
+  martingale.
+- **Merton**: normal jumps, prices as a Poisson sum of Black–Scholes prices. **Kou**: double-exponential jumps.
+  Both have explicit characteristic functions.
+- Jumps fatten the tails and create **steep short-dated skews** that flatten with maturity.
+- Jump risk can't be hedged with the stock: the market is **incomplete**.
+
+**Next up:** two last ideas. **SABR**, the standard smile model in interest-rate markets, and **rough volatility**,
+which says volatility's paths are far rougher than Brownian motion, and explains the $1/\sqrt{\Time{T}}$ skew.
+
+### Further reading
+
+- R. C. Merton, "Option pricing when underlying stock returns are discontinuous" (1976).
+- S. G. Kou, "A jump-diffusion model for option pricing" (2002).
+- R. Cont and P. Tankov, *Financial Modelling with Jump Processes* (2004).
