@@ -1,0 +1,193 @@
+---
+title: "Multi-period trees & backward induction"
+part: 3
+chapter: 13
+difficulty: 2
+prerequisites: [9, 12]
+summary: "Chain many one-step models into a tree, and price any option by working backwards from expiry."
+---
+import BinomialTreeAnimated from '../../components/plots/BinomialTreeAnimated';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two outcomes is too few
+
+A stock that can only end up at \$120 or \$80 is a caricature. Real stocks can end up almost anywhere. But we can
+build richer worlds out of the toy. Split the year into, say, four quarters, and let the stock move up or down a
+little in each one. After four steps it can be at five different prices. After a hundred steps, a hundred and one.
+
+The question is whether the beautiful one-step argument (replicate, so the probabilities don't matter) survives
+when the world has many steps and many outcomes. It does, and the method is one of the most useful ideas in
+computational finance: **backward induction**. Start at expiry, where you know everything, and walk back to
+today one step at a time.
+
+## <span class="section-tag">Intuition</span>Building the tree
+
+In each small step of length $\Delta t$, the stock either multiplies by $u$ (up) or by $d$ (down). An up followed
+by a down lands in the same place as a down followed by an up, so the paths **recombine**. After $n$ steps there
+are only $n + 1$ possible prices, not $2^n$. The picture is a lattice, a **binomial tree**.
+
+How big should $u$ and $d$ be? A standard choice, from Cox, Ross and Rubinstein, ties them to the volatility:
+
+$$
+u = e^{\Vol{\sigma}\sqrt{\Delta t}}, \qquad d = \frac{1}{u}.
+$$
+
+The $\sqrt{\Delta t}$ looks odd for now. Chapter 14 explains it: it's what makes the tree's spread of outcomes
+match a stock with volatility $\Vol{\sigma}$, however many steps you use.
+
+## <span class="section-tag">Intuition</span>Walk backwards
+
+At **expiry**, every node is simple: the option is worth its payoff. Now step back one period. Each node one
+step before expiry has exactly two children, so it's a *one-step problem*, which Chapters 11 and 12 solved:
+
+$$
+V = e^{-\Rate{r}\Delta t}\big[\,q\,V_{\text{up}} + (1 - q)\,V_{\text{down}}\,\big], \qquad q = \frac{e^{\Rate{r}\Delta t} - d}{u - d}.
+$$
+
+Do that for every node in the column, then step back again, using the values you just computed as the new
+"payoffs". Repeat until you reach today. The single number at the root is the option's price.
+
+<BinomialTreeAnimated client:visible initialType="call" initialAmerican={false} initialSteps={3} title="Pricing a call, one column at a time" />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Step back one period</em> repeatedly and watch the values
+flow from right to left. Each one is a weighted average of its two neighbours on the right, slightly discounted.
+Then increase the number of steps: the price at the root settles down towards \$10.45.</p>
+
+Every step uses the same $q$, and at every node you could stop and replicate with $\Delta$ shares and a bond, just
+like Chapter 11. The tree is many tiny replications glued together. The replicating portfolio changes as the stock
+moves, so you **rebalance** it at every step. That idea, *dynamic hedging*, is the seed of Black–Scholes.
+
+## <span class="section-tag">Intuition</span>American options: one extra comparison
+
+Backward induction gives the cleanest possible treatment of early exercise, the problem from Chapter 9. At each
+node, an American holder chooses the better of:
+
+- **exercise now**, and get the payoff at that node's price; or
+- **continue**, worth the discounted risk-neutral average of the two children.
+
+So the only change to the algorithm is a $\max$:
+
+$$
+V = \max\Big(\text{payoff}(\Spot{S}),\;\; e^{-\Rate{r}\Delta t}\big[q V_{\text{up}} + (1-q)V_{\text{down}}\big]\Big).
+$$
+
+<BinomialTreeAnimated client:visible />
+
+<p class="try-this"><strong>Try this:</strong> for the American put, step back and watch the <span style="color:var(--c-rate)">orange</span>
+nodes appear: low stock prices where exercising beats waiting. Together they trace out a coarse version of
+Chapter 9's exercise boundary. Switch to <em>European</em>: the orange disappears and the price drops.</p>
+
+<Callout type="key" title="Backward induction">
+Value at expiry is known. Value one step earlier is a one-step problem. Repeat. That simple loop prices
+European and American options, and many exotic ones, on a tree. It's dynamic programming: solve the end of the
+problem first, then use it to solve the rest.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The CRR algorithm
+
+**Tree.** With $n$ steps over $[0, \Time{T}]$, set $\Delta t = \Time{T}/n$, $u = e^{\Vol{\sigma}\sqrt{\Delta t}}$,
+$d = 1/u$. Node $(i, j)$, at time $i\Delta t$ after $j$ up moves, has price
+
+$$
+\Spot{S}_{i,j} = \Spot{S_0}\,u^{j}\,d^{\,i-j}, \qquad 0 \le j \le i \le n.
+$$
+
+No arbitrage requires $d < e^{\Rate{r}\Delta t} < u$, which holds once $\Delta t$ is small enough. Then
+$q = (e^{\Rate{r}\Delta t} - d)/(u - d) \in (0,1)$.
+
+**Backward induction.** Set $V_{n,j} = \text{payoff}(\Spot{S}_{n,j})$. For $i = n-1, \dots, 0$:
+
+$$
+V_{i,j} = e^{-\Rate{r}\Delta t}\big[q\,V_{i+1,j+1} + (1-q)\,V_{i+1,j}\big] \quad\text{(European)},
+$$
+
+$$
+V_{i,j} = \max\Big(\text{payoff}(\Spot{S}_{i,j}),\; e^{-\Rate{r}\Delta t}\big[q\,V_{i+1,j+1} + (1-q)\,V_{i+1,j}\big]\Big) \quad\text{(American)}.
+$$
+
+The price is $V_{0,0}$. The cost is about $n^2/2$ operations, so a few hundred steps take a fraction of a second.
+
+**Closed form for European options.** Unrolling the recursion, each terminal node is reached by
+$\binom{n}{j}$ paths, each with risk-neutral probability $q^j(1-q)^{n-j}$, so
+
+$$
+V_0 = e^{-\Rate{r}\Time{T}} \sum_{j=0}^{n} \binom{n}{j} q^{j}(1-q)^{n-j}\;\text{payoff}\big(\Spot{S_0}u^jd^{\,n-j}\big)
+= e^{-\Rate{r}\Time{T}}\;\mathbb{E}^{\mathbb{Q}}\big[\text{payoff}(\Spot{S_T})\big].
+$$
+
+It's still "discounted risk-neutral expectation", now with a binomial distribution of outcomes. American options
+have no such shortcut: the $\max$ at every node is essential.
+
+**Hedge ratios.** At node $(i,j)$, the replicating portfolio holds
+$\Delta_{i,j} = \dfrac{V_{i+1,j+1} - V_{i+1,j}}{\Spot{S}_{i+1,j+1} - \Spot{S}_{i+1,j}}$ shares. As the stock
+moves through the tree, $\Delta$ changes, and the hedger rebalances. The rebalancing is self-financing: no money
+is added or withdrawn after the start.
+
+## <span class="section-tag">Playground</span>Grow the tree
+
+<BinomialTreeAnimated client:visible initialSteps={8} initialType="put" title="Playground: up to 8 steps" />
+
+<div class="try-this">
+
+- **Compare European and American puts** at 8 steps. With the default inputs, the gap is about \$0.65 here, and
+  it shrinks towards the true early-exercise premium of about \$0.52 as you add steps.
+- **Switch to an American call.** Do any orange nodes appear? Chapter 9 says they shouldn't, without dividends.
+- **Go from 1 to 8 steps** for the European call and note each price: 12.16, 9.54, 11.04, 9.97… They jump
+  around before settling. Chapter 14 explains the zig-zag.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A two-step tree with zero rates has u = 1.1 and d = 1/1.1. What is the risk-neutral probability q? (Three decimals.)"
+  answer={0.476}
+  tolerance={0.001}
+  explanation="$q = (1 - d)/(u - d) = (1 - 0.9091)/(1.1 - 0.9091) \approx 0.0909/0.1909 \approx 0.476$."
+/>
+
+<Quiz
+  client:visible
+  question="In backward induction for an American put, the value at each node is..."
+  options={[
+    "the payoff at that node",
+    "the discounted average of its children",
+    "the larger of the payoff and the discounted average of its children",
+    "the average of the payoff and the discounted children",
+  ]}
+  answer={2}
+  explanation="The holder can exercise (get the payoff) or continue (get the discounted risk-neutral average). An optimal holder takes the larger."
+/>
+
+<Quiz
+  client:visible
+  question="Why does the tree have only n + 1 terminal prices instead of 2ⁿ?"
+  options={[
+    "Because d = 1/u, an up then a down lands where a down then an up does",
+    "Because most paths have zero probability",
+    "Because we discount at each step",
+    "Because q is constant",
+  ]}
+  answer={0}
+  explanation="The price after $n$ steps depends only on how many up moves there were, $\Spot{S_0}u^jd^{n-j}$, not on their order. That's what makes the tree recombine."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A **binomial tree** chains one-step models: $u = e^{\Vol{\sigma}\sqrt{\Delta t}}$, $d = 1/u$, and it recombines into
+  $n + 1$ terminal prices.
+- **Backward induction**: payoffs at expiry, then $V = e^{-\Rate{r}\Delta t}[qV_u + (1-q)V_d]$ node by node back to
+  today.
+- **American options** add a $\max$ with the payoff at each node. The exercise region appears automatically.
+- European prices are still $e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[\text{payoff}]$, now with a binomial
+  distribution. The hedge $\Delta$ is rebalanced at every step.
+
+**Next up:** what happens as the number of steps goes to infinity? In Chapter 14 the tree turns into the
+lognormal distribution, and its price turns into the Black–Scholes formula.
+
+### Further reading
+
+- J. C. Cox, S. A. Ross and M. Rubinstein, "Option pricing: a simplified approach" (1979).
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 13 (binomial trees).

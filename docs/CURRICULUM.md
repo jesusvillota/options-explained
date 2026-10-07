@@ -119,15 +119,16 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price an option by building a portfolio of stock and bond that replicates it. See that
   $\Delta = \frac{C_u - C_d}{S_u - S_d}$ falls out of the replication.
 - **Key math:** the replication equations; no-arbitrage condition $d < e^{r\Delta t} < u$.
-- **Widgets:** `BinomialTree` (1 step): drag $S_u$ and $S_d$, and the replicating portfolio updates.
+- **Widgets:** `OneStepReplication`: drag $S_u$ and $S_d$ on a one-step tree; below, the replicating portfolio is the
+  straight line through the two payoffs, read at the forward and discounted.
 - **Prereqs:** 6.
 
 ### 12. The risk-neutral surprise
 - **Goals:** Understand why the real-world probability of "up" doesn't enter the price. Write the price as a
   discounted expectation under $\mathbb{Q}$.
 - **Key math:** $q = \frac{e^{r\Delta t} - d}{u - d}$; $C = e^{-r\Delta t}\,\mathbb{E}^{\mathbb{Q}}[C_T]$.
-- **Widgets:** a slider for the real-world $p$ that changes the expected return but leaves the price unchanged.
-  This is the "aha" moment.
+- **Widgets:** `RiskNeutralSlider`: the real-world $p$ moves the stock's and call's expected returns but not the
+  price; both earn $r$ exactly at $p = q$. Formalisation adds state prices and the one-period FTAP.
 - **Prereqs:** 11.
 
 ### 13. Multi-period trees & backward induction
@@ -135,16 +136,16 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   continuation at every node.
 - **Key math:** the recursion $V_{i,j} = e^{-r\Delta t}[qV_{i+1,j+1} + (1-q)V_{i+1,j}]$, and its American
   version with $\max(\cdot, \text{exercise})$.
-- **Widgets:** an animated `BinomialTree` (up to about 8 steps) that fills in values from the leaves back to the
-  root. Nodes where early exercise is optimal are highlighted.
+- **Widgets:** `BinomialTreeAnimated` (up to 8 steps) fills in values from the leaves back to the root, with
+  early-exercise nodes highlighted for American options.
 - **Prereqs:** 9, 12.
 
 ### 14. From trees to Black–Scholes
 - **Goals:** Choose CRR parameters $u = e^{\sigma\sqrt{\Delta t}}$. See the terminal distribution approach a
   lognormal and the price converge to Black–Scholes.
 - **Key math:** CRR parameters; a sketch of the CLT argument; the BS formula stated (derived in Ch. 18).
-- **Widgets:** an $n$ slider from 1 to 500. The histogram of terminal prices morphs into a lognormal, and the
-  price-vs-$n$ plot oscillates its way to the BS value.
+- **Widgets:** `TreeConvergence`: an $n$ slider (1–200); the tree's terminal distribution morphs into the lognormal,
+  and the price-vs-$n$ plot zig-zags into the BS value.
 - **Prereqs:** 13.
 
 ---
@@ -410,6 +411,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `EarlyExerciseValue` | 9 | 13, 36 |
 | `ExerciseBoundary` | 9 | 13, 36 |
 | `ConvexityEditor` | 10 | 27 |
+| `OneStepReplication` | 11 | 12 |
+| `RiskNeutralSlider` | 12 | 40 |
+| `BinomialTreeAnimated` | 13 | 36 |
+| `TreeConvergence` | 14 | 33 |
 | `StrategyBuilder` | 5 | 8, 10 |
 | `BinomialTree` | 11 | 12, 13, 14 |
 | `PathSimulator` | 15 | 16, 24, 33, 38, 39 |

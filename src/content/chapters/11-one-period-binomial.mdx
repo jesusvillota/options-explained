@@ -1,0 +1,182 @@
+---
+title: "One-period binomial model"
+part: 3
+chapter: 11
+difficulty: 2
+prerequisites: [6]
+summary: "In a world where the stock can only go up or down, an option can be copied exactly, and that fixes its price."
+---
+import OneStepReplication from '../../components/plots/OneStepReplication';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>From a band to a single number
+
+Part II squeezed option prices into a band, but never down to one number. Arbitrage alone can't do it, because
+we haven't said anything about *how the stock moves*. Time to say something.
+
+Here's the simplest model imaginable. A stock is at \$100 today. In one year it will be either **\$120** or
+**\$80**, and nothing else can happen. A call with strike \$100 will then pay either \$20 or \$0. To keep
+things simple for now, assume interest rates are zero.
+
+What should the call cost today? You might want to know *how likely* the up move is first. Remarkably, you don't
+need to. In this toy world, the call has exactly one arbitrage-free price, **\$10**, and we'll find it without
+ever mentioning a probability.
+
+## <span class="section-tag">Intuition</span>Copy the option with shares and cash
+
+Here's the trick. Instead of guessing what the call is worth, **build a portfolio that pays exactly what the call
+pays**, in both possible futures. If you can, the call must cost whatever that portfolio costs. That's Chapter 6's
+idea: replication beats forecasting.
+
+Our building blocks are shares of the stock and cash (borrowed or lent). Say we hold $\Delta$ shares and $B$ in
+cash. In a year:
+
+- **up:** $\Delta \times 120 + B$ should equal the call's \$20;
+- **down:** $\Delta \times 80 + B$ should equal \$0.
+
+Subtract the second equation from the first: $\Delta \times 40 = 20$, so $\Delta = \tfrac12$. Then
+$B = -40$, which means we **borrow** \$40. Today this portfolio costs $\tfrac12 \times 100 - 40 = 10$ dollars.
+
+Half a share bought with \$10 of your own money and \$40 borrowed pays exactly \$20 if the stock rises and
+exactly \$0 if it falls. That's the call, so the call costs \$10.
+
+<OneStepReplication client:visible />
+
+<p class="try-this"><strong>Try this:</strong> look at the bottom panel. The option's two payoffs are two points.
+The replicating portfolio, "Δ shares plus a bond", is a <strong>straight line</strong> through them. Drag the up
+price higher: the line flattens, Δ falls, and the call gets cheaper or dearer. Watch the readout check both
+outcomes.</p>
+
+## <span class="section-tag">Intuition</span>Why no other price works
+
+Suppose someone sold the call for \$12. You'd sell it to them, I mean *write* it, for \$12, and spend \$10 building
+the replica (half a share, \$40 borrowed). You pocket \$2 today. In a year, whatever happens, the replica pays
+exactly what you owe on the call. Free money.
+
+If the call sold for \$8, you'd do the reverse: buy the call, short the replica, and keep \$2. Only \$10 leaves
+nothing on the table.
+
+<Callout type="key" title="Two outcomes, two instruments, one price">
+With two possible outcomes, any payoff can be matched by two instruments, shares and cash, because a straight
+line can pass through any two points. The number of shares, $\Delta$, is the line's <strong>slope</strong>. It's
+also called the <strong>hedge ratio</strong>, and it's the same "delta" we'll meet again in Part V. Matching the
+payoff exactly is called <strong>replication</strong>, and it turns pricing into algebra.
+</Callout>
+
+## <span class="section-tag">Intuition</span>A condition on the stock
+
+There's one requirement on the model itself. Money in the bank grows to $100e^{\Rate{r}\Time{T}}$. The stock's
+down price must be **below** that and its up price **above** it:
+
+$$
+S_d \;<\; S_0\,e^{\Rate{r}\Time{T}} \;<\; S_u .
+$$
+
+If the stock's *worst* outcome beat the bank, you'd borrow and buy stock and never lose. If its *best* outcome
+lost to the bank, you'd short it and bank the cash. Either way the model itself would contain an arbitrage, and
+no option price would make sense. Drag the down price above the bank's growth in the widget (with a positive
+rate) to see the warning.
+
+## <span class="section-tag">Formalisation</span>The one-period model in general
+
+A stock worth $S_0$ today moves over one period of length $\Time{T}$ to $S_u$ or $S_d$, with
+$S_d < S_0e^{\Rate{r}\Time{T}} < S_u$. A derivative pays $V_u$ or $V_d$. We look for $\Delta$ shares and a bond
+position $B$ (cash today) such that
+
+$$
+\Delta S_u + B e^{\Rate{r}\Time{T}} = V_u, \qquad \Delta S_d + B e^{\Rate{r}\Time{T}} = V_d .
+$$
+
+The unique solution is
+
+$$
+\Delta = \frac{V_u - V_d}{S_u - S_d}, \qquad B = e^{-\Rate{r}\Time{T}}\,\big(V_u - \Delta S_u\big),
+$$
+
+and the derivative's arbitrage-free price is the replica's cost, $V_0 = \Delta S_0 + B$.
+
+Geometrically, the replica's value at expiry is the line $\ell(x) = \Delta x + Be^{\Rate{r}\Time{T}}$ through
+$(S_d, V_d)$ and $(S_u, V_u)$. Its value *today* is $\Delta S_0 + B = e^{-\Rate{r}\Time{T}}\,\ell(S_0e^{\Rate{r}\Time{T}})$:
+evaluate the line at the **forward price** and discount. That's the orange point in the widget.
+
+**For a call** with $S_d < \Strike{K} < S_u$: $\Delta = \dfrac{S_u - \Strike{K}}{S_u - S_d} \in (0,1)$, and
+$B < 0$. A call is a *leveraged* position in the stock, partly paid for with borrowed money. **For a put**,
+$\Delta < 0$ and $B > 0$: a short position in the stock, plus cash in the bank.
+
+<details>
+<summary>Rewriting the price, a preview of Chapter 12</summary>
+
+Substitute $\Delta$ and $B$ into $V_0 = \Delta S_0 + B$ and collect the $V_u$ and $V_d$ terms:
+
+$$
+V_0 = e^{-\Rate{r}\Time{T}}\Big[\,q\,V_u + (1 - q)\,V_d\,\Big], \qquad q = \frac{S_0e^{\Rate{r}\Time{T}} - S_d}{S_u - S_d}.
+$$
+
+The no-arbitrage condition says exactly that $0 < q < 1$. So the price *looks like* a discounted average of the
+payoffs, weighted by something that behaves like a probability. It isn't the real chance of an up move. What it
+is, and why it appears, is the subject of the next chapter.
+
+</details>
+
+## <span class="section-tag">Playground</span>Replicate anything
+
+<OneStepReplication client:visible initialRate={0.05} title="Playground: calls and puts, with interest" />
+
+<div class="try-this">
+
+- **Switch to a put.** The line now slopes down: Δ is negative, so you *short* shares and lend cash.
+- **Move the strike outside the two outcomes**, below \$80 for a call. Both points sit on the rising part of the
+  hockey stick: Δ = 1 and the call is just "a share minus a bond". Why?
+- **Squeeze the up and down prices together.** What happens to the call's price as the spread shrinks?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Stock \$100, going to \$120 or \$80, zero rates. How many shares replicate a call with strike \$110?"
+  answer={0.25}
+  tolerance={0.0001}
+  explanation="The call pays 10 or 0, so $\Delta = (10 - 0)/(120 - 80) = 0.25$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Same setup (strike \$110, zero rates). What's the call's price?"
+  answer={5}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="$B = V_u - \Delta S_u = 10 - 0.25 \times 120 = -20$ (borrow 20). Price $= 0.25 \times 100 - 20 = 5$."
+/>
+
+<Quiz
+  client:visible
+  question="The replicating portfolio for a put in this model..."
+  options={[
+    "buys shares and borrows cash",
+    "shorts shares and lends cash",
+    "buys shares and lends cash",
+    "holds only cash",
+  ]}
+  answer={1}
+  explanation="A put pays more in the down state, so the line through its payoffs slopes down: $\Delta < 0$ (short shares), and the cash position is positive (lend)."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- In a one-step, two-outcome world, any option can be **replicated** with $\Delta$ shares and a bond.
+- $\Delta = \dfrac{V_u - V_d}{S_u - S_d}$, the slope of the line through the two payoffs. The price is the cost
+  of the replica, $\Delta S_0 + B$.
+- Any other price is an **arbitrage**: sell the dear one, buy the cheap one.
+- The model makes sense only if $S_d < S_0e^{\Rate{r}\Time{T}} < S_u$.
+- The real-world probability of going up **never appeared**.
+
+**Next up:** that last point is the most surprising fact in option pricing. Chapter 12 looks at it head-on, and
+finds a "probability" that does matter.
+
+### Further reading
+
+- J. C. Cox, S. A. Ross and M. Rubinstein, "Option pricing: a simplified approach" (1979).
+- S. E. Shreve, *Stochastic Calculus for Finance I*, chapter 1.
