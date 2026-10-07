@@ -257,7 +257,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** See why implied vol varies with strike and maturity, and what the skew says about crash fears.
   Learn the coordinates: log-moneyness and delta.
 - **Key math:** $\sigma_{imp}(K, T)$; total variance $w = \sigma^2 T$; a brief look at SVI.
-- **Widgets:** a smile plot for several maturities, and a 3D surface `Surface3D` built from stylised data.
+- **Widgets:** `SmileExplorer`: an SSVI surface with equity, currency, commodity and flat presets and sliders
+  for the ATM term structure, skew and wings. Smiles for five maturities against strike, log-moneyness or delta,
+  or the whole surface as a `Heatmap`, with ATM / 25Δ risk reversal / 25Δ butterfly quotes and an arbitrage
+  flag. Library: `src/lib/vol/smile.ts`.
 - **Prereqs:** 25.
 
 ### 27. Reading probabilities from prices
@@ -431,6 +434,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `GreekExplorer` | 23 | — |
 | `HedgeSimulator` | 24 | 28 |
 | `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
+| `SmileExplorer` | 26 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

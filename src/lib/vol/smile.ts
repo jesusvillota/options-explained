@@ -28,21 +28,35 @@ export function sviTotalVariance(k: number, { a, b, rho, m, s }: SVIParams): num
  * and the wing steepness η.
  */
 export interface SSVIParams {
-  /** At-the-money volatility (flat in maturity). */
+  /** At-the-money volatility for long maturities. */
   atmVol: number;
   /** Skew, in (−1, 1). Negative for equities. */
   rho: number;
   /** Curvature / wing level, > 0. */
   eta: number;
+  /**
+   * At-the-money volatility for very short maturities (defaults to atmVol, a flat term
+   * structure). The ATM total variance blends the two: θ(T) = σ_L²T + (σ_S² − σ_L²)(1 − e^{−κT})/κ.
+   */
+  atmVolShort?: number;
 }
 
 export const EQUITY_SSVI: SSVIParams = { atmVol: 0.2, rho: -0.7, eta: 1.0 };
 
-export function ssviTotalVariance(k: number, T: number, { atmVol, rho, eta }: SSVIParams): number {
-  const theta = atmVol * atmVol * T;
-  const phi = eta / Math.sqrt(theta);
+/** Speed (per year) at which the at-the-money term structure moves from short to long. */
+const KAPPA = 2;
+
+/** At-the-money total variance θ(T); increasing in T, so there's no calendar arbitrage at the money. */
+export function atmTotalVariance(T: number, { atmVol, atmVolShort = atmVol }: SSVIParams): number {
+  const long2 = atmVol * atmVol, short2 = atmVolShort * atmVolShort;
+  return long2 * T + ((short2 - long2) * (1 - Math.exp(-KAPPA * T))) / KAPPA;
+}
+
+export function ssviTotalVariance(k: number, T: number, p: SSVIParams): number {
+  const theta = atmTotalVariance(T, p);
+  const phi = p.eta / Math.sqrt(theta);
   const x = phi * k;
-  return (theta / 2) * (1 + rho * x + Math.sqrt((x + rho) ** 2 + 1 - rho * rho));
+  return (theta / 2) * (1 + p.rho * x + Math.sqrt((x + p.rho) ** 2 + 1 - p.rho * p.rho));
 }
 
 export function ssviVol(k: number, T: number, p: SSVIParams): number {
@@ -54,9 +68,10 @@ export function ssviVol(k: number, T: number, p: SSVIParams): number {
  * θφ(1 + |ρ|) < 4 and θφ²(1 + |ρ|) ≤ 4. With φ = η/√θ the first reads
  * η√θ(1 + |ρ|) < 4 and the second η²(1 + |ρ|) ≤ 4, independent of maturity.
  */
-export function ssviButterflyFree({ rho, eta, atmVol }: SSVIParams, T: number): boolean {
-  const theta = atmVol * atmVol * T;
-  return eta * Math.sqrt(theta) * (1 + Math.abs(rho)) < 4 && eta * eta * (1 + Math.abs(rho)) <= 4;
+export function ssviButterflyFree(p: SSVIParams, T: number): boolean {
+  const theta = atmTotalVariance(T, p);
+  const r = 1 + Math.abs(p.rho);
+  return p.eta * Math.sqrt(theta) * r < 4 && p.eta * p.eta * r <= 4;
 }
 
 /**
@@ -74,4 +89,32 @@ export function densityFactor(w: (k: number) => number, k: number, h = 1e-3): nu
 /** Forward (undiscounted) call delta N(d₁) at log-moneyness k with total variance w: the "delta" axis traders use. */
 export function forwardDelta(k: number, w: number): number {
   return cdf((-k + w / 2) / Math.sqrt(w));
+}
+
+/**
+ * The log-moneyness whose forward call delta is `delta` on a smile w(k), found by
+ * bisection (delta falls from 1 to 0 as k rises). Smiles are quoted in delta.
+ */
+export function logMoneynessForDelta(delta: number, w: (k: number) => number): number {
+  let lo = -5, hi = 5;
+  for (let i = 0; i < 100; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (forwardDelta(mid, w(mid)) > delta) lo = mid;
+    else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+/**
+ * The three numbers an FX or equity desk quotes for one maturity: at-the-money
+ * vol, the 25-delta risk reversal σ(25Δ call) − σ(25Δ put), and the 25-delta
+ * butterfly ½(σ(25Δ call) + σ(25Δ put)) − σ_ATM.
+ */
+export function smileQuotes(T: number, p: SSVIParams): { atm: number; rr25: number; bf25: number } {
+  const w = (k: number) => ssviTotalVariance(k, T, p);
+  const vol = (k: number) => Math.sqrt(w(k) / T);
+  const atm = vol(0);
+  const call25 = vol(logMoneynessForDelta(0.25, w));
+  const put25 = vol(logMoneynessForDelta(0.75, w)); // a 25-delta put has call delta 0.75
+  return { atm, rr25: call25 - put25, bf25: 0.5 * (call25 + put25) - atm };
 }

@@ -4,7 +4,7 @@ import { gbmPath, gbmPathVariableVol } from '../src/lib/math/rng';
 import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
 import { butterflyDensity, impliedDensity, impliedTailProbability, smilePrice } from '../src/lib/vol/density';
 import { bisectionBrackets, brennerSubrahmanyam, historicalVol, historicalVolStdError, rollingVol, impliedVol, manasterKoehlerGuess, newtonIterates, priceBounds } from '../src/lib/vol/impliedVol';
-import { densityFactor, EQUITY_SSVI, forwardDelta, ssviButterflyFree, ssviTotalVariance, ssviVol, sviTotalVariance } from '../src/lib/vol/smile';
+import { atmTotalVariance, densityFactor, EQUITY_SSVI, forwardDelta, logMoneynessForDelta, smileQuotes, ssviButterflyFree, ssviTotalVariance, ssviVol, sviTotalVariance } from '../src/lib/vol/smile';
 import { fairVariance, logContractPayoff, stripPayoff, strikeSpacings, vixVariance } from '../src/lib/vol/varianceSwap';
 
 const market = { S: 100, K: 100, T: 1, r: 0.05, q: 0 };
@@ -100,6 +100,26 @@ describe('smiles', () => {
     for (const k of [-0.5, -0.1, 0, 0.1, 0.5]) {
       expect(ssviTotalVariance(k, 1, EQUITY_SSVI)).toBeGreaterThan(ssviTotalVariance(k, 0.5, EQUITY_SSVI));
     }
+  });
+
+  it('an inverted term structure blends from the short to the long at-the-money vol, with θ increasing', () => {
+    const p = { ...EQUITY_SSVI, atmVol: 0.2, atmVolShort: 0.35 };
+    expect(ssviVol(0, 0.001, p)).toBeCloseTo(0.35, 2);
+    expect(ssviVol(0, 30, p)).toBeCloseTo(0.2, 1);
+    for (let T = 0.05; T < 5; T += 0.05) expect(atmTotalVariance(T + 0.05, p)).toBeGreaterThan(atmTotalVariance(T, p));
+  });
+
+  it('delta conventions: the 25-delta call strike has call delta 0.25, and equity risk reversals are negative', () => {
+    const w = (k: number) => ssviTotalVariance(k, 0.25, EQUITY_SSVI);
+    const k = logMoneynessForDelta(0.25, w);
+    expect(forwardDelta(k, w(k))).toBeCloseTo(0.25, 10);
+    const q = smileQuotes(0.25, EQUITY_SSVI);
+    expect(q.atm).toBeCloseTo(0.2, 12);
+    expect(q.rr25).toBeLessThan(-0.02);
+    expect(q.bf25).toBeGreaterThan(0);
+    const flat = smileQuotes(0.25, { atmVol: 0.2, rho: 0, eta: 1e-9 });
+    expect(flat.rr25).toBeCloseTo(0, 6);
+    expect(flat.bf25).toBeCloseTo(0, 6);
   });
 
   it('raw SVI with b = 0 is flat', () => {
