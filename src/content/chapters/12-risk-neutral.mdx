@@ -1,0 +1,182 @@
+---
+title: "The risk-neutral surprise"
+part: 3
+chapter: 12
+difficulty: 2
+prerequisites: [11]
+summary: "The real chance of the stock going up doesn't affect the option's price. A different 'probability' does."
+---
+import RiskNeutralSlider from '../../components/plots/RiskNeutralSlider';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Surely the odds matter?
+
+Two analysts look at our stock: \$100 today, \$120 or \$80 in a year. One thinks the up move is 90% likely.
+The other thinks it's a coin flip. Surely the first should be willing to pay much more for a call, which only
+pays off if the stock goes up?
+
+In Chapter 11 we priced that call without mentioning probabilities at all. So either the answer was missing
+something, or the probabilities genuinely don't matter.
+
+They don't. Both analysts should pay exactly the same price. That's the most counter-intuitive fact in option
+pricing, and understanding *why* is the key to everything that follows: trees, Black–Scholes, Monte Carlo, all of
+it.
+
+## <span class="section-tag">Intuition</span>Slide the odds, watch the price stay put
+
+Here's the one-step stock from Chapter 11, with a 5% interest rate. Drag the real-world probability $p$ of an up
+move from almost 0 to almost 1:
+
+<RiskNeutralSlider client:visible />
+
+<p class="try-this"><strong>Try this:</strong> move $p$ from 10% to 90%. The expected returns of both the stock
+and the call swing wildly, but the call's <strong>price</strong> in the readout doesn't move by a cent. Then find
+the dashed vertical line, where the two return lines cross at the risk-free rate.</p>
+
+Why? The replication argument never needed $p$. Half a share and a loan copy the call in *both* states, whichever
+one happens. The call's price is tied to the stock's price, and the stock's price, \$100, is already given.
+
+So where did the analysts' views go? Into the stock's **expected return**. If the up move really is 90% likely,
+the stock is expected to make 16%. If it's 50%, the stock is expected to make 0%. With the price fixed at \$100,
+a different $p$ just means the market demands a different reward for holding a risky stock. The call inherits
+whatever reward that is, scaled up for its leverage. Its price doesn't change.
+
+<Callout type="key" title="Prices don't need probabilities; they need replication">
+Option prices depend on how the stock <em>can</em> move (here, to \$120 or \$80), not on how <em>likely</em>
+each move is. The odds and investors' appetite for risk are already built into the stock's price, and the option
+is priced relative to the stock.
+</Callout>
+
+## <span class="section-tag">Intuition</span>The probability that does matter
+
+There is one special value of $p$. Look at where the lines cross: there, both the stock and the call are expected
+to earn exactly the **risk-free rate**. Call it $q$. In our example $q \approx 0.628$.
+
+At $q$, the option's price is simply its expected payoff, discounted at the risk-free rate:
+
+$$
+\Call{C}_0 = e^{-\Rate{r}\Time{T}}\,\big[\,q \times 20 + (1 - q) \times 0\,\big] \approx \$11.95 .
+$$
+
+This is the formula hiding in Chapter 11's details box. It's called the **risk-neutral probability**, because
+it's the probability a risk-neutral investor, one who demands no extra reward for risk, would need to believe
+for the stock's price to make sense.
+
+It is **not** a forecast. It's a convenient way of doing the replication arithmetic: a set of weights that
+reproduces every price in the model. Think of it as a change of units. Real probabilities plus risk aversion,
+and risk-neutral probabilities plus no risk aversion, give the same prices, and the second is far easier to
+calculate with.
+
+## <span class="section-tag">Formalisation</span>Pricing as a discounted expectation
+
+In the one-period model with $S_d < S_0e^{\Rate{r}\Time{T}} < S_u$, define
+
+$$
+q = \frac{S_0e^{\Rate{r}\Time{T}} - S_d}{S_u - S_d} \in (0, 1).
+$$
+
+We write $\mathbb{Q}$ for the probability that puts weight $q$ on "up" and $1 - q$ on "down". Two facts follow
+from Chapter 11's replication.
+
+**1. Every price is a discounted $\mathbb{Q}$-expectation.** For any derivative paying $V_T$,
+
+$$
+V_0 = e^{-\Rate{r}\Time{T}}\;\mathbb{E}^{\mathbb{Q}}\big[V_T\big] = e^{-\Rate{r}\Time{T}}\big[q V_u + (1-q)V_d\big].
+$$
+
+**2. Under $\mathbb{Q}$, everything grows at the risk-free rate.** In particular, the stock:
+$\mathbb{E}^{\mathbb{Q}}[S_T] = qS_u + (1-q)S_d = S_0e^{\Rate{r}\Time{T}}$. That's just the definition of $q$
+rearranged, and it says the forward price from Chapter 6 is the $\mathbb{Q}$-expected price.
+
+**Real-world drift.** Under the real-world probability $\mathbb{P}$, with up-probability $p$, the stock's expected
+return $\mu$ satisfies $S_0e^{\mu\Time{T}} = pS_u + (1-p)S_d$. Typically $\mu > \Rate{r}$: the extra
+$\mu - \Rate{r}$ is the **risk premium**. The option's expected return under $\mathbb{P}$ is higher still,
+because a call is a leveraged bet on the stock. None of this affects $V_0$.
+
+**State prices.** Write $\psi_u = e^{-\Rate{r}\Time{T}}q$ and $\psi_d = e^{-\Rate{r}\Time{T}}(1-q)$. These
+are the prices today of **Arrow–Debreu securities**: contracts paying \$1 in exactly one state and nothing in the
+other. Every derivative is a bundle of them, $V_0 = \psi_u V_u + \psi_d V_d$. This is the one-step version of
+the "curvature is probability" idea from Chapter 10.
+
+<details>
+<summary>The one-period fundamental theorem</summary>
+
+**No arbitrage ⇔ there is a probability $q \in (0,1)$ under which the discounted stock price is a "fair game":
+$\mathbb{E}^{\mathbb{Q}}[e^{-\Rate{r}\Time{T}}S_T] = S_0$.**
+
+($\Leftarrow$) If such a $q$ exists, any portfolio of shares and bonds has discounted expected gain zero under
+$\mathbb{Q}$. A portfolio costing nothing that never loses would need a positive gain with positive probability,
+which is impossible. ($\Rightarrow$) Solving $qS_u + (1-q)S_d = S_0e^{\Rate{r}\Time{T}}$ gives our $q$, and it lies
+strictly between 0 and 1 exactly when $S_d < S_0e^{\Rate{r}\Time{T}} < S_u$, the no-arbitrage condition. Chapter
+40 states the general version, the *Fundamental Theorem of Asset Pricing*.
+
+</details>
+
+## <span class="section-tag">Playground</span>Price with q
+
+<RiskNeutralSlider client:visible />
+
+<div class="try-this">
+
+- **Set the rate to 0.** Where's $q$ now? Check that $q \times 20$ gives the price.
+- **Raise the rate to 10%.** $q$ moves right, and the call gets *more* expensive. Why does a higher interest
+  rate make a call worth more? (Hint: the replica borrows money.)
+- **Set $p = q$.** In what sense is this investor "risk-neutral"?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Stock \$100 moves to \$130 or \$90; zero interest rates. What is the risk-neutral probability of the up move?"
+  answer={0.25}
+  tolerance={0.0001}
+  explanation="$q = (100 - 90)/(130 - 90) = 10/40 = 0.25$. Check: $0.25 \times 130 + 0.75 \times 90 = 100$, so the stock is a fair game."
+/>
+
+<Quiz
+  client:visible
+  question="In the one-period model, which of these changes the call's price?"
+  options={[
+    "The real-world probability of an up move",
+    "The interest rate",
+    "Investors' risk aversion, holding the stock price fixed",
+    "Analysts' forecasts, holding the stock price fixed",
+  ]}
+  answer={1}
+  explanation="The price depends on $S_0$, $S_u$, $S_d$, the strike and the rate. Views about probabilities and risk enter only through $S_0$, which is given."
+/>
+
+<Quiz
+  client:visible
+  question="Under the risk-neutral probability Q, what is the expected return on the call?"
+  options={[
+    "Higher than the stock's, because of leverage",
+    "Exactly the risk-free rate",
+    "Zero",
+    "It depends on p",
+  ]}
+  answer={1}
+  explanation="Under $\mathbb{Q}$ every traded asset is expected to earn the risk-free rate. That's what makes $V_0 = e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[V_T]$ work."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The **real-world probability** of an up move doesn't affect option prices. It's absorbed into the stock's
+  price and expected return.
+- The **risk-neutral probability** $q = (S_0e^{\Rate{r}\Time{T}} - S_d)/(S_u - S_d)$ makes every asset earn
+  the risk-free rate.
+- **Price = discounted risk-neutral expectation**: $V_0 = e^{-\Rate{r}\Time{T}}\mathbb{E}^{\mathbb{Q}}[V_T]$.
+  It's equivalent to replication, and much easier to compute with.
+- No arbitrage ⇔ a valid $q \in (0, 1)$ exists: the one-step **fundamental theorem**.
+
+**Next up:** one step is a toy. In Chapter 13 we chain many steps into a **tree** and price backwards from
+expiry to today, including American options, by applying this chapter's formula at every node.
+
+### Further reading
+
+- J. C. Cox and S. A. Ross, "The valuation of options for alternative stochastic processes" (1976), where
+  risk-neutral valuation was introduced.
+- S. E. Shreve, *Stochastic Calculus for Finance I*, chapter 1.
