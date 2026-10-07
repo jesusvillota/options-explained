@@ -58,3 +58,17 @@ export function useTweened(target: number, duration = 500): number {
   }, [target, duration, reduced]);
   return value;
 }
+
+/** Width of an element in pixels, kept up to date with a ResizeObserver (0 before mount). */
+export function useElementWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width];
+}

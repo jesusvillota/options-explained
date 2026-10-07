@@ -357,8 +357,10 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 ### 35. Fourier pricing
 - **Goals:** Price from a characteristic function with the Carr–Madan FFT and the COS method.
 - **Key math:** the damped call transform; the COS expansion.
-- **Widgets:** the payoff and density rebuilt from more and more Fourier terms, with the price error falling as
-  terms are added.
+- **Widgets:** `CharFnArrows`: φ(u) as the average of unit arrows at angles $uX$ over sampled log-returns
+  (Black–Scholes, Heston, Merton), against the exact φ. `COSReconstruction`: the density rebuilt from N cosine
+  terms and the price error against N on a log scale (exponential convergence). Library:
+  `src/lib/numerics/cos.ts`, `src/lib/models/fourier.ts`.
 - **Prereqs:** 18; a basic idea of Fourier series.
 
 ### 36. American options by simulation
@@ -464,6 +466,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `SABRSmileFit`, `RoughPaths` | 32 | 41 |
 | `MCConvergence`, `MCErrorScaling` | 33 | — |
 | `FDStability`, `FDConvergence` | 34 | — |
+| `CharFnArrows`, `COSReconstruction` | 35 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)
