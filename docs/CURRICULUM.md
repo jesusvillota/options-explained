@@ -323,7 +323,11 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Understand SABR's place in rates markets and the Hagan approximation. Get an intuitive picture of
   rough volatility (Hurst exponent $H < 1/2$).
 - **Key math:** SABR dynamics; Hagan's implied vol formula; fractional Brownian motion.
-- **Widgets:** fBM paths with a slider for $H$. SABR smile fitted to stylised data.
+- **Widgets:** `SABRSmileFit`: Hagan's formula against stylised swaption quotes, with β presets, sliders, a
+  least-squares fit (Nelder–Mead) and the smile after a forward move (the backbone). `RoughPaths`: fractional
+  Brownian motion for any $H$ next to Brownian motion from the same random numbers, the rough volatility it drives,
+  and $H$ estimated back from the path. Library: `src/lib/models/sabr.ts`, `src/lib/math/fbm.ts`,
+  `src/lib/math/optimize.ts`.
 - **Prereqs:** 30.
 
 ---
@@ -453,6 +457,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
 | `HestonSmile`, `HestonPaths` | 30 | — |
 | `JumpPaths`, `JumpSmile` | 31 | — |
+| `SABRSmileFit`, `RoughPaths` | 32 | 41 |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

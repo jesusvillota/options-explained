@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { c } from '../src/lib/math/complex';
+import { estimateHurst, fbmPath, fgnCovariance } from '../src/lib/math/fbm';
+import { nelderMead } from '../src/lib/math/optimize';
+import { calibrateSabr, sabrPath, sabrVol } from '../src/lib/models/sabr';
 import { price } from '../src/lib/pricing/blackScholes';
 import { blackScholesCF, lewisCallPrice, lewisCallPrices } from '../src/lib/models/fourier';
 import { fellerHolds, HESTON_DEFAULTS, hestonCallPrices, hestonCF, hestonPath, hestonSmile, hestonVarianceSwap } from '../src/lib/models/heston';
@@ -166,5 +169,78 @@ describe('Heston and variance swaps', () => {
     });
     const kVar = ((2 * Math.exp(r * T)) / T) * integral * ((kMax - kMin) / n);
     expect(kVar).toBeCloseTo(hestonVarianceSwap(p, T), 4);
+  });
+});
+
+describe('SABR', () => {
+  const base = { alpha: 0.2, beta: 1, rho: -0.3, nu: 0.4 };
+
+  it('with no vol of vol and β = 1 it is Black’s model with σ = α', () => {
+    expect(sabrVol(100, 80, 1, { ...base, nu: 1e-12, rho: 0 })).toBeCloseTo(0.2, 8);
+    expect(sabrVol(100, 130, 2, { ...base, nu: 1e-12, rho: 0 })).toBeCloseTo(0.2, 8);
+  });
+
+  it('is continuous at the money', () => {
+    const p = { alpha: 0.03, beta: 0.5, rho: -0.2, nu: 0.5 };
+    expect(sabrVol(0.03, 0.03 * (1 + 1e-7), 1, p)).toBeCloseTo(sabrVol(0.03, 0.03, 1, p), 7);
+  });
+
+  it('negative ρ gives a downward skew and ν a smile', () => {
+    expect(sabrVol(100, 90, 1, base)).toBeGreaterThan(sabrVol(100, 110, 1, base));
+    const sym = { ...base, rho: 0 };
+    expect(sabrVol(100, 80, 1, sym)).toBeGreaterThan(sabrVol(100, 100, 1, sym));
+    expect(sabrVol(100, 125, 1, sym)).toBeGreaterThan(sabrVol(100, 100, 1, sym));
+  });
+
+  it('agrees with a Monte Carlo price of the SABR dynamics', () => {
+    const F = 100, K = 110, T = 1, N = 6000;
+    const pay = Array.from({ length: N }, (_, i) => Math.max(sabrPath(i + 1, F, base, T, 200).F[200] - K, 0));
+    const mean = pay.reduce((a, b) => a + b, 0) / N;
+    const se = Math.sqrt(pay.reduce((a, b) => a + (b - mean) ** 2, 0) / (N - 1) / N);
+    const hagan = price('call', { S: F, K, T, r: 0, sigma: sabrVol(F, K, T, base) });
+    expect(Math.abs(mean - hagan)).toBeLessThan(3 * se + 0.05);
+  });
+
+  it('calibration recovers the parameters that generated a smile', () => {
+    const truth = { alpha: 0.012, beta: 0.5, rho: -0.25, nu: 0.45 };
+    const F = 0.03, T = 2;
+    const strikes = [0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.05];
+    const vols = strikes.map((K) => sabrVol(F, K, T, truth));
+    const { params, rmse } = calibrateSabr(F, T, strikes, vols, 0.5);
+    expect(rmse).toBeLessThan(1e-6);
+    expect(params.alpha).toBeCloseTo(truth.alpha, 4);
+    expect(params.rho).toBeCloseTo(truth.rho, 2);
+    expect(params.nu).toBeCloseTo(truth.nu, 2);
+  });
+});
+
+describe('Nelder–Mead', () => {
+  it('minimises the Rosenbrock function', () => {
+    const { x } = nelderMead(([a, b]) => (1 - a) ** 2 + 100 * (b - a * a) ** 2, [-1.2, 1], { maxIter: 5000, tol: 1e-16 });
+    expect(x[0]).toBeCloseTo(1, 3);
+    expect(x[1]).toBeCloseTo(1, 3);
+  });
+});
+
+describe('fractional Brownian motion', () => {
+  it('H = ½ is Brownian motion: uncorrelated increments', () => {
+    expect(fgnCovariance(1, 0.5)).toBeCloseTo(0, 12);
+    expect(fgnCovariance(0, 0.3)).toBe(1);
+  });
+
+  it('has Var B_H(1) = 1 for any H', () => {
+    for (const H of [0.1, 0.5, 0.8]) {
+      const ends = Array.from({ length: 2000 }, (_, i) => fbmPath(i + 1, H, 64)[64]);
+      const v = ends.reduce((a, b) => a + b * b, 0) / ends.length;
+      expect(v).toBeGreaterThan(0.9); // standard error of the estimate ≈ √(2/2000) ≈ 0.03
+      expect(v).toBeLessThan(1.1);
+    }
+  });
+
+  it('the roughness of a simulated path reveals its Hurst exponent', () => {
+    for (const H of [0.1, 0.3, 0.7]) {
+      const est = Array.from({ length: 10 }, (_, i) => estimateHurst(fbmPath(100 + i, H, 512))).reduce((a, b) => a + b, 0) / 10;
+      expect(est).toBeCloseTo(H, 1);
+    }
   });
 });

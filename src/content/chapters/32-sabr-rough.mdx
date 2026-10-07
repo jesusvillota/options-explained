@@ -1,0 +1,192 @@
+---
+title: "SABR and rough volatility"
+part: 7
+chapter: 32
+difficulty: 3
+prerequisites: [30]
+summary: "The market's workhorse smile model for interest rates, and the discovery that volatility is far rougher than Brownian motion."
+---
+import RoughPaths from '../../components/plots/RoughPaths';
+import SABRSmileFit from '../../components/plots/SABRSmileFit';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two answers to "which model?"
+
+Part VII has offered three ways to explain the smile: volatility as a function of the stock (Chapter 29), as its
+own random process (Chapter 30), and with jumps (Chapter 31). This chapter adds two more from opposite ends of
+the spectrum.
+
+**SABR** (2002) is the pragmatist's model. It has four parameters and an accurate closed-form approximation for
+implied volatility, and its smile moves the right way when rates move. Within a few years it was the standard
+for quoting and risk-managing interest-rate options.
+
+**Rough volatility** (2014 onwards) is the empiricist's model. Look closely at measured volatility and its paths
+turn out to be much rougher than any diffusion. A model built around that one fact explains the shape of the
+skew across maturities with almost no parameters.
+
+## <span class="section-tag">Intuition</span>SABR: a smile you can fit and trust
+
+SABR models a **forward** $F$, such as a forward swap rate, whose volatility $\alpha$ is itself random:
+
+- **β, the backbone**, sets how volatility scales with the level of rates: $\beta = 0$ means moves of fixed size
+  in basis points (normal), $\beta = 1$ moves proportional to the rate (lognormal).
+- **α** sets the overall level of volatility.
+- **ρ**, the correlation between the rate and its volatility, tilts the smile.
+- **ν**, the vol of vol, curves it.
+
+<SABRSmileFit client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the sliders to get close to the yellow quotes, then press
+<em>Fit</em>: least squares finds α, ρ and ν in a fraction of a second. Switch β and fit again: every β fits the
+quotes about equally well. What β changes is the <em>backbone</em>. Move the forward and compare how much the
+at-the-money vol changes for β = 0 and β = 1.</p>
+
+That's why desks fix β, from history or convention, rather than calibrating it: today's smile can't tell the
+values apart, but the hedge ratios differ.
+
+<Callout type="key" title="SABR moves the smile with the forward">
+The dashed curve shows SABR's smile after the forward moves: it travels <em>with</em> the forward. Chapter 29
+showed local volatility moving the smile the opposite way. Hagan and co-authors introduced SABR precisely because
+local vol's dynamics gave wrong deltas for interest-rate books.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Volatility is rough
+
+Brownian motion has increments that are independent of the past. **Fractional Brownian motion** generalises it
+with a single number, the **Hurst exponent** $H$. For $H > \tfrac12$, increments tend to continue in the same
+direction, so paths look smooth and trending. For $H < \tfrac12$, increments tend to reverse, so paths are
+jagged at every scale:
+
+<RoughPaths client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start at H = 0.1, then slide up to 0.9. The same random numbers give
+a frantic, jagged path at low H and a smooth, wandering one at high H. The grey Brownian path (H = ½) sits in
+between. The readout estimates H back from the path alone.</p>
+
+In 2018 Gatheral, Jaisson and Rosenbaum measured the roughness of realised volatility for thousands of assets
+and found $H \approx 0.1$ almost everywhere, from minutes to months. Volatility, in their phrase, is rough.
+
+## <span class="section-tag">Formalisation</span>SABR
+
+The dynamics are
+
+$$
+dF_t = \alpha_t F_t^{\beta}\,dW^1_t, \qquad d\alpha_t = \nu\,\alpha_t\,dW^2_t, \qquad d\langle W^1, W^2\rangle_t = \rho\,dt .
+$$
+
+Hagan, Kumar, Lesniewski and Woodward derived, by singular perturbation, an approximate Black implied volatility.
+At the money it reads
+
+$$
+\Vol{\sigma}_{\text{ATM}} \approx \frac{\alpha}{F^{1-\beta}}\left[1 + \left(\frac{(1-\beta)^2\alpha^2}{24F^{2-2\beta}} + \frac{\rho\beta\nu\alpha}{4F^{1-\beta}} + \frac{2 - 3\rho^2}{24}\nu^2\right)\Time{T}\right] .
+$$
+
+Away from the money it's multiplied by $z/x(z)$, where
+
+$$
+z = \frac{\nu}{\alpha}(F\Strike{K})^{(1-\beta)/2}\ln\frac{F}{\Strike{K}}, \qquad x(z) = \ln\frac{\sqrt{1 - 2\rho z + z^2} + z - \rho}{1 - \rho},
+$$
+
+and the leading factor uses $(F\Strike{K})^{(1-\beta)/2}$ in place of $F^{1-\beta}$. The **backbone** is the
+leading term: as the forward moves, $\Vol{\sigma}_{\text{ATM}} \approx \alpha F^{\beta - 1}$, falling with $F$
+unless $\beta = 1$.
+
+**Caveats.** The formula is an expansion in $\nu^2\Time{T}$. For long expiries or low strikes it can imply a
+negative density, which is a butterfly arbitrage (Chapter 27). This is fixed in practice by solving SABR's PDE
+directly ("arbitrage-free SABR"). With negative rates, $F^\beta$ is undefined, and markets use a shifted forward
+$F + s$.
+
+## <span class="section-tag">Formalisation</span>Fractional Brownian motion and rough volatility
+
+Fractional Brownian motion $B^H$ is the Gaussian process with $B^H_0 = 0$ and
+
+$$
+\mathbb{E}\big[B^H_t B^H_s\big] = \tfrac12\big(t^{2H} + s^{2H} - |t - s|^{2H}\big), \qquad 0 < H < 1 .
+$$
+
+It's **self-similar**, $B^H_{ct} \overset{d}{=} c^H B^H_t$, so increments over $\Delta$ have standard deviation
+$\Delta^H$. That's how the widget estimates $H$: it regresses $\log \mathbb{E}|\Delta B|^2$ on $\log \Delta$, and
+the slope is $2H$. For $H \ne \tfrac12$, $B^H$ is not a semimartingale, so Itô calculus doesn't apply directly. It
+can still drive *volatility*, which isn't a traded asset.
+
+The **rough Bergomi** model of Bayer, Friz and Gatheral (2016) writes the instantaneous variance as
+
+$$
+v_t = \xi_0(t)\,\exp\Big(\eta\sqrt{2H}\int_0^t (t - s)^{H - 1/2}\,dW_s - \tfrac12\eta^2 t^{2H}\Big),
+$$
+
+where $\xi_0$ is today's forward variance curve, so variance swaps are fitted by construction. Its at-the-money
+skew decays like
+
+$$
+\psi(\Time{T}) \propto \Time{T}^{\,H - 1/2},
+$$
+
+about $\Time{T}^{-0.4}$ for $H = 0.1$, close to the $\Time{T}^{-1/2}$-like decay in index options. Recall that
+Heston's skew is bounded at short maturities and jump models' explodes like $1/\Time{T}$. With a single roughness
+parameter, rough volatility gets the term structure of the skew right. Its price is computational: no
+characteristic function in closed form, so pricing needs Monte Carlo with special schemes for the singular kernel.
+
+## <span class="section-tag">Playground</span>Backbones and roughness
+
+<SABRSmileFit client:visible />
+
+<div class="try-this">
+
+- **Same smile, different deltas.** Fit with β = 0, note the at-the-money vol after a +50bp move, then do the same
+  with β = 1. Which β says volatility falls as rates rise?
+- **Overfit?** With β = ½, fit and read the error. It can't reach zero because the quotes include noise. Is that a
+  problem?
+- **Vol of vol at work.** After fitting, double ν. Which part of the smile reacts most?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="In practice, which SABR parameter is usually fixed rather than calibrated to each day's smile, and why?"
+  options={[
+    "α, because it's the at-the-money level",
+    "β, because many values fit today's smile equally well but they imply different dynamics",
+    "ρ, because correlation can't be observed",
+    "ν, because vol of vol is constant",
+  ]}
+  answer={1}
+  explanation="β and ρ both tilt the smile, so a single day's quotes can't separate them. β determines the backbone, how the smile moves with the forward, so it's set from history or convention."
+/>
+
+<NumericQuiz
+  client:visible
+  question="SABR with β = ½, forward F = 4% and α = 0.06. Ignoring the small correction term, what's the at-the-money lognormal vol, in %?"
+  answer={30}
+  tolerance={0.01}
+  explanation="$\Vol{\sigma}_{\text{ATM}} \approx \alpha/F^{1-\beta} = 0.06/\sqrt{0.04} = 0.06/0.2 = 0.30$, i.e. 30%."
+/>
+
+<NumericQuiz
+  client:visible
+  question="If the at-the-money skew scales like T^(H − ½) with H = 0.1, how many times smaller is the 1-year skew than the 1-month skew?"
+  answer={2.7}
+  tolerance={0.03}
+  explanation="The ratio is $12^{0.4} = e^{0.4\ln 12} \approx e^{0.99} \approx 2.7$."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **SABR**: $dF = \alpha F^\beta dW^1$, $d\alpha = \nu\alpha\,dW^2$, correlation $\rho$. Hagan's formula gives
+  implied vol in closed form: β is the backbone, α the level, ρ the skew, ν the smile.
+- SABR's smile moves **with** the forward, which made it the standard in rates. Its expansion can break down for
+  long expiries and low strikes.
+- **Rough volatility**: log-volatility behaves like fractional Brownian motion with $H \approx 0.1$. It produces
+  an at-the-money skew decaying like $\Time{T}^{H - 1/2}$, matching markets.
+
+**Next up:** Part VIII turns to computation. Most models of Part VII need numerical methods, so we start with the
+most general one: **Monte Carlo**.
+
+### Further reading
+
+- P. Hagan, D. Kumar, A. Lesniewski and D. Woodward, "Managing smile risk", *Wilmott* (2002).
+- J. Gatheral, T. Jaisson and M. Rosenbaum, "Volatility is rough", *Quantitative Finance* (2018).
+- C. Bayer, P. Friz and J. Gatheral, "Pricing under rough volatility", *Quantitative Finance* (2016).
