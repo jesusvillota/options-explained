@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
 import {
-  arithmeticAsianMC, barrierMC, barrierPrice, callSpreadDigital, correlatedPaths, digitalAsset, digitalCallDelta,
+  arithmeticAsianMC, barrierMC, basketCallLevy, barrierPrice, callSpreadDigital, correlatedPaths, digitalAsset, digitalCallDelta,
   digitalCash, discreteBarrierShift, gapCall, geometricAsian, margrabe, powerCall, twoAssetMC,
   type BarrierKind,
 } from '../src/lib/pricing/exotics';
@@ -124,4 +124,13 @@ describe('multi-asset', () => {
     const corr = cov / Math.sqrt(m(ra.map((v) => (v - ma) ** 2)) * m(rb.map((v) => (v - mb) ** 2)));
     expect(corr).toBeCloseTo(-0.6, 1);
   });
+
+  it('Levy moment matching prices a two-asset basket call close to Monte Carlo', () => {
+    for (const rho of [-0.5, 0, 0.5, 0.9]) {
+      const input = { S1: 100, S2: 100, sigma1: 0.25, sigma2: 0.25, rho, T: 1, r: 0.05 };
+      const mc = twoAssetMC((a, b) => Math.max(0.5 * (a + b) - 100, 0), input, 200000, 13);
+      expect(Math.abs(basketCallLevy(0.5, 0.5, input, 100) - mc.price)).toBeLessThan(0.02 * mc.price + 3 * mc.stdError);
+    }
+  });
 });
+

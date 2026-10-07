@@ -399,7 +399,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price the option to exchange one asset for another by changing numeraire. See how correlation
   affects basket and spread options.
 - **Key math:** Margrabe's formula; correlated Brownian motions via the Cholesky factor.
-- **Widgets:** a slider for correlation $\rho$, showing joint paths and the basket's price.
+- **Widgets:** `CorrelationBasket`: a correlation slider with a scatter of simulated year-end prices, and the basket
+  call (Monte Carlo) and exchange option (Margrabe) priced against $\rho$. Library: `margrabe`, `twoAssetMC`,
+  `basketCallLevy`, `correlatedPaths` in `src/lib/pricing/exotics.ts`.
 - **Prereqs:** 18, 33.
 
 ---
@@ -476,6 +478,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `LSMScatter` | 36 | — |
 | `DigitalSpread` | 37 | — |
 | `BarrierReflection`, `AsianMC` | 38 | — |
+| `CorrelationBasket` | 39 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

@@ -257,3 +257,19 @@ export function twoAssetMC(g: (a: number, b: number) => number, { S1, S2, sigma1
   const mean = sum / pairs;
   return { price: mean, stdError: Math.sqrt(Math.max(sum2 / pairs - mean * mean, 0) / pairs) };
 }
+
+/**
+ * Levy (1992) moment matching for a two-asset basket call on w₁S₁ + w₂S₂:
+ * replace the basket at T by a lognormal with the same mean and variance,
+ *   E[B] = w₁F₁ + w₂F₂,  E[B²] = Σ wᵢwⱼFᵢFⱼ e^{ρᵢⱼσᵢσⱼT},
+ * and apply Black's formula. Accurate when the components' vols are similar.
+ */
+export function basketCallLevy(w1: number, w2: number, { S1, S2, sigma1, sigma2, rho, T, r }: TwoAssetInput, K: number): number {
+  const F1 = S1 * Math.exp(r * T), F2 = S2 * Math.exp(r * T);
+  const m1 = w1 * F1 + w2 * F2;
+  const m2 = w1 * w1 * F1 * F1 * Math.exp(sigma1 * sigma1 * T) + w2 * w2 * F2 * F2 * Math.exp(sigma2 * sigma2 * T) + 2 * w1 * w2 * F1 * F2 * Math.exp(rho * sigma1 * sigma2 * T);
+  const v = Math.log(m2 / (m1 * m1)); // = σ_B²T
+  const s = Math.sqrt(v);
+  const d1 = (Math.log(m1 / K) + 0.5 * v) / s;
+  return Math.exp(-r * T) * (m1 * cdf(d1) - K * cdf(d1 - s));
+}
