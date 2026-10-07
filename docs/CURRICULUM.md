@@ -380,7 +380,9 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **Goals:** Price digital, gap, and power options. Replicate digitals with call spreads, and understand
   pin risk.
 - **Key math:** digital call $= e^{-r\tau}N(d_2)$; the limit of a call spread.
-- **Widgets:** a call spread narrowing into a digital, with its delta spiking near expiry.
+- **Widgets:** `DigitalSpread`: a call spread of adjustable width against the digital (payoffs at expiry) and their
+  deltas today; near expiry the digital's delta becomes a spike at the strike (pin risk). Library:
+  `src/lib/pricing/exotics.ts`.
 - **Prereqs:** 18, 21.
 
 ### 38. Path-dependent exotics
@@ -432,7 +434,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 |---|---|---|
 | `OptionTimeline` | 1 | 3, 9 |
 | `PayoffTracer` | 2 | — |
-| `PayoffDiagram` | 2 | 3, 5, 8, 37 |
+| `PayoffDiagram` | 2 | 3, 5, 8 |
 | `ConvexityChord` | 3 | 10, 22 |
 | `TimeValueDiagram` | 3 | 9, 20, 21 |
 | `OptionChain` | 4 | — |
@@ -450,7 +452,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `PathSimulator`, `BrownianZoom`, `QuadraticVariationDemo` | 15 | 16 |
 | `GBMHistogram` | 16 | — |
 | `ItoComparison` | 17 | — |
-| `BSIntegrand` | 18 | 37, 40 |
+| `BSIntegrand` | 18 | — |
 | `HeatDiffusion` | 19 | — |
 | `Heatmap`, `BSPricer` | 20 | 23, 26, 29 |
 | `StrategyBuilder` | 5 | 8, 10 |
@@ -460,7 +462,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `HedgeSimulator` | 24 | — |
 | `HistoricalVolEstimator`, `NewtonIV` | 25 | — |
 | `SmileExplorer` | 26 | — |
-| `ButterflyDensity`, `ImpliedDensity` | 27 | 37 |
+| `ButterflyDensity`, `ImpliedDensity` | 27 | — |
 | `LogContractStrip`, `VixContributions` | 28 | — |
 | `LocalVolMap`, `LocalVolDynamics` | 29 | — |
 | `HestonSmile`, `HestonPaths` | 30 | — |
@@ -470,6 +472,7 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `FDStability`, `FDConvergence` | 34 | — |
 | `CharFnArrows`, `COSReconstruction` | 35 | — |
 | `LSMScatter` | 36 | — |
+| `DigitalSpread` | 37 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (planned, `src/lib/`)

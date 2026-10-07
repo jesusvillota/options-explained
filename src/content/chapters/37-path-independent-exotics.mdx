@@ -1,0 +1,148 @@
+---
+title: "Path-independent exotics"
+part: 9
+chapter: 37
+difficulty: 2
+prerequisites: [18, 21]
+summary: "Digital, gap and power options: payoffs that depend only on the final price, priced with the same tools, and hedged with some surprises."
+---
+import DigitalSpread from '../../components/plots/DigitalSpread';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>All or nothing
+
+A **digital** (or binary) option pays a fixed amount, say \$1, if the stock finishes above the strike, and nothing
+otherwise. No matter how far above: just past the strike pays the same as far beyond it. Digitals are building
+blocks of structured products ("you earn 8% if the index ends higher"), and they're how many retail "binary
+options" are sold.
+
+They look simpler than calls. Pricing them is indeed easy, but hedging them is not: the payoff jumps at the strike,
+and that jump becomes a nightmare for whoever has to hedge it as expiry approaches.
+
+## <span class="section-tag">Intuition</span>Building a digital from calls
+
+A digital can't be bought on most exchanges, but calls can. Buy calls struck a little below \$100 and sell the same
+number struck a little above. That **call spread** pays nothing below the lower strike, rises steadily across the
+gap, and pays the width of the gap above it. Scale it by one over the width and it pays \$1 above the strike, just
+like the digital, except for a ramp instead of a step.
+
+<DigitalSpread client:visible />
+
+<p class="try-this"><strong>Try this:</strong> shrink the spread width from \$20 to \$0.50. The ramp steepens into
+the digital's step, and the prices in the readout converge. Now shorten the time to expiry to a few days. The delta
+of the digital becomes a tall, narrow spike at the strike: with the stock near \$100, a tiny move changes the hedge
+enormously.</p>
+
+That's **pin risk**. When the stock sits near a digital's strike at expiry, the hedger can't know whether they'll owe
+the full payout or nothing, and the delta flips wildly. Dealers protect themselves by **overhedging**: they price and
+hedge the digital as a call spread a little *wider* than zero, struck so that the spread always pays at least as much.
+That's why the digital you're quoted costs a bit more than $e^{-\Rate{r}\Time{\tau}}N(d_2)$.
+
+<Callout type="key" title="Digitals are the slope of calls">
+A digital call is the limit of call spreads, so its price is minus the derivative of the call price with respect to
+the strike: $-\partial\Call{C}/\partial\Strike{K} = e^{-\Rate{r}\Time{\tau}}\,\mathbb{Q}(\Spot{S_T} > \Strike{K})$
+(Chapter 27). With a skew, that derivative includes the smile's slope, so pricing a digital with a flat volatility
+gets it wrong.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Closed forms
+
+Under Black–Scholes with $d_{1,2}$ as usual:
+
+$$
+\text{cash-or-nothing call} = e^{-\Rate{r}\Time{\tau}}N(d_2), \qquad
+\text{asset-or-nothing call} = \Spot{S}e^{-q\Time{\tau}}N(d_1) .
+$$
+
+The first is the discounted risk-neutral probability of finishing in the money; the second pays the stock itself in
+that event. A vanilla call is one minus $\Strike{K}$ of the other:
+
+$$
+\Call{C} = \Spot{S}e^{-q\Time{\tau}}N(d_1) - \Strike{K}e^{-\Rate{r}\Time{\tau}}N(d_2) = \text{asset digital} - \Strike{K}\cdot\text{cash digital},
+$$
+
+which is a neat way to read the Black–Scholes formula. Puts use $N(-d_{1,2})$, and a digital call plus a digital put
+is a bond paying \$1: $e^{-\Rate{r}\Time{\tau}}$.
+
+**Replication and its limit.** The scaled call spread is worth
+$\big[\Call{C}(\Strike{K} - h/2) - \Call{C}(\Strike{K} + h/2)\big]/h \to -\partial\Call{C}/\partial\Strike{K}$ as $h \to 0$.
+
+**Pin risk in numbers.** The digital's delta is
+$e^{-\Rate{r}\Time{\tau}}\varphi(d_2)/(\Spot{S}\Vol{\sigma}\sqrt{\Time{\tau}})$. At the money it grows like
+$1/\sqrt{\Time{\tau}}$ as expiry approaches, so its gamma, and the hedging trades, become unbounded.
+
+**Gap options** pay $\Spot{S_T} - \Strike{K}_2$ whenever $\Spot{S_T} > \Strike{K}_1$. The trigger $\Strike{K}_1$ and
+the strike $\Strike{K}_2$ differ, so the payoff can be negative. From the digitals,
+
+$$
+\text{gap call} = \Spot{S}e^{-q\Time{\tau}}N(d_1) - \Strike{K}_2 e^{-\Rate{r}\Time{\tau}}N(d_2), \qquad d_{1,2} \text{ computed at } \Strike{K}_1 .
+$$
+
+**Power options** pay $(\Spot{S_T}^n - \Strike{K})^+$. Since $\Spot{S_T}^n$ is lognormal with volatility
+$n\Vol{\sigma}$ and forward $F_n = \Spot{S}^n e^{n(\Rate{r} - q)\Time{\tau} + \frac12 n(n-1)\Vol{\sigma}^2\Time{\tau}}$,
+Black's formula prices them directly. The extra term in $F_n$ is a convexity correction: by Jensen,
+$\mathbb{E}[\Spot{S_T}^n]$ exceeds the $n$th power of the forward for $n > 1$.
+
+## <span class="section-tag">Playground</span>Hedging the step
+
+<DigitalSpread client:visible />
+
+<div class="try-this">
+
+- **Price error vs width.** With a year to go, how wide can the spread be before its price differs from the
+  digital's by more than a cent?
+- **The last day.** Set the time to expiry to 1 day. How high is the digital's peak delta? With \$1 million of
+  digital payout, how many shares does that represent?
+- **Far from the strike.** At \$80 or \$120, a few days before expiry, what's the delta? Why is pin risk only a
+  problem near the strike?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With r = 5%, one year to expiry and N(d₂) = 0.53, what is a cash-or-nothing digital call paying \$1 worth?"
+  answer={0.504}
+  tolerance={0.005}
+  prefix="\$"
+  explanation="$e^{-0.05} \times 0.53 \approx 0.9512 \times 0.53 \approx 0.504$."
+/>
+
+<Quiz
+  client:visible
+  question="A digital call and a digital put on the same strike and expiry, held together, are worth..."
+  options={["the stock", "a zero-coupon bond paying \\$1", "a call", "nothing"]}
+  answer={1}
+  explanation="Exactly one of them pays \$1 at expiry, whatever happens, so together they're a riskless \$1 at $\Time{T}$: $e^{-\Rate{r}\Time{\tau}}$ today."
+/>
+
+<Quiz
+  client:visible
+  question="Why do dealers charge more than e^(−rτ)N(d₂) for a digital?"
+  options={[
+    "Because of interest rates",
+    "They hedge it as a slightly wider call spread that always pays at least as much, to avoid pin risk",
+    "Because digitals have no vega",
+    "Because N(d₂) is the real-world probability",
+  ]}
+  answer={1}
+  explanation="An overhedged call spread superreplicates the digital and has bounded gamma. Its cost, slightly above the digital's theoretical value, sets the price."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Cash digital** $= e^{-\Rate{r}\Time{\tau}}N(d_2)$, **asset digital** $= \Spot{S}e^{-q\Time{\tau}}N(d_1)$, and a call is
+  asset digital minus $\Strike{K}$ cash digitals.
+- A digital is the limit of call spreads: minus the strike-derivative of the call price, including the smile's slope.
+- **Pin risk**: near expiry, the digital's delta spikes at the strike. Dealers overhedge with a wider spread.
+- **Gap** and **power** options also have closed forms built from the same pieces.
+
+**Next up:** payoffs that depend on the whole path, not just its end: barriers that switch an option on or off, and
+Asians that pay on an average. Chapter 38.
+
+### Further reading
+
+- E. G. Haug, *The Complete Guide to Option Pricing Formulas*, chapter 4 (exotic options).
+- N. N. Taleb, *Dynamic Hedging* (1997), chapter on binary options.
