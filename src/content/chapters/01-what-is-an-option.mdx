@@ -1,0 +1,256 @@
+---
+title: "What is an option?"
+part: 1
+chapter: 1
+difficulty: 1
+prerequisites: []
+summary: "The right, but not the obligation, to buy or sell something at a price fixed today."
+---
+import OptionTimeline from '../../components/plots/OptionTimeline';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A deal you can walk away from
+
+You've found a house you love. It costs \$300,000, but your mortgage won't be approved for three months. You worry
+that someone else will buy it first, or that the price will go up while you wait.
+
+So you make the seller an offer: *"I'll pay you \$5,000 today. In return, you promise to sell me the house for
+\$300,000 in three months' time. If I decide not to buy, you keep the \$5,000."* The seller
+agrees.
+
+Now fast-forward three months. Two things could have happened.
+
+- **A new train station is announced nearby**, and similar houses now sell for \$360,000. You use your deal: you
+  buy for \$300,000 a house worth \$360,000. You're \$60,000 better off, or \$55,000 once you count the \$5,000
+  you paid.
+- **A flood-risk report comes out**, and the house is now worth only \$250,000. You don't buy it. You walk away,
+  and you lose the \$5,000, but nothing more. Without the deal, if you had simply bought the house three months
+  ago, you would have lost \$50,000.
+
+What you bought for \$5,000 was not the house. You bought a **choice**: the *right* to buy the house at a price
+fixed today, which you can use if it helps you and ignore if it doesn't. That choice is called an **option**,
+and this whole course is about it. In particular, it's about one question that turns out to be surprisingly
+deep: *how much should a choice like that cost?*
+
+## <span class="section-tag">Intuition</span>The right to buy: a call option
+
+Houses are a nice story, but options are mostly traded on shares, stock indices, currencies and commodities.
+Let's switch to a stock.
+
+A share of a company trades today at \$100. You can buy a contract that says:
+
+> The holder of this contract may buy one share for \$100, one year from today.
+
+This is a **call option**. "Call" because you can *call* the share away from the seller. Here is the vocabulary
+we'll use for the rest of the course:
+
+| Term | Meaning | In our example |
+|---|---|---|
+| **Underlying** | The thing the option lets you buy or sell | One share of the stock |
+| **Strike** $\Strike{K}$ | The price fixed in the contract | \$100 |
+| **Expiry** $\Time{T}$ | The date on which the right can be used | One year from today |
+| **Premium** | What you pay today to own the option | About \$10.45 |
+| **Holder** (buyer, "long") | The person who owns the right | You |
+| **Writer** (seller, "short") | The person who must honour it if asked | Whoever sold you the option |
+| **Exercise** | Using the right | Buying the share at \$100 |
+
+<Callout type="note" title="Simplification">
+For now, every option is <strong>European</strong>: you can only exercise it on the expiry date itself. Options
+that you can exercise at any time before expiry are called <em>American</em>. We'll meet them in Chapters 4 and 9.
+Where does the \$10.45 come from? That's the big question of Parts III and IV. For now, take it as the price the
+market charges.
+</Callout>
+
+What happens over the year? The stock price wanders up and down, and nobody knows where it will end. Only one
+number matters to you: the share price **on the expiry date**, which we write $\Spot{S_T}$. Try it below.
+Drag the blue point to choose where the stock ends up.
+
+<OptionTimeline client:visible initialSpotAtExpiry={127} />
+
+<p class="try-this"><strong>Try this:</strong> slowly drag the stock price at expiry down from \$127 to \$80.
+Watch what happens when you cross \$100. Notice that the payoff never goes negative.</p>
+
+At expiry, the decision is simple:
+
+- If the stock is **above** the strike, exercise. You buy at \$100 a share you could immediately sell for
+  $\Spot{S_T}$, so you pocket the difference.
+- If the stock is **below** the strike, do nothing. Nobody wants to pay \$100 for something worth \$85, and
+  you don't have to. The option expires, worth nothing.
+
+The bad scenarios get cut off. Below the strike, it doesn't matter whether the stock ends at \$90 or \$10: you lose
+your \$10.45 premium and nothing more. Above the strike, every extra dollar on the stock is an extra dollar for you.
+
+## <span class="section-tag">Intuition</span>The right to sell: a put option
+
+Flip the contract around:
+
+> The holder of this contract may **sell** one share for \$100, one year from today.
+
+This is a **put option**: you can *put* the share onto the seller. A put pays off when the stock falls. The best
+way to think about it is as **insurance**.
+
+Think of car insurance. You pay a premium every year. If nothing happens, the premium is gone, and that's fine,
+because you were paying for peace of mind. If you crash, the insurer pays for the repair. A put does the same job
+for a share. If you own a share at \$100 and you're afraid it might fall, you buy a put with strike \$100 for about
+\$5.57. If the stock falls to \$72, you still get to sell it for \$100.
+
+<OptionTimeline client:visible type="put" typeToggle initialSpotAtExpiry={72} seed={4} title="A put protects you from a fall" />
+
+<p class="try-this"><strong>Try this:</strong> drag the stock above \$100. The put is no longer needed: you'd
+rather sell the share in the market. It expires worthless, just like an insurance policy you never claim on.
+Then switch to <em>Call</em> and compare the two.</p>
+
+A call pays when the stock ends **above** the strike. A put pays when it ends **below**. Throughout the course,
+calls are <span class="c-call">green</span> and puts are <span class="c-put">red</span>.
+
+## <span class="section-tag">Intuition</span>Rights versus obligations
+
+The word *option* is doing a lot of work. Compare two contracts:
+
+1. **An option:** you *may* buy the share at \$100 in a year.
+2. **An agreement (a "forward"):** you *must* buy the share at \$100 in a year.
+
+With the agreement, you get every outcome, good and bad. If the stock ends at \$130, you gain \$30. If it ends at
+\$70, you still have to pay \$100 for it and you lose \$30. With the option, you get the good outcomes and can
+ignore the bad ones.
+
+<OptionTimeline client:visible showObligation initialSpotAtExpiry={78} seed={21} title="Option vs obligation" />
+
+<Callout type="key">
+An option's value comes from this <strong>asymmetry</strong>. The holder keeps the upside and walks away from the
+downside. Something that can only help you is worth something, so the holder has to pay a premium for it. An
+agreement to buy at a fair price, which can hurt you just as easily as help you, costs nothing to enter. We'll see
+why in Chapter 6.
+</Callout>
+
+The other side of every option is the **writer**. The writer gets the premium today, and in exchange takes on the
+obligation: if the holder exercises, the writer *must* sell (for a call) or buy (for a put) at the strike. The
+writer is in the position of the insurance company. A small sure income, and a possibly large payout later.
+
+## <span class="section-tag">Formalisation</span>Four positions, two formulas
+
+Every option has two sides, and there are two kinds of option, so there are four basic positions:
+
+| Position | You... | Today you | At expiry you |
+|---|---|---|---|
+| **Long call** | own the right to buy at $\Strike{K}$ | pay the premium | exercise if $\Spot{S_T} > \Strike{K}$ |
+| **Short call** | wrote (sold) that right | receive the premium | must sell at $\Strike{K}$ if the holder exercises |
+| **Long put** | own the right to sell at $\Strike{K}$ | pay the premium | exercise if $\Spot{S_T} < \Strike{K}$ |
+| **Short put** | wrote (sold) that right | receive the premium | must buy at $\Strike{K}$ if the holder exercises |
+
+Now let's write down what an option is worth on its expiry date. Everything that happens before that date can
+be ignored, because we already know how the holder decides.
+
+A **call** is worth $\Spot{S_T} - \Strike{K}$ if that's positive, and nothing otherwise. That is "the larger of
+$\Spot{S_T} - \Strike{K}$ and zero":
+
+$$
+\Call{C_T} = \max\big(\Spot{S_T} - \Strike{K},\; 0\big).
+$$
+
+A **put** is worth $\Strike{K} - \Spot{S_T}$ if that's positive, and nothing otherwise:
+
+$$
+\Put{P_T} = \max\big(\Strike{K} - \Spot{S_T},\; 0\big).
+$$
+
+The subscript $T$ means "at time $\Time{T}$", the expiry date. The $\max(\cdot, 0)$ is the formula's version of
+*you don't have to*: whenever exercising would cost you money, the formula returns zero instead.
+
+<Callout type="warning">
+The premium does not appear in these formulas. $\Call{C_T}$ is what the option is <em>worth</em> at expiry. Your
+<em>profit</em> also has to subtract what you paid for it. That's the difference between a <strong>payoff</strong>
+and a <strong>profit</strong>, and Chapter 2 is about exactly that.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Who uses options, and why?
+
+Options trade in very large volumes every day. Almost every user wants one of three things.
+
+**Hedgers** want protection. A wheat farmer worried about a fall in grain prices buys puts. An airline worried
+about a rise in fuel prices buys calls on jet fuel. A pension fund that wants to limit its losses in a crash buys
+puts on a stock index. In each case, the premium is the cost of insurance.
+
+**Speculators** want leverage. Suppose you think the stock will go up. You could buy a share for \$100, or a call
+for \$10.45. If the stock ends at \$120, the share has made 20%. The call pays \$20, so you made
+\$20 − \$10.45 = \$9.55 on \$10.45, which is a 91% return. But if the stock just stays at \$100, the share has made
+0% and the call has lost 100%. You can see the trade-off below.
+
+<OptionTimeline client:visible showStock initialSpotAtExpiry={120} seed={8} title="Leverage: option vs stock" />
+
+**Writers** want income. Selling options brings in premium today, in exchange for taking on risk. That is the
+same business model as an insurer's. It works well most of the time, and it can go badly wrong in a crash.
+
+## <span class="section-tag">Playground</span>Your turn
+
+Everything from this chapter is in one widget below. Switch between call and put, move the strike, and drag the
+stock price at expiry.
+
+<OptionTimeline client:visible typeToggle strikeSlider showObligation initialSpotAtExpiry={112} seed={2} title="Playground" />
+
+<div class="try-this">
+
+- **Set the strike to \$130.** The premium drops a lot. Why? *(Hint: how far does the stock now have to rise
+  before the call pays anything?)*
+- **Switch to a put and move the strike up.** Does the put get cheaper or more expensive? Why?
+- **For a call with strike \$100, find the stock price where your net result is exactly zero.** You'll meet this
+  number again in Chapter 2. It's called the *breakeven*.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="You hold a call with strike \$90. On the expiry date the stock trades at \$84. What should you do?"
+  options={[
+    "Exercise: buy the share at \\$90.",
+    "Let the option expire.",
+    "You must buy the share at \\$90; that's the contract.",
+    "Sell the share to the writer at \\$90.",
+  ]}
+  answer={1}
+  explanation="Exercising means paying \$90 for a share worth \$84, which is a loss of \$6. A call is a right, not an obligation, so you let it expire. Its value is $\max(84 - 90, 0) = 0$."
+/>
+
+<Quiz
+  client:visible
+  question="In an option contract, who carries the obligation?"
+  options={[
+    "The holder (buyer).",
+    "The writer (seller).",
+    "Both sides equally.",
+    "Neither: it's an option.",
+  ]}
+  answer={1}
+  explanation="The holder pays the premium and gets the right. The writer receives the premium and takes on the obligation to buy or sell at the strike if the holder chooses to exercise."
+/>
+
+<NumericQuiz
+  client:visible
+  question="You paid \$6 for a put with strike \$100. At expiry the stock is at \$91. What is your net result, in dollars? (Use a minus sign for a loss.)"
+  answer={3}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="The put lets you sell at \$100 a share worth \$91, so it pays \$9. Subtract the \$6 premium and your net result is +\$3."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- An **option** is a *right*, not an obligation, to buy (**call**) or sell (**put**) something at a fixed
+  **strike** $\Strike{K}$ on an **expiry** date $\Time{T}$.
+- The **holder** pays a **premium** today for that right. The **writer** receives the premium and must honour
+  the contract.
+- At expiry the holder exercises only when it helps: a call when $\Spot{S_T} > \Strike{K}$, a put when
+  $\Spot{S_T} < \Strike{K}$. So $\Call{C_T} = \max(\Spot{S_T} - \Strike{K}, 0)$ and
+  $\Put{P_T} = \max(\Strike{K} - \Spot{S_T}, 0)$.
+- Options are worth something because of the **asymmetry**: you keep the upside and avoid the downside.
+- People use options to **hedge** (insurance), to **speculate** (leverage), and to earn **income** (writing).
+
+**Next up:** we've been answering "what's the option worth at expiry?" one scenario at a time. In Chapter 2 we'll
+answer it for *every* scenario at once, with a single picture: the **payoff diagram**.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapters 1 and 10.
