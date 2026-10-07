@@ -1,0 +1,170 @@
+---
+title: "Delta hedging in practice"
+part: 5
+chapter: 24
+difficulty: 3
+prerequisites: [22]
+summary: "Real hedges are rebalanced at discrete times and priced with a volatility that may be wrong. Simulate what's left over."
+---
+import HedgeSimulator from '../../components/plots/HedgeSimulator';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The perfect hedge isn't
+
+Black–Scholes promises that a dealer who sells an option and continuously holds $\Delta$ shares ends up with
+exactly zero profit or loss, whatever the stock does. That promise rests on two idealisations:
+
+1. **Continuous rebalancing.** In reality you trade at discrete times, say once a day, and between trades your
+   hedge drifts out of date.
+2. **Known volatility.** You price and hedge with an *implied* volatility, but the stock moves with whatever
+   *realised* volatility it actually has.
+
+So what does a real hedging P&L look like? It's random, and its shape is the subject of this chapter. We'll find
+its spread from discrete hedging and its bias from getting volatility wrong.
+
+## <span class="section-tag">Intuition</span>Hedge more often, sleep better
+
+Sell a one-year at-the-money call and hedge it with the Black–Scholes delta, rebalancing monthly, weekly, daily,
+or more often. Each simulation below runs 400 independent stock paths and shows the distribution of your final
+P&L:
+
+<HedgeSimulator client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with implied and realised volatility both at 20%, step through
+<em>monthly → weekly → daily → 4× a day</em>. The histogram narrows each time. Hedging four times as often halves
+the spread: the error shrinks like $1/\sqrt{N}$, where $N$ is the number of rebalances.</p>
+
+Why isn't it zero? Between rebalances, the stock moves by some amount and your fixed delta misses the curvature:
+you earn or lose $\tfrac12\Gamma(\Delta\Spot{S})^2$ minus the theta for that interval (Chapter 22). Over each
+interval those don't cancel exactly. They only cancel *on average*. With $N$ independent small errors, the total
+grows like $\sqrt{N}$ times something of size $1/N$, so it shrinks like $1/\sqrt{N}$.
+
+## <span class="section-tag">Intuition</span>Getting volatility wrong
+
+Now keep the hedging daily and change the *realised* volatility while keeping the implied (the price you sold at)
+fixed at 20%.
+
+- **Realised above implied** (the stock is wilder than you priced): the histogram slides **left**. You sold
+  gamma too cheaply. Every big move costs you more than the theta you collected.
+- **Realised below implied**: it slides **right**. You collected more theta than the moves cost you.
+
+The bias is roughly $\mathcal{V} \times (\Vol{\sigma}_I - \Vol{\sigma}_R)$: the option's sensitivity to volatility
+times how wrong you were. This is how volatility traders make money. They sell options when they think implied
+volatility is too high relative to what will be realised, and hedge away the direction.
+
+<Callout type="key" title="Two sources of hedging P&L">
+<strong>Discreteness</strong> adds noise with spread ≈ $\sqrt{\pi/4}\,\mathcal{V}\Vol{\sigma}/\sqrt{N}$ and
+average zero. <strong>Volatility mismatch</strong> adds a bias ≈
+$\tfrac12\int\Gamma\Spot{S}^2(\Vol{\sigma}_I^2 - \Vol{\sigma}_R^2)\,dt$ for the option seller. The real-world drift
+of the stock adds neither, which is why the simulator's 8% drift doesn't matter.
+</Callout>
+
+## <span class="section-tag">Intuition</span>What the simulation leaves out
+
+Real hedging faces more than this:
+
+- **Transaction costs.** Every rebalance pays a bid–ask spread. Hedging more often cuts the variance but raises
+  costs. The optimal frequency balances the two (Leland, 1985).
+- **Jumps.** If the stock gaps overnight, no amount of rebalancing helps. The loss is
+  $\tfrac12\Gamma\cdot(\text{jump})^2$ at once, and the risk is concentrated in short-dated, at-the-money options
+  (Chapter 31).
+- **Stochastic volatility.** Volatility itself moves (Chapter 30). Delta hedging alone leaves you exposed to vega,
+  which can only be hedged with other options.
+
+## <span class="section-tag">Formalisation</span>The hedging error
+
+Let $V$ be the Black–Scholes value at implied volatility $\Vol{\sigma}_I$, and suppose the stock follows
+$d\Spot{S} = \mu\Spot{S}\,dt + \Vol{\sigma}_R\Spot{S}\,dW$. A seller who holds $\Delta = V_S$ shares and finances
+at $\Rate{r}$ has a position $\Pi = -V + \Delta\Spot{S} + \text{cash}$. Using Itô's lemma and the PDE satisfied by
+$V$ at $\Vol{\sigma}_I$:
+
+$$
+d\Pi - \Rate{r}\Pi\,dt = \tfrac12\,\Gamma\,\Spot{S}^2\big(\Vol{\sigma}_I^2 - \Vol{\sigma}_R^2\big)\,dt .
+$$
+
+There's no $dW$ term: with continuous hedging the P&L is **deterministic given the path**, but path-dependent
+through $\Gamma\Spot{S}^2$. Integrating, the discounted final P&L is
+
+$$
+\text{P\&L} = \tfrac12\int_0^{\Time{T}} e^{\Rate{r}(\Time{T}-t)}\,\Gamma_t\Spot{S_t}^2\,\big(\Vol{\sigma}_I^2 - \Vol{\sigma}_R^2\big)\,dt .
+$$
+
+**Discrete hedging.** With $N$ equally spaced rebalances and $\Vol{\sigma}_I = \Vol{\sigma}_R = \Vol{\sigma}$, each
+interval contributes an error $\tfrac12\Gamma\Spot{S}^2\big[(\Delta\Spot{S}/\Spot{S})^2 - \Vol{\sigma}^2\Delta t\big]$,
+with mean zero and variance $\tfrac12(\Gamma\Spot{S}^2\Vol{\sigma}^2\Delta t)^2$. Summing over the life of an
+at-the-money option, Derman and Kamal approximate the standard deviation of the final P&L by
+
+$$
+\operatorname{sd}(\text{P\&L}) \approx \sqrt{\frac{\pi}{4}}\;\frac{\mathcal{V}\Vol{\sigma}}{\sqrt{N}} .
+$$
+
+The simulator reports this rule of thumb next to the simulated value.
+
+<details>
+<summary>Where √(π/4) comes from</summary>
+
+For an at-the-money option, $\Gamma_t\Spot{S}^2\Vol{\sigma}^2 \approx \Spot{S}\Vol{\sigma}\varphi(0)/\sqrt{\Time{T} - t}$.
+Squaring and integrating $\int_0^{\Time{T}} dt/(\Time{T} - t)$ needs care at expiry. Averaging over where the stock
+ends up (the gamma is only large if it stays near the strike) replaces the divergent integral with a finite
+constant. The $\pi/4$ is what remains after that average. See Derman's notes, or Bertsimas, Kogan and Lo (2000),
+for the full calculation.
+
+</details>
+
+## <span class="section-tag">Playground</span>Run your own book
+
+<HedgeSimulator client:visible />
+
+<div class="try-this">
+
+- **Set implied 25%, realised 20%, daily hedging.** You're selling volatility above what's realised. How big is
+  your average profit? Compare it with vega × 5 points.
+- **Hedge monthly with matched volatilities.** How often do you lose more than the premium you collected?
+- **Re-simulate a few times.** Which of the two numbers, mean or standard deviation, is more stable, and why?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Your hedging P&L has standard deviation \$1.20 when you rebalance weekly (52 times a year). Roughly what would it be with daily rebalancing (252 times)?"
+  answer={0.55}
+  tolerance={0.03}
+  prefix="\$"
+  explanation="The error scales like $1/\sqrt{N}$: $1.20 \times \sqrt{52/252} \approx 1.20 \times 0.454 \approx 0.55$."
+/>
+
+<Quiz
+  client:visible
+  question="You sold a call at 20% implied volatility and delta-hedged it daily. The stock realised 30% volatility. On average you..."
+  options={["made money", "lost money", "broke even", "it depends on the stock's drift"]}
+  answer={1}
+  explanation="The seller is short gamma. With realised above implied, the gamma losses exceed the theta collected: $\tfrac12\Gamma\Spot{S}^2(\Vol{\sigma}_I^2 - \Vol{\sigma}_R^2) < 0$."
+/>
+
+<Quiz
+  client:visible
+  question="Which of these does NOT affect the hedged P&L (in the model)?"
+  options={["Rebalancing frequency", "Realised volatility", "The stock's expected return μ", "Implied volatility used to price"]}
+  answer={2}
+  explanation="The hedge removes the stock's direction, so the drift cancels, as in the Black–Scholes PDE derivation."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- With **discrete hedging**, the P&L is random with mean ≈ 0 and spread ≈ $\sqrt{\pi/4}\,\mathcal{V}\Vol{\sigma}/\sqrt{N}$,
+  shrinking like $1/\sqrt{N}$.
+- With **wrong volatility**, there's a bias: the seller earns
+  $\tfrac12\int\Gamma\Spot{S}^2(\Vol{\sigma}_I^2 - \Vol{\sigma}_R^2)\,dt$, positive if implied exceeds realised.
+- The stock's drift doesn't matter. Transaction costs, jumps and moving volatility make real hedging harder still.
+
+**Next up:** we've treated volatility as an input. Part VI turns it into the *output*: the market quotes options by
+their **implied volatility**, and the pattern those volatilities make across strikes, the smile, says a lot about
+what Black–Scholes leaves out.
+
+### Further reading
+
+- E. Derman and M. Kamal, "When you cannot hedge continuously: the corrections of Black–Scholes" (1999).
+- H. E. Leland, "Option pricing and replication with transactions costs" (1985).
