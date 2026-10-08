@@ -120,10 +120,10 @@
 @media (min-width: 900px) { .chain-detail { grid-template-columns: 1.3fr 1fr; align-items: start; } }
 
 /* Select */
-.ctl-select { display: flex; flex-direction: column; gap: 0.15rem; }
+.ctl-select { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; max-width: 100%; }
 .ctl-select select {
   min-height: 40px; padding: 0 2rem 0 0.8rem; border-radius: 8px; font: inherit; cursor: pointer;
-  border: 1px solid var(--border); background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border); background: var(--bg-inset); color: var(--text); max-width: 100%;
 }
 
 /* Strategy builder (Chapter 5) */

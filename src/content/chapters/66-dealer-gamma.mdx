@@ -1,0 +1,184 @@
+---
+title: "Dealer gamma and feedback"
+part: 15
+chapter: 66
+difficulty: 2
+prerequisites: [21, 61]
+summary: "Dealers delta-hedge the options they hold, and their hedging trades move the stock. Long dealer gamma damps moves; short dealer gamma amplifies them. Gamma exposure by strike, the gamma flip, and a feedback multiplier of 1/(1 + λΓ)."
+---
+import DealerGammaSim from '../../components/plots/DealerGammaSim';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>When the hedgers become the market
+
+Market commentary is full of a strange vocabulary: *dealer gamma*, *GEX*, *the gamma flip*. The claim is that the stock
+market behaves differently depending on how option dealers are positioned. When dealers are "long gamma", markets are
+calm and seem to snap back from every move; when they're "short gamma", moves run further and volatility rises.
+
+That sounds like folklore, but there's a simple mechanism behind it. Dealers delta-hedge (Chapter 21), and delta
+hedging means trading the stock every time it moves. Chapter 61 showed that trading moves prices. Put the two
+together and the hedgers' trades feed back into the price they're hedging. This part of the course is about those
+feedback loops: here in volatility, then in pinning at expiry, in zero-day options, and in crashes.
+
+## <span class="section-tag">Intuition</span>Buy high, sell low, or the reverse
+
+A dealer who has **sold** options to customers is **short gamma**. As the stock rises, its short calls gain delta
+against it, so it must **buy** stock to stay hedged; as the stock falls, it must **sell**. It trades in the same
+direction as the move, pushing the stock further: hedging amplifies volatility.
+
+A dealer who has **bought** options from customers, from investors who sell covered calls, say, is **long gamma**. It
+sells into rallies and buys dips, leaning against every move: hedging damps volatility.
+
+How much depends on how big the dealers' gamma is compared with the market's depth. A few thousand shares of
+hedging in a stock that trades millions barely matter; hundreds of thousands of shares per dollar of movement do.
+
+<DealerGammaSim client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the default book is index-like: customers have bought puts, so
+dealers are short gamma at low strikes, and customers have sold calls, so dealers are long gamma above. The black
+curve crosses zero at the <em>gamma flip</em>, a little below the current price. Above it, the blue path (with
+hedging) moves less than the grey one; when the stock falls through the flip, the blue path starts to swing harder.
+Switch to <em>dealers short gamma</em> and raise the price impact: realised volatility climbs well above the
+stock's own 20%.</p>
+
+<Callout type="key" title="Hedging feedback">
+If the stock would have moved by $\delta F$, dealers with net gamma $\Gamma_D$ trade $-\Gamma_D\,\delta S$ shares, and
+with price impact $\lambda$ the actual move is $\delta S = \delta F/(1 + \lambda\Gamma_D)$. Volatility is scaled by
+$1/(1 + \lambda\Gamma_D)$: below one when dealers are long gamma, above one when they're short.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Hedge flows and the feedback multiplier
+
+**Hedge flow.** Let the dealers' option book have delta $\Delta_D(\Spot{S})$ and gamma $\Gamma_D = \partial\Delta_D/\partial \Spot{S}$,
+in shares per dollar. To stay delta-neutral they hold $-\Delta_D$ shares. After the stock moves by $\delta \Spot{S}$, their
+option delta has changed by $\Gamma_D\,\delta \Spot{S}$, so they trade
+
+$$
+\text{hedge flow} = -\Gamma_D\,\delta \Spot{S} \ \text{shares}.
+$$
+
+**Feedback.** Let $\delta F$ be the move the stock would make without the dealers' trades, driven by news and other
+traders. With linear price impact $\lambda$, in dollars per share (Kyle's lambda of Chapter 51), the hedge flow adds
+$-\lambda\Gamma_D\,\delta \Spot{S}$ to the move:
+
+$$
+\delta \Spot{S} = \delta F - \lambda\Gamma_D\,\delta \Spot{S} ,
+$$
+
+so
+
+$$
+\delta \Spot{S} = \frac{\delta F}{1 + \lambda\Gamma_D} .
+$$
+
+If $\delta F$ has volatility $\Vol{\sigma}$, the stock's volatility is $\Vol{\sigma}/(1 + \lambda\Gamma_D)$. In the widget,
+1 million shares move the stock by 0.4%, so $\lambda$ = 0.0000004 dollars per share. The index-like dealers hold
+about +190,000 shares of gamma at \$100, a multiplier of 0.93; at \$90, below the flip, they're short about 410,000,
+and the multiplier is 1.19.
+
+**When feedback runs away.** Because $\Gamma_D$ depends on the price, the multiplier changes along the path. If
+dealers are short enough gamma that $\lambda\Gamma_D$ approaches $-1$, the denominator vanishes: any small shock sets off
+hedging that moves the price, which sets off more hedging. That's the seed of the crashes in Chapter 69. The widget
+caps the multiplier at 4 to keep the toy market stable.
+
+**Gamma exposure.** Practitioners summarise dealer positioning by **gamma exposure** (GEX) per strike: the dollar value
+of stock dealers would have to trade if the stock moved 1%,
+
+$$
+\text{GEX}_K = n_K \times 100 \times \Gamma_K \times \Spot{S}^2 \times 1\% ,
+$$
+
+with $n_K$ the dealers' net position in contracts at strike $K$. Summing over strikes and recomputing at each spot
+gives the black curve; where it crosses zero is the **gamma flip**. The catch is that nobody observes dealers'
+positions directly. Public GEX estimates start from exchange open interest and *assume* who is on each side, typically
+that customers buy puts and sell calls. The widget's presets are such assumptions.
+
+**Why it matters for the smile.** In the index-like book, the stock's realised volatility rises as it falls through
+the flip. That's a mechanical source of the leverage effect and of the negative correlation between returns and
+volatility that Part VII built into stochastic-volatility models.
+
+**Evidence.** Ni, Pearson, Poteshman and White (2021) found that stocks whose options are net bought by end users, so
+that dealers are net short gamma, have higher volatility, and those with dealers net long gamma lower, especially near
+expiry when gamma is concentrated. Baltussen, Da, Lammers and Martens (2021) linked the market's last-half-hour
+momentum to the hedging of short-gamma positions.
+
+## <span class="section-tag">Playground</span>Positioning and liquidity
+
+<DealerGammaSim client:visible initialPositioning="short" title="Playground: the feedback loop" />
+
+<div class="try-this">
+
+- **Thin markets.** With dealers short gamma, raise the price impact to 1%. How much does realised volatility rise?
+  What does the multiplier at \$100 say it should be?
+- **Long gamma calm.** Switch to dealers long gamma. Does the blue path still wander as far as the grey one?
+- **The flip.** In the index-like book, click *Re-simulate* until the stock falls below the flip. Does the blue path
+  change character there?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="A dealer is long gamma. The stock rises sharply. What does the dealer's delta hedge do?"
+  options={[
+    "Buys stock, pushing the price further up",
+    "Sells stock, leaning against the rise",
+    "Nothing: gamma doesn't affect the hedge",
+    "Buys puts",
+  ]}
+  answer={1}
+  explanation="Long gamma means the option delta rises with the stock, so the dealer becomes too long and must sell. Long-gamma hedging sells rallies and buys dips."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Dealers are net short 300,000 shares of gamma per dollar ($\Gamma_D = -300{,}000$), price impact is $\lambda = 0.000001$ dollars per share, and the stock's volatility without dealers is 20%. What's its volatility with the feedback, in percent?"
+  answer={28.6}
+  tolerance={0.1}
+  explanation="$\lambda\Gamma_D = -0.3$, so the multiplier is $1/(1 - 0.3) \approx 1.43$ and volatility is $20\% \times 1.43 \approx 28.6\%$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Dealers are long 20,000 contracts of an option with gamma 0.05 per share, on a \$100 stock. What's the gamma exposure, in millions of dollars per 1% move?"
+  answer={10}
+  tolerance={0.01}
+  explanation="$20{,}000 \times 100 \times 0.05 \times 100^2 \times 1\% = 10{,}000{,}000$ dollars: dealers would sell \$10 million of stock if it rose 1%."
+/>
+
+<Quiz
+  client:visible
+  question="What happens as $\lambda\Gamma_D$ approaches $-1$?"
+  options={[
+    "Volatility falls to zero",
+    "Nothing special",
+    "The multiplier $1/(1 + \\lambda\\Gamma_D)$ blows up: hedging flows feed on themselves and small shocks become large moves",
+    "Dealers stop hedging",
+  ]}
+  answer={2}
+  explanation="When dealers' short gamma times the market's impact is close to one, each hedge trade moves the price enough to require nearly as large a trade again. The feedback loop becomes unstable."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Delta hedging is order flow: dealers trade $-\Gamma_D\,\delta S$ shares after a move $\delta S$.
+- With price impact $\lambda$, moves are scaled by $1/(1 + \lambda\Gamma_D)$: **long dealer gamma damps**, **short dealer
+  gamma amplifies**.
+- **Gamma exposure** per strike is $n_K \times 100 \times \Gamma_K S^2 \times 1\%$; the **gamma flip** is where dealers'
+  net gamma changes sign. Public estimates rest on assumptions about who holds what.
+- As $\lambda\Gamma_D \to -1$ the feedback becomes unstable.
+
+**Next up:** gamma is largest for options close to the money and close to expiry. Chapter 67 follows long-gamma
+hedging into expiry day and finds that it can pin a stock to a strike.
+
+### Further reading
+
+- S. X. Ni, N. D. Pearson, A. M. Poteshman and J. White, "Does option trading have mechanical effects on stock
+  prices?", *Review of Financial Studies* 34 (2021).
+- G. Baltussen, Z. Da, S. Lammers and M. Martens, "Hedging demand and market intraday momentum", *Journal of
+  Financial Economics* 142 (2021).
+- A. Barbon and A. Buraschi, "Gamma fragility", working paper (2020).
+- R. Frey and A. Stremme, "Market volatility and feedback effects from dynamic hedging", *Mathematical Finance* 7
+  (1997).
