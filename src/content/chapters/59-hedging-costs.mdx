@@ -1,0 +1,173 @@
+---
+title: "Hedging with transaction costs"
+part: 13
+chapter: 59
+difficulty: 3
+prerequisites: [24]
+summary: "Hedging more often cuts the error but runs up the bill. Leland prices the bill into volatility; Whalley and Wilmott show that you should hedge by a band, not by the clock."
+---
+import HedgeBands from '../../components/plots/HedgeBands';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The bill for perfect hedging
+
+Chapter 24 showed that hedging more often makes the hedge more accurate: the error shrinks like $1/\sqrt{N}$ with
+$N$ rebalances. In a world without costs, the cure for every hedging error is to trade more. But every trade
+crosses a spread, and Chapter 48 already gave the extreme answer: with proportional costs, hedging continuously costs
+an infinite amount.
+
+So a real hedger must choose. Trade rarely and accept a noisy hedge; trade often and pay for it. This chapter finds
+the shape of that trade-off, shows how Hayne Leland priced the cost into the option, and shows why the best hedgers
+don't rebalance on a schedule at all.
+
+## <span class="section-tag">Intuition</span>Error shrinks, cost grows
+
+Each rebalance trades the change in delta, which is about gamma times the stock's move. Over a short interval the
+move is of order $\sigma\sqrt{\delta t}$, so each trade is small, but there are $N = T/\delta t$ of them. The total
+amount traded grows like $N\sqrt{\delta t} \propto \sqrt{N}$, and so does the cost. Doubling the rebalancing frequency
+cuts the error by about 30% and raises the bill by about 40%.
+
+For a hedger who has *sold* an option, costs work against it twice over. Being short gamma, it buys after the stock
+rises and sells after it falls. Every rebalance buys high or sells low by one spread, which is exactly what a higher
+volatility would do. **Leland's** insight was to price the cost in as extra volatility: sell the option at a higher
+volatility, and use the extra premium to pay for the hedging.
+
+<Callout type="key" title="Leland's adjusted volatility">
+A short option hedged every $\delta t$ with proportional cost $\epsilon$ should be priced and hedged at
+$\sigma_L^2 = \sigma^2(1 + \text{Le})$, with Leland's number $\text{Le} = \sqrt{2/\pi}\;2\epsilon/(\sigma\sqrt{\delta t})$.
+Hedge more often and $\text{Le}$ grows: you pay for accuracy in volatility points.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Hedge by the band, not the clock
+
+A schedule rebalances even when the hedge is nearly right, and waits even when it's badly wrong. A better rule
+watches the hedge all the time but only trades when it drifts too far from the target delta: when it leaves a
+**no-trade band**, trade back just to the edge of the band, not to its centre. Hodges and Neuberger showed in 1989
+that this is the shape of the optimal strategy for a risk-averse hedger, and Whalley and Wilmott found the band's width
+for small costs.
+
+<HedgeBands client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the grey curve is hedging by the clock, from 6 to 252 rebalances over
+three months. Moving along it trades cost for risk. The green curve is hedging by the band, from loose to tight. It
+sits below and to the left: for the same risk, the band costs much less, because it never trades when it doesn't need
+to. Raise the trading cost: both curves move right, and the band's advantage grows.</p>
+
+## <span class="section-tag">Formalisation</span>Leland's volatility and the Whalley–Wilmott band
+
+**Expected cost per rebalance.** With a one-way cost $\epsilon$ per dollar traded, rebalancing over $\delta t$ trades
+$|\delta\Delta| \approx |\Gamma|\,|\delta\Spot{S}|$ shares, and $\delta\Spot{S} \approx \Vol{\sigma}\Spot{S}\sqrt{\delta t}\,Z$ with
+$Z \sim N(0, 1)$ and $\mathbb{E}|Z| = \sqrt{2/\pi}$. So the expected cost per step is
+
+$$
+\epsilon\,\Spot{S}\,\mathbb{E}|\delta\Delta| \approx \epsilon\,\Vol{\sigma}\,\Spot{S}^2\,|\Gamma|\,\sqrt{\tfrac{2}{\pi}}\,\sqrt{\delta t},
+$$
+
+and per unit of time it is that divided by $\delta t$, which blows up as $\delta t \to 0$.
+
+**Leland's equation.** Add the cost rate to the hedger's Black–Scholes PDE (Chapter 19). For a short position in an
+option with $\Gamma > 0$, the cost adds to what the premium must cover:
+
+$$
+\begin{aligned}
+& V_t + \tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma + \epsilon\,\Vol{\sigma}\,\Spot{S}^2\Gamma\sqrt{\tfrac{2}{\pi\,\delta t}} \\
+& \quad + \Rate{r}\Spot{S}V_{S} - \Rate{r}V = 0 .
+\end{aligned}
+$$
+
+The two gamma terms combine into $\tfrac12\sigma_L^2\Spot{S}^2\Gamma$ with
+
+$$
+\sigma_L^2 = \Vol{\sigma}^2\big(1 + \text{Le}\big), \qquad \text{Le} = \sqrt{\frac{2}{\pi}}\;\frac{2\epsilon}{\Vol{\sigma}\sqrt{\delta t}},
+$$
+
+where $2\epsilon$ is the round-trip cost. So the short option is priced with Black–Scholes at $\sigma_L$. A long option
+hedger instead gets $\sigma^2(1 - \text{Le})$: its gamma trades sell high and buy low, but costs eat into the profit.
+With $\epsilon$ = 0.2%, $\sigma$ = 20% and daily rebalancing ($\delta t = 1/252$), $\text{Le} \approx 0.25$ and
+$\sigma_L \approx 22.4\%$.
+
+**Error against cost.** Chapter 24 found that the hedging error's standard deviation falls like $1/\sqrt{N}$. The cost
+above, summed over $N$ steps, grows like $\sqrt{N}$. There's no rebalancing frequency that removes both; a hedger
+who minimises expected cost plus a multiple of the error's standard deviation picks an interior $N$, and more costly
+markets push it lower.
+
+**The band.** Hodges and Neuberger (1989) price an option by **utility indifference**: the premium at which a hedger
+with exponential utility is indifferent between writing the option (and hedging optimally) and not. The optimal
+hedge keeps the share holding inside a band around the Black–Scholes delta and trades only to its edges. For small
+costs, Whalley and Wilmott (1997) found the band's half-width to be
+
+$$
+H = \Big(\frac{3}{2}\;\frac{e^{-\Rate{r}(T - t)}\,\epsilon\,\Spot{S}\,\Gamma^2}{\gamma}\Big)^{1/3},
+$$
+
+with $\gamma$ the risk aversion. The **cube root** is the signature result: halving the cost narrows the band by only
+about 20%, and the band is widest where gamma is large, near the money and close to expiry, where tracking delta
+exactly would mean trading constantly.
+
+## <span class="section-tag">Playground</span>Price the costs in
+
+<HedgeBands client:visible title="Playground: the cost of hedging" />
+
+<div class="try-this">
+
+- **Leland's premium.** With costs of 0.2%, how much more per contract does Leland charge for daily hedging than for
+  weekly? Compare it with the expected costs of the 13× and 63× points on the grey curve.
+- **Cheap markets.** Set the cost to 0.05%. How close do the two curves come, and why?
+- **Pick a rule.** Suppose your risk limit is a standard deviation of \$50 per contract. Which point on each curve
+  meets it most cheaply, and how much does the band save?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With one-way costs of 0.2%, volatility 20% and daily rebalancing ($\delta t = 1/252$), what's Leland's volatility for a short option, in percent?"
+  answer={22.4}
+  tolerance={0.05}
+  explanation="$\text{Le} = \sqrt{2/\pi} \times 0.004/(0.2\sqrt{1/252}) \approx 0.798 \times 0.004/0.0126 \approx 0.253$, so $\sigma_L = 0.2\sqrt{1.253} \approx 22.4\%$."
+/>
+
+<Quiz
+  client:visible
+  question="Why does the total cost of delta hedging grow when you rebalance more often, even though each trade gets smaller?"
+  options={[
+    "Because each trade's size falls like $\\sqrt{\\delta t}$ while the number of trades grows like $1/\\delta t$, so the total grows like $1/\\sqrt{\\delta t}$",
+    "Because exchanges charge more for frequent traders",
+    "Because delta grows with frequency",
+    "It doesn't: total cost is independent of frequency",
+  ]}
+  answer={0}
+  explanation="Each rebalance trades about $\Gamma S\sigma\sqrt{\delta t}$ shares, and there are $T/\delta t$ of them: a total of order $1/\sqrt{\delta t} \propto \sqrt{N}$. In the limit it's infinite, which is why exact replication fails with costs (Chapter 48)."
+/>
+
+<Quiz
+  client:visible
+  question="Trading costs fall by a factor of 8. By what factor does the Whalley–Wilmott no-trade band shrink?"
+  options={["8", "√8 ≈ 2.8", "2", "It doesn't change"]}
+  answer={2}
+  explanation="$H \propto \epsilon^{1/3}$, and $8^{1/3} = 2$. The band is surprisingly insensitive to cost."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- With proportional costs, the hedging error falls like $1/\sqrt{N}$ while the cost **grows like $\sqrt{N}$**: there's no free
+  accuracy.
+- **Leland:** price and hedge a short option at $\sigma_L^2 = \sigma^2(1 + \text{Le})$, with
+  $\text{Le} = \sqrt{2/\pi}\,2\epsilon/(\sigma\sqrt{\delta t})$.
+- **Hedge by the band, not the clock:** trade only when the hedge leaves a band around delta, and only to its edge.
+- The **Whalley–Wilmott** band has half-width $\big(\tfrac32 e^{-r(T - t)}\epsilon S\Gamma^2/\gamma\big)^{1/3}$: cube-root in cost,
+  widest where gamma is large.
+
+**Next up:** a dealer who can't hedge perfectly charges for the risk that's left, and charges more where customers want
+to trade in one direction. Chapter 60 shows how that turns end-user demand into the shape of the smile.
+
+### Further reading
+
+- H. E. Leland, "Option pricing and replication with transactions costs", *Journal of Finance* 40 (1985).
+- S. D. Hodges and A. Neuberger, "Optimal replication of contingent claims under transaction costs", *Review of
+  Futures Markets* 8 (1989).
+- A. E. Whalley and P. Wilmott, "An asymptotic analysis of an optimal hedging model for option pricing with
+  transaction costs", *Mathematical Finance* 7 (1997).
+- P. Wilmott, *Paul Wilmott Introduces Quantitative Finance*, Wiley (2007), chapter on transaction costs.

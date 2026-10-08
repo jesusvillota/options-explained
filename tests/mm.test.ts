@@ -162,3 +162,39 @@ describe('a book of vega', () => {
     expect(simulateVegaBook({ ...base, gamma: 3e-5, seed: 4 })).toEqual(simulateVegaBook({ ...base, gamma: 3e-5, seed: 4 }));
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 59: hedging with transaction costs
+
+import { lelandNumber, lelandVol, simulateCostHedge, wwBand } from '../src/lib/mm/transactionCosts';
+
+describe('hedging with costs', () => {
+  const base = { S0: 100, K: 100, T: 0.25, r: 0.05, sigma: 0.2, eps: 0.002, paths: 200, seed: 1 };
+
+  it("raises the short hedger's volatility by Leland's factor", () => {
+    const dt = 1 / 252;
+    expect(lelandNumber(0.2, 0.002, dt)).toBeCloseTo(Math.sqrt(2 / Math.PI) * 0.004 / (0.2 * Math.sqrt(dt)), 12);
+    expect(lelandVol(0.2, 0.002, dt) ** 2).toBeCloseTo(0.04 * (1 + lelandNumber(0.2, 0.002, dt)), 12);
+    expect(lelandVol(0.2, 0.002, dt, false)).toBeLessThan(0.2);
+    expect(lelandVol(0.2, 0, dt)).toBeCloseTo(0.2, 12);
+  });
+
+  it('has a band that widens with cost and narrows with risk aversion, like the cube root', () => {
+    expect(wwBand(0.04, 100, 0.002, 1, 0, 0.25) / wwBand(0.04, 100, 0.002 / 8, 1, 0, 0.25)).toBeCloseTo(2, 10);
+    expect(wwBand(0.04, 100, 0.002, 8, 0, 0.25)).toBeCloseTo(wwBand(0.04, 100, 0.002, 1, 0, 0.25) / 2, 10);
+  });
+
+  it('trades hedging error against cost when rebalancing on a schedule', () => {
+    const slow = simulateCostHedge({ ...base, mode: 'time', steps: 6 }), fast = simulateCostHedge({ ...base, mode: 'time', steps: 126 });
+    expect(fast.sdPnl).toBeLessThan(slow.sdPnl);
+    expect(fast.meanCost).toBeGreaterThan(slow.meanCost);
+  });
+
+  it('lets band hedging reach the same risk more cheaply than the clock', () => {
+    const band = simulateCostHedge({ ...base, mode: 'band', steps: 252, riskAversion: 10 });
+    const clock = simulateCostHedge({ ...base, mode: 'time', steps: 126 });
+    expect(band.sdPnl).toBeLessThan(clock.sdPnl * 1.1);
+    expect(band.meanCost).toBeLessThan(0.7 * clock.meanCost);
+    expect(band.meanTrades).toBeLessThan(clock.meanTrades);
+  });
+});

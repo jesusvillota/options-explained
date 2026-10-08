@@ -643,8 +643,8 @@ the running example.
   the Whalley–Wilmott no-trade band.
 - **Key math:** $\sigma_L^2 = \sigma^2\big(1 \pm \sqrt{2/\pi}\,\epsilon/(\sigma\sqrt{\delta t})\big)$; the
   band half-width $\big(\tfrac32\,\epsilon\,S e^{-r\tau}\Gamma^2/\gamma\big)^{1/3}$.
-- **Widgets:** `HedgeSimulator` gains a cost slider. `HedgeBands`: hedging by time versus by band, with cost and
-  error for each. Library: `src/lib/pricing/hedging.ts` (costs), `src/lib/mm/transactionCosts.ts`.
+- **Widgets:** `HedgeBands`: hedging by the clock versus by a Whalley–Wilmott band, as cost against risk for each
+  rule, with Leland's prices. Library: `src/lib/mm/transactionCosts.ts`.
 - **Prereqs:** 24.
 
 ### 60. Demand-based option pricing
