@@ -47,3 +47,42 @@ describe('surface fitting', () => {
     expect(microprice({ bid: 2.4, ask: 2.55, bidSize: 30, askSize: 10 })).toBeGreaterThan(2.475);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 56: quoting around a theoretical value
+
+import { QUOTING_OPTION, simulateQuoting, volEdgeQuotes } from '../src/lib/mm/quoting';
+import { greeks } from '../src/lib/pricing/blackScholes';
+
+describe('quoting', () => {
+  const base = { seconds: 23400 * 3, edgeVol: 0.5, tied: true, latency: 5, reaction: 100, sniperSpeed: 50, jumpRate: 1 / 300, jumpSize: 0.4, volJump: 0.005, customerRate: 1 / 20, customerTolerance: 1, seed: 1 };
+
+  it('turns a volatility edge into a price edge of about e_σ × vega', () => {
+    const q = volEdgeQuotes('call', QUOTING_OPTION, 1);
+    const vega = greeks('call', QUOTING_OPTION).vega * 0.01;
+    expect(q.ask - q.theo).toBeCloseTo(vega, 3);
+    expect(q.theo - q.bid).toBeCloseTo(vega, 3);
+  });
+
+  it('is deterministic, and the market path does not depend on the quotes', () => {
+    expect(simulateQuoting({ ...base, seconds: 2000 })).toEqual(simulateQuoting({ ...base, seconds: 2000 }));
+    const a = simulateQuoting({ ...base, seconds: 2000, edgeVol: 0.5 }, 2000), b = simulateQuoting({ ...base, seconds: 2000, edgeVol: 1.5 }, 2000);
+    expect(a.theo).toEqual(b.theo);
+  });
+
+  it('protects against stock news by tying quotes to the stock', () => {
+    const loose = simulateQuoting({ ...base, tied: false }), tied = simulateQuoting({ ...base, tied: true });
+    expect(tied.sniperLoss).toBeLessThan(0.05 * loose.sniperLoss);
+  });
+
+  it('loses more to snipers the slower it reacts', () => {
+    const fast = simulateQuoting({ ...base, tied: false, reaction: 5 }), slow = simulateQuoting({ ...base, tied: false, reaction: 300 });
+    expect(slow.sniperLoss).toBeGreaterThan(3 * fast.sniperLoss);
+  });
+
+  it('trades off customer volume against edge: neither the tightest nor the widest quote earns most', () => {
+    const net = (e: number) => { const r = simulateQuoting({ ...base, edgeVol: e }); return r.customerEdge - r.sniperLoss; };
+    expect(net(1)).toBeGreaterThan(net(0.25));
+    expect(net(1)).toBeGreaterThan(net(2));
+  });
+});

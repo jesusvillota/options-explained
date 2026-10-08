@@ -1,0 +1,188 @@
+---
+title: "Quoting around a theoretical value"
+part: 13
+chapter: 56
+difficulty: 2
+prerequisites: [21, 55]
+summary: "Market makers quote in volatility, tie their quotes to the stock through delta, and race faster traders whenever news breaks. Edge, volume and pick-off risk set the spread."
+---
+import QuoteEngine from '../../components/plots/QuoteEngine';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Theo is 2.51. Now what?
+
+The surface from Chapter 55 says the one-month at-the-money call is worth 2.51. That's the **theoretical value**, or
+*theo*. A market maker can't just post 2.51 on both sides: it would make nothing from customers and lose to anyone who
+knew a little more. So it quotes a bid below theo and an ask above it. How far below and above? And what happens to
+those quotes in the 50 milliseconds after the stock jumps?
+
+This chapter builds a simple **quote engine**: theo plus and minus an edge, updated as the stock moves, and exposed
+to the traders who are faster than it. It's the practical face of the theory in Part XII: Glosten and Milgrom's
+adverse selection shows up here as being *picked off*.
+
+## <span class="section-tag">Intuition</span>Quote in volatility
+
+Options traders think in volatility, so they set the edge in volatility points rather than in cents. To quote the call
+"half a point either side", price it at 19.5% volatility for the bid and 20.5% for the ask. Since vega is the price
+change per volatility point (Chapter 23), the dollar edge is about
+
+$$
+\text{half-spread} \approx e_\sigma \times \mathcal{V} .
+$$
+
+One edge in volatility gives each option a dollar spread that matches its risk: wide where vega is large, narrow
+where it's small. This is the risk-based spread that Chapter 47 saw on real chains.
+
+## <span class="section-tag">Intuition</span>Quotes that move with the stock
+
+Theo depends on the stock price, which changes every millisecond. Recomputing the whole surface that often is
+expensive, so engines do two things.
+
+- A **routine update** recomputes theo, delta and vega every so often (here, every few seconds).
+- Between updates, quotes are **tied to the stock**: when the stock moves by $\delta S$, both quotes move by
+  $\Delta\,\delta S$. The quote stays almost exactly right for small moves, because the only error is the gamma term
+  $\tfrac12\Gamma\,\delta S^2$.
+
+What tied quotes can't track is a change in *volatility*. When news hits, the stock jumps and implied volatility
+often jumps with it. Now the race is on. The market maker must notice and re-quote; fast traders must notice and
+send an order against the stale quote. Whoever is quicker wins. If the market maker loses, its quote is **picked
+off**: it sells at a price below the new theo, or buys above it.
+
+<QuoteEngine client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with quotes fixed between updates and a 100 ms reaction time, red
+dots appear after every news event: the stock jumps and the stale quote is hit. Tie the quotes to the stock and almost
+all of them disappear. Now, still tied, cut the edge to 0.25 vol points: the pick-offs come back, because the volatility
+part of the news is now bigger than the spread. Back with untied quotes, slide the reaction time from 300 ms down to
+5 ms: speed buys back most of the losses.</p>
+
+The other half of the story is customers. Tight quotes attract more of them but earn less from each, wide quotes earn
+more per trade but scare them away. With pick-offs added, very tight quotes lose money, and very wide ones earn
+little. The best edge is in between, and every factor that raises pick-off risk (slower reactions, more volatile news,
+untied quotes) pushes it wider.
+
+<Callout type="key" title="Edge pays for being picked off">
+A market maker's spread must cover what it loses when it's slower than the news. Tying quotes to the stock removes
+the risk from stock moves, but not from volatility moves or from anything that changes theo in ways the engine doesn't
+yet know. The faster and better informed the engine, the tighter it can afford to quote.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Quotes, staleness and the race
+
+**Volatility quotes.** With theo $V(\Spot{S}, \Vol{\sigma})$ and an edge of $e_\sigma$ volatility points,
+
+$$
+b = V(\Spot{S}, \Vol{\sigma} - e_\sigma), \qquad a = V(\Spot{S}, \Vol{\sigma} + e_\sigma),
+$$
+
+so that $a - V \approx V - b \approx e_\sigma\,\mathcal{V}$, with $\mathcal{V}$ the vega per volatility point. For the one-month at-the-money call, $\mathcal{V} \approx 0.115$, so half a
+point of edge is about 5.75 cents.
+
+**Tied quotes.** If the stock moves from the reference price $\Spot{S}_{\text{ref}}$ of the last update to $\Spot{S}$, a
+tied quote is centred at
+
+$$
+V(\Spot{S}_{\text{ref}}) + \Delta\,(\Spot{S} - \Spot{S}_{\text{ref}}),
+$$
+
+while theo is now $V(\Spot{S}) \approx V(\Spot{S}_{\text{ref}}) + \Delta\,\delta\Spot{S} + \tfrac12\Gamma\,\delta\Spot{S}^2 + \mathcal{V}\,\delta\Vol{\sigma}$.
+The quote's error is therefore $\tfrac12\Gamma\,\delta\Spot{S}^2 + \mathcal{V}\,\delta\Vol{\sigma}$, against
+$\Delta\,\delta\Spot{S} + \mathcal{V}\,\delta\Vol{\sigma}$ for a quote that stays put.
+
+**When a quote is picked off.** A stale ask is worth hitting when theo has risen above it, $V(\Spot{S}) - a > c$, where $c$
+covers the sniper's own costs (one cent in the widget); likewise for the bid. For an untied quote that means roughly
+
+$$
+|\Delta\,\delta\Spot{S} + \mathcal{V}\,\delta\Vol{\sigma}| > e_\sigma\,\mathcal{V} + c .
+$$
+
+In the widget, news moves the stock by 40 cents ($\Delta\,\delta S \approx 0.21$) and volatility by half a point
+($\mathcal{V}\,\delta\sigma \approx 0.06$). An untied quote half a point wide is exposed to both; a tied one only to the
+volatility part, which half a point of edge just covers.
+
+**The race.** Suppose the fastest sniper's reaction time is exponentially distributed with mean $\bar\tau$, and the
+market maker reacts in $\ell$. The market maker loses the race when the sniper is quicker:
+
+$$
+\mathbb{P}(\text{picked off}) = \mathbb{P}(\tau < \ell) = 1 - e^{-\ell/\bar\tau} .
+$$
+
+With $\bar\tau = 50$ ms, a 100 ms engine loses $1 - e^{-2} \approx 86\%$ of races, a 5 ms engine about 10%. Each lost race
+costs the amount by which theo has moved through the quote. Chapter 73 shows how this race shapes market design.
+
+**Customers.** If a customer's tolerance for the half-spread, in volatility points, is exponential with mean
+$\bar e$, a customer arriving at rate $\lambda_c$ trades with probability $e^{-e_\sigma/\bar e}$, so the expected edge
+earned per unit time is
+
+$$
+\lambda_c\, e_\sigma\,\mathcal{V}\, e^{-e_\sigma/\bar e},
+$$
+
+which is largest at $e_\sigma = \bar e$ (one point in the widget). Subtracting expected pick-off losses, which fall as
+$e_\sigma$ rises, pushes the best edge above $\bar e$ whenever pick-off risk is material.
+
+## <span class="section-tag">Playground</span>Tune the engine
+
+<QuoteEngine client:visible initialTied title="Playground: tune the quote engine" />
+
+<div class="try-this">
+
+- **Best edge, tied.** With quotes tied to the stock, find the half-spread that maximises net P&L. Is it above or
+  below the customers' average tolerance of one vol point?
+- **What speed is worth.** Untie the quotes and compare the net P&L at 300 ms and at 5 ms. How much a day would a
+  faster engine be worth, per contract quoted?
+- **Volatility news.** With tied quotes, why do pick-offs reappear below about half a point of edge?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="An option has a vega of 0.115 per volatility point, and the market maker quotes half a point either side of theo. What's the half-spread in cents?"
+  answer={5.75}
+  tolerance={0.05}
+  explanation="$e_\sigma \times \mathcal{V} = 0.5 \times 0.115 = 0.0575$ dollars, 5.75 cents."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Snipers' reaction times are exponential with mean 50 ms. What fraction of news events does a market maker that reacts in 100 ms lose the race on? (Answer as a decimal.)"
+  answer={0.865}
+  tolerance={0.002}
+  explanation="$1 - e^{-\ell/\bar\tau} = 1 - e^{-100/50} = 1 - e^{-2} \approx 0.865$."
+/>
+
+<Quiz
+  client:visible
+  question="A market maker ties its quotes to the stock through delta. Which news can still pick it off?"
+  options={[
+    "A small move in the stock",
+    "A jump in implied volatility, or anything else that changes theo apart from the stock price",
+    "Nothing at all",
+    "Only moves in interest rates",
+  ]}
+  answer={1}
+  explanation="Tied quotes move by $\Delta\,\delta S$, so small stock moves are tracked (up to the gamma term $\tfrac12\Gamma\,\delta S^2$). A change in volatility moves theo by $\mathcal{V}\,\delta\sigma$, which a tied quote doesn't follow until the next update."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Quote **in volatility**: bid at $\sigma - e_\sigma$, ask at $\sigma + e_\sigma$, so the dollar half-spread is about $e_\sigma\mathcal{V}$.
+- **Tie quotes to the stock** through delta between updates: the error from a stock move shrinks from $\Delta\,\delta S$
+  to $\tfrac12\Gamma\,\delta S^2$.
+- On news, market makers **race** faster traders; losing costs the move in theo through the quote. Speed and
+  wider edges both reduce the losses.
+- The best edge balances **customer edge** ($\propto e_\sigma e^{-e_\sigma/\bar e}$) against **pick-off losses**.
+
+**Next up:** this engine uses rules of thumb. In Chapter 57 Avellaneda and Stoikov derive the optimal quotes from a
+stochastic control problem, inventory and all.
+
+### Further reading
+
+- E. Sinclair, *Option Trading: Pricing and Volatility Strategies and Techniques*, Wiley (2010), on quoting and edge.
+- T. Foucault, A. Röell and P. Sandås, "Market making with costly monitoring: an analysis of the SOES controversy",
+  *Review of Financial Studies* 16 (2003).
+- E. Budish, P. Cramton and J. Shim, "The high-frequency trading arms race", *Quarterly Journal of Economics* 130
+  (2015).
