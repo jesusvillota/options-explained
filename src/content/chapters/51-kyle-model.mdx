@@ -1,0 +1,229 @@
+---
+title: "Kyle's model"
+part: 12
+chapter: 51
+difficulty: 3
+prerequisites: [16, 50]
+summary: "An insider chooses how much to trade, knowing the market maker learns from order flow. The equilibrium sets price impact, market depth, and exactly how much of the secret leaks into the price."
+---
+import KyleEquilibrium from '../../components/plots/KyleEquilibrium';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>How much should you buy?
+
+You know something the market doesn't: the call that trades around 2.48 is really worth more. How many contracts
+should you buy? Buy too few and you leave money on the table. Buy too many and two things go wrong: your own order
+pushes the price up as you trade, and the market maker, seeing an unusually large order flow, guesses that someone
+knows something and marks the price up for everyone.
+
+In Glosten–Milgrom (Chapter 50) insiders couldn't choose: they traded one unit. Albert Kyle's 1985 model lets the
+insider choose the size, and asks what a smart insider and a smart market maker do when each knows the other is
+smart. The answer is one of the cleanest equilibria in finance. It defines **price impact** $\lambda$ (Kyle's
+lambda), its inverse, **market depth**, and it shows that in equilibrium **exactly half** of the insider's secret
+gets into the price.
+
+## <span class="section-tag">Intuition</span>Hiding in the noise
+
+There are three players.
+
+- An **insider** knows the true value $v$. Everyone else only knows it's normally distributed around $p_0 = 2.48$.
+- **Noise traders** send orders for their own reasons, unrelated to $v$. Their total order is random, sometimes a
+  big buy, sometimes a big sell.
+- A **market maker** sees only the **total order flow**, insider plus noise, and sets a price equal to what it
+  believes the asset is worth given that flow. Competition among market makers keeps its expected profit at zero.
+
+The insider's order is lost in the noise, but not entirely: a large buy flow is more likely when the insider is
+buying, so the market maker raises the price when it sees one. How much it raises the price per contract of order
+flow is $\lambda$. Facing that, the insider trades in proportion to its information, with an aggressiveness $\beta$.
+Each player's choice depends on the other's:
+
+- If the price is very sensitive to order flow (high $\lambda$), the insider trades cautiously (low $\beta$).
+- If the insider trades cautiously, order flow is mostly noise, so the market maker should respond only a little
+  (low $\lambda$).
+
+The equilibrium is where both are happy at once.
+
+<KyleEquilibrium client:visible />
+
+<p class="try-this"><strong>Try this:</strong> press <em>Best-respond</em> a few times. Starting from a high guess for
+$\lambda$, the insider trades timidly; the market maker sees mostly noise and lowers $\lambda$; the insider trades
+harder; and the staircase lands on the crossing within two or three turns. Now double the noise trading. The
+equilibrium $\lambda$ halves (the market gets deeper) and the insider trades twice as hard, but the bottom panel
+doesn't change at all: the price still moves exactly half way to the truth.</p>
+
+That last observation is the heart of the model. The insider sizes its order so that its own trading is exactly as
+variable as the noise traders'. Trade any harder and the market maker would learn too much from the flow; any softer
+and profit would be wasted. With equal parts signal and noise in the order flow, the market maker's best estimate
+moves half way from the prior to the truth, and half the uncertainty is gone.
+
+<Callout type="key" title="Kyle's lambda">
+In equilibrium the price moves by $\lambda = \sqrt{\Sigma_0}/(2\sigma_u)$ for every contract of net order flow. It's
+large when insiders know a lot ($\Sigma_0$ big) and small when there's a lot of noise trading ($\sigma_u$ big).
+Its inverse $1/\lambda$, the order flow needed to move the price by \$1, is the textbook definition of market depth,
+and empirical studies estimate "Kyle's lambda" by regressing price changes on signed order flow.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Solving the model
+
+**Setup.** The value is $v \sim N(p_0, \Sigma_0)$. The insider observes $v$ and submits an order $x$. Noise traders
+submit $u \sim N(0, \sigma_u^2)$, independent of $v$. The market maker observes $y = x + u$ and sets
+$p = \mathbb{E}[v \mid y]$. We look for a **linear equilibrium**:
+
+$$
+x = \beta\,(v - p_0), \qquad\qquad p = p_0 + \lambda\,y .
+$$
+
+**Step 1: the insider's best response.** Take $\lambda$ as given. The insider knows $v$ but not $u$, so its expected
+profit from an order $x$ is
+
+$$
+\begin{aligned}
+& \mathbb{E}\big[(v - p)\,x \mid v\big] \\
+&\quad = \mathbb{E}\big[(v - p_0 - \lambda x - \lambda u)\,x \mid v\big] \\
+&\quad = (v - p_0)\,x - \lambda x^2 ,
+\end{aligned}
+$$
+
+using $\mathbb{E}[u] = 0$. This is a downward parabola in $x$. Setting the derivative $(v - p_0) - 2\lambda x$ to zero gives
+
+$$
+x^* = \frac{v - p_0}{2\lambda}, \qquad\text{so}\qquad \beta = \frac{1}{2\lambda} .
+$$
+
+The insider trades half the amount that would move the price all the way to $v$: past that point, each extra
+contract costs more in impact than it earns.
+
+**Step 2: the market maker's best response.** Take $\beta$ as given. Then $y = \beta(v - p_0) + u$ is normal, and
+for jointly normal variables the conditional expectation is linear (the regression of $v$ on $y$):
+
+$$
+\mathbb{E}[v \mid y] = p_0 + \frac{\mathrm{Cov}(v, y)}{\mathrm{Var}(y)}\,y,
+$$
+
+with
+
+$$
+\mathrm{Cov}(v, y) = \beta\,\Sigma_0,
+$$
+
+$$
+\mathrm{Var}(y) = \beta^2\Sigma_0 + \sigma_u^2 .
+$$
+
+So the zero-profit slope is
+
+$$
+\lambda = \frac{\beta\,\Sigma_0}{\beta^2\Sigma_0 + \sigma_u^2} .
+$$
+
+**Step 3: the fixed point.** Substitute $\beta = 1/(2\lambda)$:
+
+$$
+\lambda = \frac{\Sigma_0/(2\lambda)}{\Sigma_0/(4\lambda^2) + \sigma_u^2} .
+$$
+
+Multiply both sides by the denominator: $\Sigma_0/(4\lambda) + \lambda\sigma_u^2 = \Sigma_0/(2\lambda)$, so
+$\lambda\sigma_u^2 = \Sigma_0/(4\lambda)$, and $\lambda^2 = \Sigma_0/(4\sigma_u^2)$. Taking the positive root,
+
+$$
+\lambda = \frac{\sqrt{\Sigma_0}}{2\,\sigma_u}, \qquad\qquad \beta = \frac{\sigma_u}{\sqrt{\Sigma_0}} .
+$$
+
+**What the equilibrium means.**
+
+- *The insider matches the noise.* $\mathrm{Var}(x) = \beta^2\Sigma_0 = \sigma_u^2 = \mathrm{Var}(u)$: the insider's
+  order is exactly as variable as the noise, so $\mathrm{Var}(y) = 2\sigma_u^2$.
+- *Half the information is revealed.* The posterior variance is
+  $$
+  \begin{aligned}
+  \mathrm{Var}(v \mid y) &= \Sigma_0 - \frac{\mathrm{Cov}(v, y)^2}{\mathrm{Var}(y)} \\
+  &= \Sigma_0 - \frac{\beta^2\Sigma_0^2}{2\sigma_u^2} = \frac{\Sigma_0}{2},
+  \end{aligned}
+  $$
+  using $\beta^2\Sigma_0 = \sigma_u^2$, whatever $\Sigma_0$ and $\sigma_u$ are. Equivalently, the regression of $p$
+  on $v$ has slope $\lambda\beta = \tfrac12$: the price moves half way to the truth.
+- *Who pays.* The insider's expected profit given $v$ is $(v - p_0)x^* - \lambda x^{*2} = \beta(v - p_0)^2/2$, and on
+  average
+  $$
+  \mathbb{E}[\pi_{\text{insider}}] = \frac{\beta\,\Sigma_0}{2} = \frac{\sigma_u\sqrt{\Sigma_0}}{2} .
+  $$
+  Noise traders lose $\mathbb{E}[(p - v)\,u] = \lambda\,\sigma_u^2 = \sigma_u\sqrt{\Sigma_0}/2$, exactly the same. The
+  market maker breaks even.
+- *Comparative statics.* More noise trading makes the market deeper ($\lambda \propto 1/\sigma_u$), makes the insider
+  more aggressive ($\beta \propto \sigma_u$) and more profitable, but leaves the price's informativeness unchanged.
+  More private information ($\Sigma_0$ up) raises $\lambda$ and the insider's profit.
+
+**Why the staircase converges so fast.** Iterating $\lambda_{n+1} = f(\lambda_n) = 2\lambda_n\Sigma_0/(\Sigma_0 + 4\lambda_n^2\sigma_u^2)$,
+the derivative $f'(\lambda)$ vanishes at the equilibrium (where $4\lambda^2\sigma_u^2 = \Sigma_0$), so errors shrink
+quadratically, like Newton's method in Chapter 25.
+
+**In the widget's units.** With $\sqrt{\Sigma_0}$ = 30 cents and $\sigma_u$ = 100 contracts, $\lambda = 0.30/200 = 0.0015$
+dollars per contract, or 15 cents per 100 contracts, and $\beta = 100/0.30 \approx 333$ contracts per dollar of
+mispricing. If the call is really worth 30 cents more than 2.48, the insider buys 100 contracts. On average it earns
+$\tfrac12 \times 100 \times 0.30 = 15$ dollars per share-unit, \$1,500 in contract terms.
+
+## <span class="section-tag">Playground</span>Change the market
+
+<KyleEquilibrium client:visible title="Playground: Kyle's market" />
+
+<div class="try-this">
+
+- **Better secrets.** Double the insider's information. What happens to $\lambda$, to $\beta$ and to the insider's
+  profit? Does the price reveal more or less of the secret than before?
+- **Busy market.** Make noise trading very small. Why does the market become thin, and why does that hurt the
+  insider even though the market maker breaks even?
+- **A bad start.** Start the staircase from the smallest $\lambda$. In which direction does the first step go, and
+  how many turns does it take to settle?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With $\sqrt{\Sigma_0} = 0.40$ and $\sigma_u = 200$ contracts, what's Kyle's $\lambda$, in cents per 100 contracts?"
+  answer={10}
+  tolerance={0.01}
+  explanation="$\lambda = \sqrt{\Sigma_0}/(2\sigma_u) = 0.40/400 = 0.001$ dollars per contract, which is 10 cents per 100 contracts."
+/>
+
+<NumericQuiz
+  client:visible
+  question="In that same market, the insider learns that the value is 20 cents above $p_0$. How many contracts does it buy?"
+  answer={100}
+  tolerance={0.5}
+  explanation="$\beta = \sigma_u/\sqrt{\Sigma_0} = 200/0.40 = 500$ contracts per dollar, so $x = 500 \times 0.20 = 100$. Check: $x = (v - p_0)/(2\lambda) = 0.20/0.002 = 100$."
+/>
+
+<Quiz
+  client:visible
+  question="Noise trading doubles. What happens to how much of the insider's information the price reveals?"
+  options={[
+    "It halves, because the insider is harder to see",
+    "It doubles, because there's more trading",
+    "Nothing: the posterior variance stays at $\\Sigma_0/2$",
+    "The market breaks down",
+  ]}
+  answer={2}
+  explanation="The insider trades twice as hard ($\beta \propto \sigma_u$), exactly offsetting the extra noise. The order flow is still half signal and half noise, so the posterior variance is $\Sigma_0/2$ regardless."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- In Kyle's model an insider chooses its order $x = \beta(v - p_0)$, and a competitive market maker prices the order
+  flow at $p = p_0 + \lambda y$, with $p = \mathbb{E}[v \mid y]$.
+- The insider trades half way: $\beta = 1/(2\lambda)$. The market maker regresses: $\lambda = \beta\Sigma_0/(\beta^2\Sigma_0 + \sigma_u^2)$.
+- Equilibrium: $\lambda = \sqrt{\Sigma_0}/(2\sigma_u)$ and $\beta = \sigma_u/\sqrt{\Sigma_0}$. Depth is $1/\lambda$.
+- The insider's order is as variable as the noise, **half the information** reaches the price, and the insider earns
+  $\sigma_u\sqrt{\Sigma_0}/2$, paid by noise traders.
+
+**Next up:** one trading round is a snapshot. In Chapter 52 the insider trades over time, and the price becomes a
+Brownian motion that, by the final bell, has learned everything.
+
+### Further reading
+
+- A. S. Kyle, "Continuous auctions and insider trading", *Econometrica* 53 (1985).
+- M. O'Hara, *Market Microstructure Theory*, Blackwell (1995), chapter 4.
+- J. Hasbrouck, *Empirical Market Microstructure*, Oxford University Press (2007), chapter 7 (estimating price
+  impact).

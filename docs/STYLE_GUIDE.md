@@ -118,6 +118,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $c$ (shading) | How far a dealer shades both quotes per unit of inventory (Chapter 49) |
 | $v_L$, $v_H$, $p$, $\alpha$ | Glosten–Milgrom: low and high values, the market maker's belief $\mathbb{P}(v = v_H)$, and the share of insiders (Chapter 50). In this chapter $p$ is a probability, not a price |
 | $p^+$, $p^-$ | Beliefs after a buy and after a sell (Chapter 50) |
+| $p_0$, $\Sigma_0$, $x$, $u$, $y$, $\sigma_u$, $\beta$, $\lambda$ | Kyle: prior mean and variance of the value, the insider's order, the noise traders' order, total order flow, noise volatility, the insider's trading intensity and the price impact $p = p_0 + \lambda y$ (Chapters 51–52). $\beta$ here is not SABR's |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |

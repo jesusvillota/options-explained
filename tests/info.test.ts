@@ -122,3 +122,58 @@ describe('Glosten–Milgrom average profits', () => {
     expect(Math.abs(a.maker[40])).toBeLessThan(0.15 * a.insider[40]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 51: Kyle's model
+
+import { bestResponsePath, insiderBestResponse, insiderProfit, kyleEquilibrium, makerBestResponse, simulateKyle } from '../src/lib/info/kyle';
+
+describe("Kyle's one-period model", () => {
+  const S0 = 0.3 ** 2, SU = 100;
+
+  it('has λ = √Σ0/(2σ_u) and β = σ_u/√Σ0', () => {
+    const e = kyleEquilibrium(S0, SU);
+    expect(e.lambda).toBeCloseTo(0.0015, 15);
+    expect(e.beta).toBeCloseTo(100 / 0.3, 10);
+    expect(e.lambda * e.beta).toBeCloseTo(0.5, 12);
+  });
+
+  it('is a fixed point of both best responses', () => {
+    const e = kyleEquilibrium(S0, SU);
+    expect(insiderBestResponse(e.lambda)).toBeCloseTo(e.beta, 8);
+    expect(makerBestResponse(e.beta, S0, SU)).toBeCloseTo(e.lambda, 14);
+  });
+
+  it('maximises the insider’s profit at x = (v − p0)/(2λ)', () => {
+    const lambda = 0.0015, d = 0.25, best = d / (2 * lambda);
+    for (const x of [0.5 * best, 0.9 * best, 1.1 * best, 2 * best]) expect(insiderProfit(d, x, lambda)).toBeLessThan(insiderProfit(d, best, lambda));
+  });
+
+  it('converges quickly when firms take turns best-responding', () => {
+    const path = bestResponsePath(0.01, S0, SU, 6);
+    const e = kyleEquilibrium(S0, SU);
+    expect(Math.abs(path[6].lambda / e.lambda - 1)).toBeLessThan(1e-6);
+    expect(Math.abs(path[1].lambda / e.lambda - 1)).toBeLessThan(Math.abs(path[0].lambda / e.lambda - 1));
+  });
+
+  it('reveals exactly half the private information, and insiders win what noise traders lose', () => {
+    const e = kyleEquilibrium(S0, SU);
+    expect(e.posteriorVar).toBeCloseTo(S0 / 2, 15);
+    expect(e.insiderProfit).toBeCloseTo(e.noiseLoss, 12);
+    expect(e.insiderProfit).toBeCloseTo(0.5 * SU * 0.3, 12);
+  });
+
+  it('matches the formulas in simulation', () => {
+    const draws = simulateKyle(2.48, S0, SU, 40000, 3);
+    const n = draws.length;
+    const mean = (f: (d: (typeof draws)[number]) => number) => draws.reduce((a, d) => a + f(d), 0) / n;
+    // Order flow has variance 2σ_u²: the insider is exactly as variable as the noise.
+    expect(mean((d) => d.y * d.y) / (2 * SU * SU)).toBeCloseTo(1, 1);
+    // What's left to learn after the trade: E[(v − p)²] = Σ0/2.
+    expect(mean((d) => (d.v - d.p) ** 2) / (S0 / 2)).toBeCloseTo(1, 1);
+    // The insider's average profit, σ_u√Σ0/2 = 15.
+    expect(mean((d) => (d.v - d.p) * d.x) / 15).toBeCloseTo(1, 1);
+    // The market maker breaks even.
+    expect(Math.abs(mean((d) => (d.p - d.v) * d.y))).toBeLessThan(0.5);
+  });
+});
