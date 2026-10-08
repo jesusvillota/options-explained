@@ -22,6 +22,7 @@ import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
 import { consolidated, customerPriority, leadMarketMaker, nbbo, priceTime, proRata, routeOrder, threeVenues } from '../src/lib/micro/matching';
 import type { Order } from '../src/lib/micro/orderBook';
 import { STRATEGIES, complexQuote, impliedFromLegs, leggingRiskSd, quoteLegs } from '../src/lib/micro/packages';
+import { MARGIN_POSITIONS, assignmentOdds, nakedRequirementPerShare, positionValue, riskArray, scaledGrid, scenarioMargin, strategyMargin } from '../src/lib/micro/margin';
 import { clearAuction, demandAt, openingOrders, priceGrid, supplyAt, type AuctionOrder } from '../src/lib/micro/auction';
 
 const totalSize = (book: ReturnType<typeof callBook>) =>
@@ -367,5 +368,77 @@ describe('call auction', () => {
     expect(clearAuction(two, priceGrid(2.3, 2.6, 0.05), 2.48).price).toBe(2.5);
     expect(clearAuction(two, priceGrid(2.3, 2.6, 0.05), 2.41).price).toBe(2.4);
     expect(clearAuction([two[0]], priceGrid(2.3, 2.6, 0.05), 2.48).price).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chapter 46: margin and assignment
+
+describe('margin', () => {
+  const calm = { S: 100, T: 0.25, r: 0.05, sigma: 0.2, q: 0 };
+  const put95 = MARGIN_POSITIONS.shortPut.legs;
+
+  it('applies the classic naked-option rule: premium + max(20% S − OTM, floor)', () => {
+    const premium = price('put', { ...calm, K: 95 });
+    // 20% of 100 less 5 out of the money = 15, above the 10%-of-strike floor of 9.50.
+    expect(nakedRequirementPerShare(put95[0], calm)).toBeCloseTo(premium + 15, 10);
+    // Far out of the money the floor binds: 20% × 100 − 30 < 10% × 70.
+    expect(nakedRequirementPerShare({ type: 'put', strike: 70, qty: -1 }, calm)).toBeCloseTo(price('put', { ...calm, K: 70 }) + 7, 10);
+    expect(strategyMargin(put95, calm)).toBeCloseTo(100 * (premium + 15), 8);
+  });
+
+  it('charges a credit spread its maximum loss, and long positions nothing', () => {
+    expect(strategyMargin(MARGIN_POSITIONS.putSpread.legs, calm)).toBe(500);
+    expect(strategyMargin([{ type: 'call', strike: 100, qty: 1 }], calm)).toBe(0);
+    expect(strategyMargin([{ type: 'call', strike: 100, qty: 1 }, { type: 'call', strike: 105, qty: -1 }], calm)).toBe(0);
+  });
+
+  it('charges a short straddle the larger naked requirement plus the other premium', () => {
+    const legs = MARGIN_POSITIONS.shortStraddle.legs;
+    const call = nakedRequirementPerShare(legs[1], calm), put = nakedRequirementPerShare(legs[0], calm);
+    const expected = 100 * (Math.max(call, put) + (call >= put ? price('put', { ...calm, K: 100 }) : price('call', { ...calm, K: 100 })));
+    expect(strategyMargin(legs, calm)).toBeCloseTo(expected, 8);
+  });
+
+  it('scales the scenario grid with volatility: ±2.33σ√(10/252) and ±σ/3', () => {
+    const g = scaledGrid(0.2);
+    expect(g.priceShocks[10]).toBeCloseTo(2.33 * 0.2 * Math.sqrt(10 / 252), 12);
+    expect(g.priceShocks[5]).toBeCloseTo(0, 12);
+    expect(g.volShocks[4]).toBeCloseTo(0.2 / 3, 12);
+  });
+
+  it('finds the short put’s worst case at a fall in the stock with a rise in volatility', () => {
+    const r = scenarioMargin(put95, calm);
+    expect(r.worst.priceShock).toBeLessThan(0);
+    expect(r.worst.volShock).toBeGreaterThan(0);
+    expect(r.margin).toBeCloseTo(-r.worst.pnl, 12);
+    expect(riskArray(put95, calm, scaledGrid(0.2))[2][5]).toBeCloseTo(0, 10);
+    // Risk-based margin is far below the rule-based one for a naked put.
+    expect(r.margin).toBeLessThan(0.4 * strategyMargin(put95, calm));
+  });
+
+  it('is procyclical: more volatility, more margin', () => {
+    let prev = 0;
+    for (const sigma of [0.1, 0.2, 0.3, 0.4, 0.5]) {
+      const m = scenarioMargin(put95, { ...calm, sigma }).margin;
+      expect(m).toBeGreaterThan(prev);
+      prev = m;
+    }
+    expect(scenarioMargin(put95, { ...calm, sigma: 0.35, S: 97 }).margin).toBeGreaterThan(2 * scenarioMargin(put95, calm).margin);
+  });
+
+  it('rewards hedging: a put spread needs much less margin than a naked put', () => {
+    expect(scenarioMargin(MARGIN_POSITIONS.putSpread.legs, calm).margin).toBeLessThan(0.5 * scenarioMargin(put95, calm).margin);
+    expect(positionValue(MARGIN_POSITIONS.putSpread.legs, calm)).toBeLessThan(0);
+  });
+});
+
+describe('random assignment', () => {
+  it('assigns on average in proportion to your share of the open short position', () => {
+    expect(assignmentOdds(1000, 10, 100).expected).toBeCloseTo(1, 12);
+    // P(none of 10 out of 1000 among 100 random draws) = C(990,100)/C(1000,100) ≈ 0.347.
+    expect(assignmentOdds(1000, 10, 100).pNone).toBeCloseTo(0.3469, 4);
+    expect(assignmentOdds(50, 10, 45).pNone).toBe(0);
+    expect(assignmentOdds(50, 10, 0).pNone).toBe(1);
   });
 });

@@ -102,6 +102,8 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\rho$ (depth) | Contracts per tick in a book with uniform depth (Chapter 43) |
 | $a_{\text{pkg}}$, $b_{\text{pkg}}$ | A package's ask and bid (Chapter 45) |
 | $h$ | A quoted half-spread around a value: the quote is value $\pm h$ |
+| $L_{ij}$, $x_i$, $y_j$ | Risk array: the position's P&L under price move $x_i$ (relative) and volatility shift $y_j$ (Chapter 46) |
+| $D$ (dividend) | A discrete cash dividend (Chapter 46). In Chapter 42, $D$ is a firm's debt |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |
