@@ -1,0 +1,191 @@
+---
+title: "Price discovery across stock and options"
+part: 12
+chapter: 54
+difficulty: 3
+prerequisites: [8, 53]
+summary: "A stock and its options imply the same underlying price. When they disagree, which one moves? Error-correction models, component shares and information shares measure where prices are found."
+---
+import PriceDiscovery from '../../components/plots/PriceDiscovery';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two screens disagree
+
+The stock is quoted at a mid of \$100.00. At the same moment, the at-the-money call and put imply, through put–call
+parity, a stock price of \$100.05. Two markets, one underlying, two different prices. A few seconds later they agree
+again. The question is *how*. Did the stock move up to 100.05, so that the options were ahead, or did the option
+quotes move down to 100.00, so that the stock was?
+
+That question is **price discovery**: where does new information first show up in prices? Chapter 53 argued that
+informed traders often use options. If so, option prices should sometimes lead the stock. This chapter builds the
+standard tools for measuring who leads, from nothing more than two time series of prices.
+
+## <span class="section-tag">Intuition</span>One value, two prices
+
+Put–call parity (Chapter 8) turns any call and put with the same strike and expiry into a synthetic stock:
+
+$$
+\Spot{S}^{\text{implied}} = \Call{C} - \Put{P} + \Strike{K}e^{-\Rate{r}\Time{T}} .
+$$
+
+So we can watch two prices for the same thing: the stock itself, and the stock as the option market sees it. Both
+wander like random walks, but they can't wander apart for long, because arbitrage (with its frictions, Chapter 48)
+pulls them back together. Two random walks tied together like this are called **cointegrated**: each one is
+unpredictable, but the gap between them keeps returning to zero.
+
+Whenever a gap opens, each market does some of the closing. The market that moves *less* to close it is the one that
+was right first: it led, and the other followed. In the widget, both markets chase an efficient price, each at its
+own speed.
+
+<PriceDiscovery client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the stock faster ($\kappa_S$ = 0.6) than the options (0.3), the blue
+line hugs the dashed efficient price and the option-implied line lags. The component share gives the stock most of
+the price discovery. Now swap the speeds: the shares swap too. Set both to the same speed and the shares come out near
+50%. Notice how wide the information-share bounds are: the estimate depends on an ordering choice, which matters a
+lot when both markets react within the same step.</p>
+
+## <span class="section-tag">Intuition</span>Two ways to split the credit
+
+The tool is a **vector error-correction model** (VECM). Regress each market's price change on the previous gap between
+the two prices (and a few lagged changes). The coefficient on the gap, $\alpha$, says how hard each market corrects.
+From the two $\alpha$s there are two standard measures.
+
+- The **component share** (Gonzalo and Granger) asks: the common efficient price is a weighted average of the two
+  markets' prices; what are the weights? The market that corrects less gets the larger weight.
+- The **information share** (Hasbrouck) asks: of the variance of innovations in the efficient price, how much comes
+  from each market? When the two markets' surprises are correlated within a time step, the split isn't unique, and the
+  measure is reported as an upper and a lower bound.
+
+<Callout type="key" title="The leader corrects least">
+If, after a gap opens, the stock barely moves while the option-implied price jumps to meet it, the stock had the
+information first. Price discovery is measured by how little each market adjusts to the other.
+</Callout>
+
+What do real markets show? An influential study by Chakravarty, Gulen and Mayhew (2004) estimated that the options
+market contributes, on average, around a sixth of price discovery for US stocks, more when option volume is high and
+option spreads are narrow. Later work with much finer data (Muravyev, Pearson and Broussard, 2013) found that when the
+two markets disagree it's mostly the *option quotes* that move to meet the stock, suggesting that options add little
+price discovery on average. The answer depends on the sampling frequency, on how quotes are measured, and on the stock,
+which is exactly why the measures and their limitations matter.
+
+## <span class="section-tag">Formalisation</span>VECM, component shares and information shares
+
+**The model in the widget.** An efficient price follows a random walk, $m_t = m_{t-1} + \sigma_m\varepsilon_t$. Each
+market $i$ moves part of the way towards it every step,
+
+$$
+p_{i,t} = p_{i,t-1} + \kappa_i\,(m_t - p_{i,t-1}) + \eta_{i,t},
+$$
+
+with speed $\kappa_i \in (0, 1]$ and small independent noise $\eta_{i,t}$. Both prices inherit the random walk, and the
+gap $p_{1,t} - p_{2,t}$ is stationary.
+
+**The VECM.** Write $\Delta p_{i,t} = p_{i,t} - p_{i,t-1}$ and fit, for $i = 1, 2$,
+
+$$
+\begin{aligned}
+\Delta p_{i,t} = {} & \alpha_i\,(p_{1,t-1} - p_{2,t-1}) \\
+& + \sum_{j=1}^{L}\big(\gamma_{ij}\,\Delta p_{1,t-j} + \delta_{ij}\,\Delta p_{2,t-j}\big) + e_{i,t},
+\end{aligned}
+$$
+
+by least squares, equation by equation. Typically $\alpha_1 < 0$ (market 1 falls when it's above market 2) and
+$\alpha_2 > 0$. Let $\Omega$ be the covariance matrix of the residuals $(e_{1,t}, e_{2,t})$.
+
+**The common trend.** The weights of the efficient price in the two markets are orthogonal to $\alpha$: with
+$\alpha_\perp = (\alpha_2, -\alpha_1)$, $\alpha_\perp \cdot \alpha = 0$. Scaled to sum to one,
+
+$$
+\psi = \Big(\frac{\alpha_2}{\alpha_2 - \alpha_1},\ \frac{-\alpha_1}{\alpha_2 - \alpha_1}\Big) .
+$$
+
+The **component share** of market 1 is $\psi_1$. If market 1 never corrects ($\alpha_1 = 0$), $\psi_1 = 1$: it does all the
+price discovery.
+
+**The information share.** The variance of innovations to the common trend is $\psi\,\Omega\,\psi^\top$. To split it
+between the markets, factor $\Omega = FF^\top$ with $F$ lower triangular (a Cholesky factorisation). Then
+
+$$
+\text{IS}_1 = \frac{\big([\psi F]_1\big)^2}{\psi\,\Omega\,\psi^\top} .
+$$
+
+Putting market 1 first in the Cholesky factorisation credits it with all the correlated part of the innovations, and
+gives its upper bound; putting it second gives its lower bound. The bounds are tight when the residuals are nearly
+uncorrelated, which is why researchers sample at the finest frequency they can: within a second, fewer innovations
+hit both markets at once.
+
+**A worked case.** If $\alpha_1 = -0.05$ (the stock) and $\alpha_2 = 0.20$ (the options), the stock's component
+share is $0.20/(0.20 + 0.05) = 0.8$: the options do four times as much of the correcting, so the stock does 80% of
+the price discovery.
+
+## <span class="section-tag">Playground</span>Make the options lead
+
+<PriceDiscovery client:visible title="Playground: who leads?" />
+
+<div class="try-this">
+
+- **Turn the tables.** Find speeds at which the options' component share exceeds 70%. What does that say about
+  where informed traders are trading, in Chapter 53's terms?
+- **Noise.** Raise the noise in both markets. Which estimate is more robust, the component share or the information
+  share bounds?
+- **Equal speeds.** With equal speeds, re-simulate a few times. How much do the estimates vary from sample to sample?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A VECM gives error-correction speeds $\alpha_{\text{stock}} = -0.05$ and $\alpha_{\text{options}} = 0.20$. What's the stock's component share of price discovery?"
+  answer={0.8}
+  tolerance={0.001}
+  explanation="$\psi_{\text{stock}} = \alpha_{\text{options}}/(\alpha_{\text{options}} - \alpha_{\text{stock}}) = 0.20/0.25 = 0.8$."
+/>
+
+<Quiz
+  client:visible
+  question="Why is Hasbrouck's information share reported as a pair of bounds?"
+  options={[
+    "Because the VECM is estimated twice",
+    "Because when the two markets' innovations are correlated, the split depends on which market is ordered first in the Cholesky factorisation",
+    "Because prices are cointegrated",
+    "Because the efficient price is unobservable",
+  ]}
+  answer={1}
+  explanation="With $\Omega$ not diagonal, the correlated part of the innovations can be credited to either market. The two orderings give the upper and lower bounds; finer sampling shrinks the correlation and tightens them."
+/>
+
+<Quiz
+  client:visible
+  question="After the stock and its options disagree, the stock's price stays put and the option quotes move to match it. Which market led?"
+  options={["The options", "The stock", "Neither: it was arbitrage", "Both equally"]}
+  answer={1}
+  explanation="The market that adjusts least to the other was right first. Here the options did all the correcting, so the stock led."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Parity turns options into a second price for the stock, $\Spot{S}^{\text{implied}} = \Call{C} - \Put{P} + \Strike{K}e^{-\Rate{r}T}$.
+  The two prices are **cointegrated**: separately unpredictable, but tied together.
+- A **VECM** measures how hard each market corrects the gap ($\alpha_i$). **The leader corrects least.**
+- **Component share:** $\psi_1 = \alpha_2/(\alpha_2 - \alpha_1)$. **Information share:** the part of the common trend's
+  innovation variance due to each market, with ordering-dependent bounds.
+- Evidence suggests the stock does most of the price discovery on average, with options contributing more when they're
+  liquid; the estimates are sensitive to how finely prices are sampled.
+
+**Next up:** Part XIII turns from theory to the trading desk. Chapter 55 starts where a market maker starts each
+morning: with a messy screen of quotes, and the job of turning them into a clean volatility surface.
+
+### Further reading
+
+- J. Hasbrouck, "One security, many markets: determining the contributions to price discovery", *Journal of
+  Finance* 50 (1995).
+- J. Gonzalo and C. Granger, "Estimation of common long-memory components in cointegrated systems", *Journal of
+  Business and Economic Statistics* 13 (1995).
+- S. Chakravarty, H. Gulen and S. Mayhew, "Informed trading in stock and option markets", *Journal of Finance* 59
+  (2004).
+- D. Muravyev, N. D. Pearson and J. P. Broussard, "Is there price discovery in equity options?", *Journal of
+  Financial Economics* 107 (2013).
+- J. Hasbrouck, *Empirical Market Microstructure*, Oxford University Press (2007), chapter 9.

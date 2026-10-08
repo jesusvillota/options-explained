@@ -121,6 +121,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $p_0$, $\Sigma_0$, $x$, $u$, $y$, $\sigma_u$, $\beta$, $\lambda$ | Kyle: prior mean and variance of the value, the insider's order, the noise traders' order, total order flow, noise volatility, the insider's trading intensity and the price impact $p = p_0 + \lambda y$ (Chapters 51–52). $\beta$ here is not SABR's |
 | $\Sigma_t$, $\theta_t$, $X_t$, $Z_t$, $Y_t$ | Continuous-time Kyle: the market's remaining variance, the insider's trading rate, and the cumulative orders of the insider, noise traders and both (Chapter 52) |
 | $\Omega$ | An option's elasticity $\Delta S/V$ (Chapter 53) |
+| $\kappa_i$, $\alpha_i$, $\psi$, $\Omega$ (VECM) | Price discovery: a market's speed of adjustment, its error-correction coefficient, the common-trend weights and the residual covariance (Chapter 54). Here $\Omega$ is a matrix, not an elasticity |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

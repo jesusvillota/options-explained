@@ -272,3 +272,48 @@ describe('venue choice', () => {
     expect(r[0].ret).toBeCloseTo((99.99 - 95) / 99.99, 12);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 54: price discovery
+
+import { discoveryShares, fitVECM, impliedStock, ols, simulateTwoMarkets } from '../src/lib/info/priceDiscovery';
+
+describe('price discovery', () => {
+  const run = (kStock: number, kOption: number, seed = 1) => {
+    const s = simulateTwoMarkets({ n: 6000, m0: 100, sigmaM: 0.05, kStock, kOption, noise: 0.01, seed });
+    return discoveryShares(fitVECM(s.stock, s.option, 2));
+  };
+
+  it('solves least squares exactly on a noiseless line', () => {
+    const X = [[1, 0], [1, 1], [1, 2], [1, 3]];
+    expect(ols(X, [1, 3, 5, 7]).map((b) => Math.round(b * 1e9) / 1e9)).toEqual([1, 2]);
+  });
+
+  it('reads the stock price off parity', () => {
+    expect(impliedStock(4.615, 3.373, 100, 0.05, 0.25)).toBeCloseTo(100, 2);
+  });
+
+  it('gives the faster market the larger share of price discovery', () => {
+    const fastStock = run(0.8, 0.2), fastOption = run(0.2, 0.8);
+    expect(fastStock.componentShare).toBeGreaterThan(0.6);
+    expect(fastOption.componentShare).toBeLessThan(0.4);
+    expect(fastStock.infoShareHigh).toBeGreaterThan(fastOption.infoShareHigh);
+    expect(fastStock.infoShareLow).toBeGreaterThan(fastOption.infoShareLow);
+  });
+
+  it('keeps the information share bounds inside [0, 1], around the component share when markets are alike', () => {
+    const d = run(0.5, 0.5);
+    expect(d.infoShareLow).toBeGreaterThanOrEqual(0);
+    expect(d.infoShareHigh).toBeLessThanOrEqual(1);
+    expect(d.componentShare).toBeGreaterThan(0.35);
+    expect(d.componentShare).toBeLessThan(0.65);
+  });
+
+  it('keeps the two prices together: their gap is stationary', () => {
+    const s = simulateTwoMarkets({ n: 6000, m0: 100, sigmaM: 0.05, kStock: 0.5, kOption: 0.3, noise: 0.01, seed: 2 });
+    const gaps = s.stock.map((p, i) => p - s.option[i]);
+    const sd = Math.sqrt(gaps.reduce((a, g) => a + g * g, 0) / gaps.length);
+    expect(sd).toBeLessThan(0.2);
+    expect(Math.abs(s.m[6000] - s.m[0])).toBeGreaterThan(sd);
+  });
+});
