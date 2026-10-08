@@ -32,7 +32,7 @@ The course contains **73 chapters in 16 progressively more advanced parts**: ten
 | **IX. Exotic & multi-asset options** | [Exotic payoffs, path dependence, and multi-asset derivatives](https://jesusvillota.github.io/options-explained/chapters/37-path-independent-exotics/) |
 | **X. Deep theory & applications** | [Martingale pricing, interest-rate options, credit, and real options](https://jesusvillota.github.io/options-explained/chapters/40-martingale-pricing/) |
 | **XI. Inside the options market** | [Order books, matching rules, auctions, clearing and margin, liquidity, and arbitrage with frictions](https://jesusvillota.github.io/options-explained/chapters/43-limit-order-book/) |
-| **XII. Information and price formation** | Inventory, Glosten–Milgrom, Kyle's model, informed trading and price discovery (*coming soon*) |
+| **XII. Information and price formation** | [Inventory, Glosten–Milgrom, Kyle's model, informed trading and price discovery](https://jesusvillota.github.io/options-explained/chapters/49-inventory/) |
 | **XIII. The options market maker** | Building a surface from quotes, quoting, Avellaneda–Stoikov, and hedging with costs (*coming soon*) |
 | **XIV. Price impact and optimal execution** | The square-root law, Almgren–Chriss, transient impact, and executing option trades (*coming soon*) |
 | **XV. When hedging moves the market** | Dealer gamma, pinning, zero-day options, and liquidity spirals (*coming soon*) |
