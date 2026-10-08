@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Options, Explained: an interactive visual course on options, with the actual call and put payoff artwork from the website">
+  <title>Options, Explained</title>
+  <desc>A preview of the course, using the website's original call and put payoff artwork and exact semantic colors.</desc>
+  <rect width="1200" height="630" fill="#0f1117"/>
+  <path d="M0 94H1200" stroke="#343843"/>
+  <g transform="translate(58 31) scale(1.1)"><path d="M3 22 H16 L29 9" fill="none" stroke="#83c167" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="22" r="3" fill="#f4d345"/></g>
+  <text x="110" y="68" font-family="DejaVu Sans,Arial,sans-serif" font-size="24" font-weight="600" fill="#e8e6e3">Options, Explained</text>
+  <text x="70" y="194" font-family="DejaVu Sans,Arial,sans-serif" font-size="18" font-weight="600" letter-spacing="2" fill="#58c4dd">AN INTERACTIVE VISUAL COURSE</text>
+  <text x="66" y="300" font-family="DejaVu Serif,Georgia,serif" font-size="74" fill="#e8e6e3">Options,</text>
+  <text x="66" y="385" font-family="DejaVu Serif,Georgia,serif" font-size="74" fill="#e8e6e3">Explained</text>
+  <text x="70" y="453" font-family="DejaVu Sans,Arial,sans-serif" font-size="21" fill="#a3a8b4">From the first call option to</text>
+  <text x="70" y="485" font-family="DejaVu Sans,Arial,sans-serif" font-size="21" fill="#a3a8b4">Black–Scholes, Greeks, volatility</text>
+  <text x="70" y="517" font-family="DejaVu Sans,Arial,sans-serif" font-size="21" fill="#a3a8b4">surfaces and advanced pricing.</text>
+  <text x="70" y="579" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" fill="#e8e6e3">42 CHAPTERS</text>
+  <circle cx="213" cy="573" r="3" fill="#58c4dd"/>
+  <text x="231" y="579" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" fill="#e8e6e3">10 PARTS</text>
+  <circle cx="335" cy="573" r="3" fill="#58c4dd"/>
+  <text x="352" y="579" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" fill="#e8e6e3">INTERACTIVE</text>
+  <rect x="629" y="146" width="507" height="382" rx="16" fill="#171a23" stroke="#353842" stroke-width="2"/>
+  <svg x="655" y="211" width="454" height="230" viewBox="0 0 400 180">
+    <line x1="20" y1="150" x2="380" y2="150" stroke="#8c8d90" stroke-width="1.5"/>
+    <line x1="200" y1="20" x2="200" y2="160" stroke="#f4d345" stroke-width="1.5" stroke-dasharray="5 5" opacity="0.7"/>
+    <path d="M20 150 H200 L360 30" fill="none" stroke="#83c167" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M40 30 L200 150 H380" fill="none" stroke="#fc6255" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    <circle cx="200" cy="150" r="6" fill="#f4d345"/>
+  </svg>
+  <g font-family="DejaVu Sans,Arial,sans-serif" font-size="15" fill="#a3a8b4">
+    <line x1="717" y1="474" x2="741" y2="474" stroke="#83c167" stroke-width="5" stroke-linecap="round"/><text x="754" y="480">Call</text>
+    <line x1="837" y1="474" x2="861" y2="474" stroke="#fc6255" stroke-width="4" stroke-linecap="round"/><text x="875" y="480">Put</text>
+    <line x1="937" y1="474" x2="961" y2="474" stroke="#f4d345" stroke-width="2" stroke-dasharray="5 4"/><text x="975" y="480">Strike</text>
+  </g>
+</svg>

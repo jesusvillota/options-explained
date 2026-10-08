@@ -1,76 +1,45 @@
 # Options, Explained
 
-An interactive, visual course on financial options. It runs from *"what is a call option?"* up to stochastic
-volatility, numerical methods, and martingale pricing. The style is inspired by 3Blue1Brown: draw the picture
-first, then write down the formula, and let the reader move the sliders.
+**An interactive, visual course on financial options—from your first call and put to stochastic volatility, numerical pricing, and martingale theory.**
 
-> **Status:** all 42 chapters are written, each with interactive figures, TeX derivations and quizzes, backed by a
-> tested pricing library.
+Options become easier to understand when you can *see* how they work. Start with an intuitive example, explore what changes when you move a slider, and then discover the mathematics behind it. The course builds from first principles to graduate-level derivatives theory, without skipping the steps in between.
 
-## What you'll find here
+**[Explore the interactive course →](https://jesusvillota.github.io/options-explained/)** · [Start with Chapter 1](https://jesusvillota.github.io/options-explained/chapters/01-what-is-an-option/)
 
-- **42 chapters in 10 parts**, ordered from easiest to hardest. Part I needs no math at all. Parts VII–X are
-  graduate level, with the derivations written out in full. See [`docs/CURRICULUM.md`](docs/CURRICULUM.md).
-- **Interactive figures in every chapter.** You drag a strike, change the volatility, or simulate paths, and the
-  payoff, price, or distribution updates as you go.
-- **Colour-coded math.** Each quantity keeps one colour everywhere, in the graphs and in the TeX. For example,
-  spot $S$ is always blue and strike $K$ is always yellow. See [`docs/STYLE_GUIDE.md`](docs/STYLE_GUIDE.md).
+[![Options, Explained: a preview using the website's actual call and put payoff artwork](public/course-preview.svg)](https://jesusvillota.github.io/options-explained/)
 
-## Stack
+## Understand the *why*, not just the formula
 
-| Layer | Choice |
-|---|---|
-| Site | [Astro](https://astro.build), static output deployed to GitHub Pages |
-| Authoring | MDX: Markdown + TeX + interactive components in one file |
-| Math typesetting | KaTeX (`remark-math` + `rehype-katex`) |
-| Interactive plots | React islands + [Mafs](https://mafs.dev). D3 for custom viz. three.js (lazy-loaded) for 3D surfaces |
-| Pricing core | TypeScript library in `src/lib/`, unit-tested with Vitest |
+- **See the intuition.** Begin with a concrete financial problem and a visual explanation, before introducing notation.
+- **Experiment yourself.** Change strikes, volatility, time to expiry, or hedging frequency and watch the consequences unfold in interactive diagrams and simulations.
+- **Build the mathematics step by step.** Move from payoff diagrams to replication arguments, stochastic calculus, pricing formulas, and numerical methods.
+- **Check your understanding.** Apply the ideas through practical examples, interactive exercises, and short quizzes.
 
-**Why this stack.** The browser is the only medium that gives both real interactivity and good math typesetting.
-Writing about 40 raw HTML pages by hand would mean copying layout and plotting code into every page. So chapters
-are written in MDX, and the site ships as static HTML. JavaScript only loads for the interactive widgets.
+## What you'll learn
 
-## Layout
+The course contains **42 chapters in 10 progressively more advanced parts**. Start without mathematical prerequisites, or jump to a topic you want to understand more deeply.
 
-```
-docs/                    curriculum and style guide
-src/content/chapters/    one .mdx file per chapter (prose + TeX + widgets)
-src/components/plots/    interactive figures: PlotFrame, OptionTimeline, PayoffTracer, PayoffDiagram, ...
-src/components/ui/       Slider, Segmented, Quiz, Callout, Tex/RichText, WidgetFrame
-src/components/layout/   course navigation, theme toggle
-src/lib/math/            normal pdf/cdf/inverse, seeded RNG, Brownian motion, root finding, complex numbers, fBM
-src/lib/pricing/         payoffs, Black–Scholes and Greeks, binomial trees, hedging, exotics
-src/lib/vol/             implied volatility, smiles (SVI/SSVI), implied densities, variance swaps
-src/lib/models/          Fourier pricing, Heston, jumps, local volatility, SABR
-src/lib/numerics/        finite differences, Monte Carlo, COS, Longstaff–Schwartz
-src/lib/rates/, theory/  yield curves and Black-76; measure change, Merton credit, P&L explain
-src/data/curriculum.ts   the 42-chapter outline used by the navigation
-src/styles/              colour tokens (theme.css), prose, widgets
-tests/                   Vitest checks of the math and pricing library
-scripts/screenshots.mjs  visual check of every page (themes × desktop/phone)
-```
+| Part | Explore |
+| --- | --- |
+| **I. What options are** | [Calls, puts, payoffs, moneyness, and option strategies](https://jesusvillota.github.io/options-explained/chapters/01-what-is-an-option/) |
+| **II. No-arbitrage reasoning** | [Forwards, pricing bounds, put–call parity, and early exercise](https://jesusvillota.github.io/options-explained/chapters/06-time-value-and-forwards/) |
+| **III. Pricing in discrete time** | [Replication, risk-neutral probabilities, and binomial trees](https://jesusvillota.github.io/options-explained/chapters/11-one-period-binomial/) |
+| **IV. Continuous time** | [Brownian motion, Itô's lemma, and Black–Scholes](https://jesusvillota.github.io/options-explained/chapters/15-brownian-motion/) |
+| **V. Greeks & hedging** | [Delta, gamma, theta, vega, and dynamic hedging](https://jesusvillota.github.io/options-explained/chapters/21-delta-gamma/) |
+| **VI. Volatility** | [Implied volatility, smiles and skew, volatility surfaces, and VIX](https://jesusvillota.github.io/options-explained/chapters/25-historical-implied-vol/) |
+| **VII. Beyond Black–Scholes** | [Local volatility, Heston, jumps, SABR, and rough volatility](https://jesusvillota.github.io/options-explained/chapters/29-local-volatility/) |
+| **VIII. Numerical methods** | [Monte Carlo, finite differences, Fourier pricing, and American options](https://jesusvillota.github.io/options-explained/chapters/33-monte-carlo/) |
+| **IX. Exotic & multi-asset options** | [Exotic payoffs, path dependence, and multi-asset derivatives](https://jesusvillota.github.io/options-explained/chapters/37-path-independent-exotics/) |
+| **X. Deep theory & applications** | [Martingale pricing, interest-rate options, credit, and real options](https://jesusvillota.github.io/options-explained/chapters/40-martingale-pricing/) |
 
-## Roadmap
+[**Browse the full course and all 42 chapters →**](https://jesusvillota.github.io/options-explained/)
 
-1. ✅ Curriculum and style guide
-2. ✅ Scaffold: Astro, theme, core components, tested pricing library, Pages deployment
-3. ✅ Chapters 1–2 as the reference implementation
-4. ✅ Chapters 3–42, one commit per chapter and one PR per part
+## Who is it for?
 
-## Running locally
+Whether you are **new to options**, studying **finance or economics**, or working with **derivatives and quantitative models**, the course is designed to let you start at the right level and build understanding at your own pace. Introductory chapters need no advanced mathematics; later chapters include full mathematical derivations.
 
-Requires Node 22+.
+## Start exploring
 
-```sh
-npm install
-npm run dev            # http://localhost:4321/options-explained/
-npm test               # unit tests for src/lib
-npm run build          # type check (astro check) + static build into dist/
-npm run screenshots    # after a build: screenshots/ for every page, plus console/KaTeX/overflow checks
-```
+You don't need to install anything. Open the course in your browser, choose a chapter, and interact with the figures as you learn.
 
-## Deployment
-
-`.github/workflows/ci.yml` runs the tests and the build on every pull request. On pushes to `main` it also
-deploys `dist/` to GitHub Pages at <https://jesusvillota.github.io/options-explained/>. This needs
-**Settings → Pages → Source: GitHub Actions** to be switched on once.
+**[Start learning Options, Explained →](https://jesusvillota.github.io/options-explained/)**
