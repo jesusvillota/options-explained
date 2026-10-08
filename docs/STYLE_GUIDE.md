@@ -128,6 +128,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\delta^b$, $\delta^a$, $\omega$ | Distances of the bid and ask from the mid, and the Guéant–Lehalle–Fernandez-Tapia inventory skew per unit (Chapter 57) |
 | $V_j$, $\Omega$, $d_j$ (book) | A book's vega in bucket $j$, the covariance of bucket vol moves, and the quote shift in vol points (Chapter 58) |
 | $\sigma_L$, $\text{Le}$, $H$ | Leland's volatility and number, and the Whalley–Wilmott band's half-width (Chapter 59) |
+| $d$, $\Sigma$, $p^0$, $c_i$, $s_\sigma$, $\pi$ | End users' net demand, the covariance of unhedgeable P&L, the hedgeable value, an option's delta-hedged crash loss, volatility uncertainty and crash probability (Chapter 60) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

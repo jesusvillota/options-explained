@@ -198,3 +198,42 @@ describe('hedging with costs', () => {
     expect(band.meanTrades).toBeLessThan(clock.meanTrades);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 60: demand-based option pricing
+
+import { DEMAND_PRESETS, DEMAND_STRIKES, demandPremium, demandSmile, unhedgeableCovariance } from '../src/lib/mm/demand';
+
+describe('demand-based pricing', () => {
+  it('has a symmetric, positive semi-definite covariance of unhedgeable risk', () => {
+    const S = unhedgeableCovariance();
+    S.forEach((row, i) => row.forEach((s, j) => expect(s).toBeCloseTo(S[j][i], 14)));
+    for (const d of Object.values(DEMAND_PRESETS)) {
+      const v = d.demand.reduce((a, x, i) => a + x * S[i].reduce((b, s, j) => b + s * d.demand[j], 0), 0);
+      expect(v).toBeGreaterThanOrEqual(-1e-9);
+    }
+  });
+
+  it('leaves prices alone without demand or without risk aversion', () => {
+    expect(demandPremium(DEMAND_PRESETS.none.demand, 3e-6).every((p) => p === 0)).toBe(true);
+    expect(demandSmile(DEMAND_PRESETS.index.demand, 0).every((s) => Math.abs(s.withDemand - 0.2) < 1e-8)).toBe(true);
+  });
+
+  it('is linear in demand', () => {
+    const a = demandPremium(DEMAND_PRESETS.index.demand, 3e-6), b = demandPremium(DEMAND_PRESETS.index.demand.map((x) => 2 * x), 3e-6);
+    a.forEach((p, i) => expect(b[i]).toBeCloseTo(2 * p, 12));
+  });
+
+  it('makes puts expensive relative to calls when end users buy puts: a skew from demand alone', () => {
+    const s = demandSmile(DEMAND_PRESETS.insurance.demand, 3e-6);
+    const at = (K: number) => s.find((x) => x.strike === K)!.withDemand;
+    expect(at(90)).toBeGreaterThan(at(110) + 0.01);
+    expect(at(110)).toBeGreaterThan(0.2);
+    expect(DEMAND_STRIKES.length).toBe(s.length);
+  });
+
+  it('cheapens options when end users sell', () => {
+    const s = demandSmile(DEMAND_PRESETS.overwriting.demand, 3e-6);
+    expect(s.every((x) => x.withDemand < 0.2)).toBe(true);
+  });
+});
