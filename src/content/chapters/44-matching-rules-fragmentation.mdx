@@ -1,0 +1,250 @@
+---
+title: "Matching rules and fragmented markets"
+part: 11
+chapter: 44
+difficulty: 1
+prerequisites: [43]
+summary: "Who gets filled when many orders share a price, why one option trades on a dozen exchanges at once, and what the best price really is."
+---
+import MatchingRules from '../../components/plots/MatchingRules';
+import NBBOBuilder from '../../components/plots/NBBOBuilder';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Three screens, three prices
+
+You check the three-month \$105 call on three exchanges. Exchange A shows 2.40 bid, 2.55 offered. Exchange B shows
+2.45 / 2.60. Exchange C shows 2.40 / 2.50. Which one is *the* price? And if you send an order to buy, which
+exchange gets it, and which of the many traders waiting there gets to sell to you?
+
+In Chapter 43 we looked at one book on one exchange, with one rule: first come, first served. Neither part of that
+picture is universal. In US listed options, the same contract trades on more than a dozen exchanges at the same
+time, and many of them don't use first come, first served at all. This chapter is about the rules that decide who
+trades with whom, and why they matter to everyone who trades.
+
+## <span class="section-tag">Intuition</span>Sharing a price
+
+When a sell order arrives at a price where five bids are waiting, the exchange has to split it among them. Its
+**allocation rule** decides how. Here are the four rules you'll meet most often, applied to the same five bids.
+
+<MatchingRules client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with <em>price–time</em>, switch between arriving first and last:
+you go from a full fill to nothing. Now switch to <em>pro-rata</em>: arrival order hardly matters, but doubling your
+size doubles your fill. Finally, make yourself a public customer and choose <em>customers first</em>: you jump to
+the front of the queue.</p>
+
+Each rule rewards something different:
+
+- **Price–time** rewards **speed**. Being first in the queue is worth money, so trading firms race to get there,
+  and spend heavily on being fast.
+- **Pro-rata** rewards **size**. Everyone at the price gets the same fraction of what they bid for, so displaying
+  a bigger order gets you a bigger fill. That attracts deep quotes, but it also tempts traders to show more size
+  than they really want, knowing they'll only get a fraction of it.
+- **Customer priority** protects **public customers**: orders from ordinary investors, as opposed to
+  professional traders, fill first at their price. Many options exchanges use it.
+- **Participation entitlements** reward the exchange's **lead market maker**, a firm that has promised to quote
+  every series continuously. In exchange for that obligation it's guaranteed a share of each trade at its price,
+  often around 40% after customers; the exact share differs from exchange to exchange.
+
+Pro-rata and hybrid rules are common in options and in some interest-rate futures. Price–time dominates stock
+exchanges. There's no single right answer: each rule is a trade-off between rewarding speed, size, and the
+commitment to quote.
+
+## <span class="section-tag">Intuition</span>One option, many exchanges
+
+Now for the hook's question. The three exchanges each have their own book:
+
+<NBBOBuilder client:visible />
+
+Look at the dashed lines. The best bid anywhere is 2.45, on B, and the best offer anywhere is 2.50, on C. Together
+they form the **national best bid and offer**, or **NBBO**: 2.45 / 2.50. Its spread is 5 cents, tighter than the
+spread on any single exchange.
+
+This is the first consequence of **fragmentation**: the market's real quote isn't on any one screen. A data feed
+collects every exchange's quotes and trades (in US options it's called OPRA), and the NBBO is computed from it.
+The second consequence is that each exchange's book is thin, while the **consolidated book**, every exchange's
+orders taken together, is much deeper.
+
+So where should a buy order go? An industry-wide **order-protection** rule settles most of it: an exchange
+may not execute your order at a worse price than one displayed elsewhere. If C offers 2.50, nobody may sell to you
+at 2.55 on A until C's offer has gone. Trading at a worse price than the best displayed one is a
+**trade-through**, and exchanges and brokers must route around it.
+
+<p class="try-this"><strong>Try this:</strong> buy 60 with the smart router: it takes C's offer at 2.50, then
+2.55 on C and A, then 2.60. Now send everything to A. The order walks A's book, ignoring cheaper offers next door:
+every contract is a trade-through, and the order costs about \$275 more.</p>
+
+## <span class="section-tag">Intuition</span>Fees, rebates and payment for order flow
+
+The quoted price isn't quite what you pay. Exchanges charge fees per contract, and different exchanges charge in
+different ways:
+
+- On a **maker–taker** exchange the taker pays a fee, and the maker who provided the quote earns a **rebate**.
+  The exchange is paying for liquidity to be displayed there.
+- On an **inverted** (taker–maker) exchange it's the other way round: makers pay, and takers may earn a
+  rebate.
+- Some exchanges charge both sides a flat fee, and many charge customers and professionals differently.
+
+When several exchanges show the same price, a router picks the one that's cheapest after fees. Fees can't override
+order protection, though: a better displayed price must be taken first.
+
+Retail orders often don't go to an exchange at all. In the US, many retail brokers send their customers' orders to
+large market-making firms (*wholesalers*), who pay the broker for the privilege. This is **payment for order
+flow**. The wholesaler must still give the customer at least the NBBO, often a little better. Why pay to trade
+against retail orders? Because they are, on average, **uninformed**: a small investor buying calls is rarely
+trading on news the market doesn't have yet. Trading against such flow is less risky than trading against the
+whole market, a theme that runs through all of Part XII. Some regulators restrict or ban the practice, because the
+broker's incentive to sell its customers' orders may conflict with its duty to get them the best execution.
+
+A related mechanism is the **price-improvement auction**. A broker sends a customer order to an exchange together
+with a price at which it promises to fill it, at or better than the NBBO. The exchange runs an auction lasting a
+fraction of a second, and other traders can step in to offer the customer a better price.
+
+<Callout type="key" title="The best price is a market-wide object">
+With many exchanges, "the quote" is the NBBO: the best bid and the best offer across all of them. Order-protection
+rules force trades to respect it, and fees and allocation rules then decide which exchange and which trader gets the
+fill. When the rest of this course says "the bid" and "the ask", read them as the NBBO.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Allocation, NBBO and net prices
+
+Suppose $n$ orders with sizes $z_1, \dots, z_n$ (in arrival order) rest at one price, with total
+$Z = \sum_i z_i$, and an incoming order of size $Q \le Z$ arrives.
+
+**Price–time** gives order $i$ whatever is left after the earlier ones:
+
+$$
+q_i = \min\Big(z_i,\ \big(Q - \textstyle\sum_{j<i} z_j\big)^+\Big).
+$$
+
+**Pro-rata** gives each order the same fraction $Q/Z$ of its size, rounded down:
+
+$$
+q_i = \Big\lfloor Q\,\frac{z_i}{Z} \Big\rfloor ,
+$$
+
+and the few contracts lost to rounding (at most $n - 1$) are handed out one at a time in arrival order. Exchanges
+differ in the details: some set a minimum allocation, some round to the largest order first. Every version shares
+the key property that your fill is proportional to your displayed size, so arriving early is worth almost nothing.
+
+**Why pro-rata invites overstatement.** Suppose you want $x$ contracts and everyone else displays $Z$. Display $x$ and
+you get about $Q\,x/(Z + x)$, less than you wanted. Display $k x$ and you get $Q\,kx/(Z + kx)$. If everyone reasons
+the same way, displayed sizes inflate, and each trader risks being filled for more than they wanted when a large
+order arrives. Under price–time the game is different but just as real: there, a place at the front of the queue
+is valuable, so traders invest in speed (Chapter 73).
+
+**Customer priority with an entitlement.** With customers' total size $Z_c$ at the price, customers fill first,
+$Q_c = \min(Q, Z_c)$. The lead market maker, with size $z_L$, then gets
+
+$$
+q_L = \min\big(z_L,\ \lfloor \theta\,(Q - Q_c) \rfloor\big),
+$$
+
+for an entitlement share $\theta$ (0.4 in the widget), and the rest is shared pro rata among the other
+professionals.
+
+**NBBO.** With exchanges $v = 1, \dots, V$ quoting $(b_v, a_v)$,
+
+$$
+b^{\text{N}} = \max_v b_v, \qquad a^{\text{N}} = \min_v a_v,
+$$
+
+and the national spread satisfies
+
+$$
+s^{\text{N}} = a^{\text{N}} - b^{\text{N}} \le \min_v\,(a_v - b_v),
+$$
+
+so the national spread is never wider than the best single exchange's, and is often narrower. The consolidated
+depth is the sum of the exchanges' depths, $D(p) = \sum_v D_v(p)$. A buy that fills at price $p$ on exchange $v$
+while $a^{\text{N}} < p$ is a **trade-through**.
+
+**Net prices.** With multiplier $m$ and a taker fee $f_v$ per contract (negative for a rebate), a buyer who takes
+at $a_v$ effectively pays
+
+$$
+a_v + \frac{f_v}{m}
+$$
+
+per share, and a seller who takes at $b_v$ receives $b_v - f_v/m$. For the smart router's 60 contracts: the
+average price is $153.75/60 = 2.5625$, the fees are $15 \times 0.50 - 45 \times 0.05 = $ \$5.25, and the net price is
+$2.5625 + 5.25/6000 \approx 2.5634$. Sending everything to A gives an average of $156.25/60 \approx 2.6042$ plus
+\$30 of fees, for a net $2.6092$: the order costs $6000 \times (2.6092 - 2.5634) \approx $ \$275 more.
+
+Makers see the fee from the other side. A maker on exchange A who buys at a bid of 2.40 and earns a \$0.25 rebate
+has really bought at $2.40 - 0.25/100 = 2.3975$. Rebates narrow the effective spread a liquidity provider earns, and
+that is exactly why exchanges pay them: to attract displayed orders.
+
+## <span class="section-tag">Playground</span>Route it yourself
+
+<NBBOBuilder client:visible initialMode="A" initialSide="sell" initialSize={40} title="Playground: route an order" />
+
+<div class="try-this">
+
+- **Selling.** You're selling 40 with everything sent to A. Which better bid are you trading through? Switch to the
+  smart router and compare the net prices.
+- **When fees decide.** Buy 25 with the smart router. At 2.55 both A and C have offers: which goes first, and why?
+- **Depth adds up.** Buy 100 with the smart router. How far up the consolidated book does it go? Compare with the
+  100-contract walk through Chapter 43's single book, which reached 2.70.
+- **Back to the allocation widget.** Under pro-rata, with an incoming sell of 30, how big a bid do you need to
+  receive 10 contracts? Check your answer with the formula $Q\,x/(Z + x)$ below. How does it compare with the 10 you
+  actually wanted?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Exchange A quotes 2.40 / 2.55, B quotes 2.45 / 2.60 and C quotes 2.40 / 2.50. What's the NBBO spread, in cents?"
+  answer={5}
+  tolerance={0.01}
+  explanation="The national best bid is 2.45 (on B) and the national best offer is 2.50 (on C), so the NBBO is 2.45 / 2.50 and its spread is 5 cents, narrower than any single exchange's."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Under a pure pro-rata rule, 200 contracts are bid at 2.40, 50 of them yours. A market sell of 100 arrives. How many of yours fill?"
+  answer={25}
+  tolerance={0.01}
+  explanation="Every bid gets the same fraction $100/200 = 50\%$ of its size, so you get $0.5 \times 50 = 25$, wherever you were in the queue."
+/>
+
+<Quiz
+  client:visible
+  question="Exchange A offers 2.55 and exchange C offers 2.50. A broker sends your buy order to A. What must happen?"
+  options={[
+    "A fills you at 2.55, because you sent the order there",
+    "A must not fill you at 2.55 while C's 2.50 offer is displayed; it routes to C or waits",
+    "A fills you at the average, 2.525",
+    "Nothing: prices on different exchanges are unrelated",
+  ]}
+  answer={1}
+  explanation="Filling at 2.55 while 2.50 is displayed elsewhere would be a trade-through, which order-protection rules forbid. The order must take C's better offer first."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- An **allocation rule** splits an incoming order among the orders at one price. **Price–time** rewards speed,
+  **pro-rata** rewards size, **customer priority** protects public investors, and **entitlements** reward lead
+  market makers for their quoting obligations.
+- The same option trades on many exchanges. The **NBBO** is the best bid and offer across all of them, and its
+  spread is never wider than the best single exchange's.
+- **Order protection** forbids **trade-throughs**: a better displayed price elsewhere must be taken first.
+- **Fees and rebates** change the net price: a taker pays $a_v + f_v/m$ per share. **Payment for order flow**
+  exists because uninformed order flow is valuable to trade against.
+
+**Next up:** so far every order has been for one option. In Chapter 45 we'll trade whole strategies (spreads,
+straddles) as single packages, and see how an opening auction finds one price for everyone.
+
+### Further reading
+
+- L. Harris, *Trading and Exchanges*, Oxford University Press (2003), chapters 6 (order precedence rules) and 25
+  (fragmentation).
+- M. O'Hara and M. Ye, "Is market fragmentation harming market quality?", *Journal of Financial Economics* 100
+  (2011).
+- R. Battalio, S. A. Corwin and R. Jennings, "Can brokers have it all? On the relation between make-take fees and
+  limit order execution quality", *Journal of Finance* 71 (2016).
+- The Options Order Protection and Locked/Crossed Market Plan, and the rulebooks of individual US options exchanges,
+  for the exact allocation and entitlement rules.

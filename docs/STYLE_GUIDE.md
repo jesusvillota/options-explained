@@ -99,6 +99,11 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $D_a(p)$, $D_b(p)$ | Cumulative depth: contracts offered at $p$ or less, bid at $p$ or more |
 | $\bar p(Q)$, $p_{\text{last}}(Q)$ | Average and marginal (last-contract) fill price of an order of size $Q$ |
 | $\Lambda$ | Arrival rate of orders, in contracts (or orders) per unit time |
+| $\rho$ (depth) | Contracts per tick in a book with uniform depth (Chapter 43) |
+| $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
+| $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |
+| $f_v$ | Fee per contract on exchange $v$ (negative for a rebate) |
+| $\theta$ (allocation) | A lead market maker's participation entitlement, as a share of an incoming order (Chapter 44) |
 
 Conventions:
 - Time is measured in years and rates are annualised and continuously compounded. Switch to discrete compounding

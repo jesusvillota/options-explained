@@ -19,6 +19,8 @@ import {
   walkTheBook,
 } from '../src/lib/micro/orderBook';
 import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
+import { consolidated, customerPriority, leadMarketMaker, nbbo, priceTime, proRata, routeOrder, threeVenues } from '../src/lib/micro/matching';
+import type { Order } from '../src/lib/micro/orderBook';
 
 const totalSize = (book: ReturnType<typeof callBook>) =>
   [...book.bids, ...book.asks].reduce((a, l) => a + l.orders.reduce((b, o) => b + o.size, 0), 0);
@@ -180,5 +182,103 @@ describe('random order flow', () => {
     const orders = [...book.bids, ...book.asks].reduce((n, l) => n + l.orders.length, 0);
     expect(orders).toBeGreaterThan(15);
     expect(orders).toBeLessThan(120);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chapter 44: matching rules and fragmented markets
+
+
+const level = (youOwner = 'mm', youFirst = false): Order[] => {
+  const others: Order[] = [
+    { id: 1, side: 'bid', price: 2.4, size: 20, owner: 'mm' },
+    { id: 2, side: 'bid', price: 2.4, size: 5, owner: 'customer' },
+    { id: 3, side: 'bid', price: 2.4, size: 30, owner: 'lmm' },
+    { id: 4, side: 'bid', price: 2.4, size: 40, owner: 'mm' },
+  ];
+  const you: Order = { id: 5, side: 'bid', price: 2.4, size: 10, owner: youOwner };
+  return youFirst ? [you, ...others] : [...others, you];
+};
+const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+describe('allocation rules at one price', () => {
+  it('price–time fills in arrival order', () => {
+    expect(priceTime(level(), 30)).toEqual([20, 5, 5, 0, 0]);
+    expect(priceTime(level('mm', true), 30)).toEqual([10, 20, 0, 0, 0]);
+  });
+
+  it('pro-rata shares by size and hands rounding leftovers out in time order', () => {
+    expect(proRata(level(), 30)).toEqual([6, 2, 9, 11, 2]);
+    // Arrival order barely matters: being first only moves a leftover contract.
+    expect(proRata(level('mm', true), 30)[0]).toBe(3);
+  });
+
+  it('serves customers first, then shares pro rata among professionals', () => {
+    expect(customerPriority(level(), 30)).toEqual([6, 5, 7, 10, 2]);
+    expect(customerPriority(level('customer'), 30)).toEqual([4, 5, 5, 6, 10]);
+  });
+
+  it('gives the lead market maker its entitlement after customers', () => {
+    expect(leadMarketMaker(0.4)(level(), 30)).toEqual([5, 5, 10, 8, 2]);
+  });
+
+  it('always allocates exactly the incoming size (or everything, if less is resting)', () => {
+    for (const rule of [priceTime, proRata, customerPriority, leadMarketMaker(0.4)]) {
+      for (const q of [1, 7, 30, 64, 105, 200]) {
+        const shares = rule(level(), q);
+        expect(sum(shares)).toBe(Math.min(q, 105));
+        shares.forEach((s, i) => {
+          expect(s).toBeGreaterThanOrEqual(0);
+          expect(s).toBeLessThanOrEqual(level()[i].size);
+        });
+      }
+    }
+  });
+});
+
+describe('three venues', () => {
+  const venues = threeVenues();
+
+  it('has an NBBO tighter than any single venue', () => {
+    const q = nbbo(venues);
+    expect(q.bid).toBe(2.45);
+    expect(q.ask).toBe(2.5);
+    expect(q.bidVenues).toEqual([1]);
+    expect(q.askVenues).toEqual([2]);
+    for (const v of venues) expect(v.book.asks[0].price - v.book.bids[0].price).toBeGreaterThan(q.ask! - q.bid! + 1e-9);
+  });
+
+  it('merges the books into a consolidated book', () => {
+    const asks = consolidated(venues, 'ask');
+    expect(asks[0]).toEqual({ price: 2.5, size: 5, byVenue: [0, 0, 5] });
+    expect(asks[1]).toEqual({ price: 2.55, size: 35, byVenue: [15, 0, 20] });
+  });
+
+  it('routes a buy of 60 to the best prices, cheapest fee first at each price', () => {
+    const r = routeOrder(venues, 'buy', 60, 'smart');
+    expect(r.fills.map((f) => [venues[f.venue].name, f.price, f.size])).toEqual([
+      ['C', 2.5, 5],
+      ['C', 2.55, 20],
+      ['A', 2.55, 15],
+      ['C', 2.6, 20],
+    ]);
+    expect(r.avgPrice).toBeCloseTo(2.5625, 10);
+    expect(r.fees).toBeCloseTo(5.25, 10);
+    expect(r.netAvgPrice).toBeCloseTo(2.5625 + 5.25 / 6000, 10);
+    expect(r.tradeThroughs).toBe(0);
+  });
+
+  it('trades through better prices if everything is sent to one venue', () => {
+    const r = routeOrder(venues, 'buy', 60, 0);
+    expect(r.avgPrice).toBeCloseTo(156.25 / 60, 10);
+    expect(r.tradeThroughs).toBe(60);
+    expect(r.fees).toBeCloseTo(30, 10);
+  });
+
+  it('routes a sale to the best bid first', () => {
+    const r = routeOrder(venues, 'sell', 10, 'smart');
+    expect(r.fills[0]).toMatchObject({ venue: 1, price: 2.45, size: 8 });
+    expect(r.fills[1]).toMatchObject({ venue: 2, price: 2.4, size: 2 });
+    expect(r.netAvgPrice).toBeLessThan(r.avgPrice + 1e-12);
   });
 });
