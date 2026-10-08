@@ -1,6 +1,6 @@
 # Style Guide
 
-This guide is the house style for every chapter. Follow it so that 42 chapters, many of them written in
+This guide is the house style for every chapter. Follow it so that 73 chapters, many of them written in
 different sessions, read like one course.
 
 ## 1. Voice
@@ -18,7 +18,9 @@ different sessions, read like one course.
   in a collapsible `<Details>` block, but they must be there.
 - **Graduate rigour comes in gradually.** Parts I–III use intuition and arithmetic. Parts IV–VI bring in
   calculus and probability. Parts VII–X use measure-theoretic language where it helps, and always give a plain
-  reading of the idea next to it.
+  reading of the idea next to it. The microstructure Parts (XI–XVI) restart the ramp: Part XI is mostly
+  institutions and arithmetic, and Parts XII–XVI bring in equilibrium models, stochastic control and point
+  processes.
 
 ## 2. Chapter template
 
@@ -89,6 +91,10 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $m$, $n$ | Contract multiplier (100 shares for US stock options) and number of contracts |
 | $n_i$, $p_i$ | Signed quantity of leg $i$ in a strategy (positive long, negative short) and its price per unit |
 | $b$, $a$ | Bid and ask prices (per share) |
+| $M$, $M_t$ | Mid-price $\tfrac12(b + a)$ (Part XI on). Not to be confused with the multiplier $m$ |
+| $s$ | Quoted spread $a - b$ (Part XI on). In Chapter 42, $s$ is a credit spread |
+| $Q$, $q_i$ | Size of an order, and the part of it filled at price level $i$ or allocated to order $i$ |
+| $d_t$ | Trade sign: $+1$ for a buyer-initiated trade, $-1$ for a seller-initiated one |
 
 Conventions:
 - Time is measured in years and rates are annualised and continuously compounded. Switch to discrete compounding
@@ -111,6 +117,12 @@ colours. For anything else, use the neutral palette.
 | Volatility $\sigma$ | `--c-vol` | `#B189C6` | `#7A4E94` |
 | Rate $r$ | `--c-rate` | `#FF862F` | `#C25E12` |
 | Probability / density | `--c-prob` | `#D7D7D7` (filled at 25% opacity) | `#555555` |
+| Bid / buy side (Part XI on) | `--c-bid` | `#7C9BFF` | `#2F55C8` |
+| Ask / sell side (Part XI on) | `--c-ask` | `#F27BC4` | `#B02D7E` |
+
+Bid and ask get their own pair so that an order book never borrows the call and put colours: in a book for a
+call, green and red would be read as "call" and "put". Buy orders and the bid side of a book are `--c-bid`; sell
+orders and the ask side are `--c-ask`.
 
 Gains and losses in readouts (`.good` / `.bad`) reuse the call and put colours, following the usual
 green-is-up, red-is-down convention. Always pair them with a sign or a word ("+\$3", "loss") so colour is never the
@@ -122,7 +134,7 @@ lines in the text colour at 30% / 10% opacity.
 In TeX, use the KaTeX macros defined in the site config. Don't use raw `\color{}`:
 
 ```tex
-\Spot{S}, \Strike{K}, \Call{C}, \Put{P}, \Time{\tau}, \Vol{\sigma}, \Rate{r}
+\Spot{S}, \Strike{K}, \Call{C}, \Put{P}, \Time{\tau}, \Vol{\sigma}, \Rate{r}, \Bid{b}, \Ask{a}
 ```
 
 Colour a term only where it helps the reader match the formula to a plot. A formula where every symbol is

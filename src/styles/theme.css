@@ -11,6 +11,8 @@
   --c-vol: #b189c6;
   --c-rate: #ff862f;
   --c-prob: #d7d7d7;
+  --c-bid: #7c9bff;
+  --c-ask: #f27bc4;
 
   --bg: #0f1117;
   --bg-raised: #171a23;
@@ -41,6 +43,8 @@
   --c-vol: #7a4e94;
   --c-rate: #c25e12;
   --c-prob: #555555;
+  --c-bid: #2f55c8;
+  --c-ask: #b02d7e;
 
   --bg: #fafaf7;
   --bg-raised: #ffffff;
@@ -63,6 +67,8 @@
 .c-vol { color: var(--c-vol); }
 .c-rate { color: var(--c-rate); }
 .c-prob { color: var(--c-prob); }
+.c-bid { color: var(--c-bid); }
+.c-ask { color: var(--c-ask); }
 
 /* Mafs picks up the site theme. */
 .MafsView {

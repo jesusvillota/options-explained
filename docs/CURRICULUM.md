@@ -1,7 +1,8 @@
 # Curriculum
 
-There are 42 chapters in 10 parts. Each chapter builds on earlier ones. "Prereqs" lists the chapters a reader
-should have read first.
+There are 73 chapters in 16 parts. Parts I–X build the theory of pricing and hedging in a frictionless market.
+Parts XI–XVI are about market microstructure: how options and their underlyings actually trade. Each chapter
+builds on earlier ones. "Prereqs" lists the chapters a reader should have read first.
 
 Difficulty: ● intro (arithmetic only) · ●● intermediate (calculus and probability) · ●●● advanced (graduate
 level: stochastic calculus, measure theory, numerical analysis).
@@ -437,6 +438,372 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
   `src/lib/theory/credit.ts`, `src/lib/theory/pnlExplain.ts`.
 - **Prereqs:** 18, 23.
 
+## Part XI — Inside the options market ●–●●
+
+Parts I–X priced options in a market without frictions: one price per option, trades of any size at that price.
+Parts XI–XVI are about **market microstructure**: how real prices are formed by orders, who sets the bid and
+the ask, what trading costs, and how trading moves the price. Part XI covers the institutions and the
+measurements that the later, model-heavy Parts build on. The markets are synthetic and seeded throughout. Where
+a rule differs between markets, the text describes the general mechanism and labels US listed equity options as
+the running example.
+
+### 43. The limit order book
+- **Goals:** Explain limit and market orders, the bid and ask as the best resting limit orders, depth, the tick
+  grid, and queue position under price–time priority. Walk the book with a large market order and compute its
+  average fill price and slippage. Explain cancellations and marketable limit orders.
+- **Key math:** the average fill price for size $Q$, $\bar p(Q) = \frac1Q\sum_i p_i q_i$; slippage
+  $\bar p(Q) - M$ against the mid $M$; cumulative depth $D(p)$.
+- **Widgets:** `OrderBook`: a seeded book for one option, shown as a depth ladder. You can send limit and market
+  orders, watch them fill or join a queue, and see your queue position. `WalkTheBook`: the average fill price and
+  slippage as functions of order size, drawn from the book's cumulative depth. Library: `src/lib/micro/orderBook.ts`
+  (a matching engine).
+- **Prereqs:** 4.
+
+### 44. Matching rules and fragmented markets
+- **Goals:** Compare price–time and pro-rata allocation, and priority for public customers. Explain why one option
+  trades on many exchanges at once, how the best bid and offer across them (the NBBO) is formed, why routers must
+  not trade through a better price elsewhere, and how exchange fees, rebates and payment for order flow change the
+  net price.
+- **Key math:** pro-rata allocation $q_i = \lfloor Q\, s_i / \sum_j s_j \rfloor$ with a rule for the remainder;
+  $\text{NBBO} = (\max_v b_v, \min_v a_v)$; the net price $a + f$ (taker fee) or $b + \text{rebate}$.
+- **Widgets:** `MatchingRules`: one incoming order filled against the same resting orders under price–time,
+  pro-rata and customer-priority rules, showing who gets what. `NBBOBuilder`: three venues' books merging into
+  the NBBO, with routing and fees. Library: `src/lib/micro/matching.ts`.
+- **Prereqs:** 43.
+
+### 45. Complex orders and auctions
+- **Goals:** Trade a strategy (Chapter 5) as one package. Derive a spread's implied bid and ask from its legs, and
+  see why a package can trade inside them. Measure legging risk. Find an opening auction's single clearing price.
+- **Key math:** the package bid $b_{\text{pkg}} = \sum_{n_i>0} n_i b_i - \sum_{n_i<0}|n_i|\,a_i$ and the matching
+  ask; the legging risk over a delay $\delta t$, $\mathrm{sd} \approx |\Delta|\,\sigma_S\sqrt{\delta t}$; the
+  auction price $p^* = \arg\max_p \min\{D(p), S(p)\}$.
+- **Widgets:** `SpreadFromLegs`: a vertical spread's quote built from its legs, against a tighter quote from a
+  complex-order book. `CallAuction`: the supply and demand step curves of an opening auction crossing at the
+  clearing price. Library: `src/lib/micro/auction.ts`.
+- **Prereqs:** 5, 44.
+
+### 46. Clearing, margin and assignment
+- **Goals:** Explain the central counterparty: novation, netting, and the default waterfall. Explain random
+  assignment and early-assignment risk for short calls before a dividend (Chapter 9). Compute strategy-based and
+  risk-based (scenario) margin, and see why margin rises when markets get volatile.
+- **Key math:** scenario margin $= \max_j \big[-\Delta V(\text{scenario}_j)\big]$ over a grid of price moves and
+  volatility shifts; the netting benefit of a hedged book.
+- **Widgets:** `MarginScenarios`: a small position's risk array, a heatmap of P&L over price and volatility
+  shocks, with the margin as its worst cell. Compare a naked short put with a put spread. Library:
+  `src/lib/micro/margin.ts`.
+- **Prereqs:** 20, 44.
+
+### 47. Measuring liquidity
+- **Goals:** Define the quoted, effective and realised spreads and split the effective spread into a realised
+  spread (what the liquidity provider keeps) and price impact (what it loses to informed flow). Estimate a spread
+  from trade prices alone with Roll's estimator. Quote spreads in volatility points and see why far
+  out-of-the-money options have huge percentage spreads but ordinary volatility spreads.
+- **Key math:** effective half-spread $d_t(p_t - M_t)$ with $d_t = \pm1$ the trade sign; realised half-spread
+  $d_t(p_t - M_{t+h})$; impact $d_t(M_{t+h} - M_t)$; Roll's $s = 2\sqrt{-\mathrm{Cov}(\Delta p_t, \Delta p_{t-1})}$;
+  the volatility spread $(a - b)/\mathcal{V}$.
+- **Widgets:** `SpreadDecomposition`: seeded trades with a slider for the informed share, splitting the effective
+  spread into realised spread and impact. `ChainLiquidity`: a chain's spreads in dollars, in percent and in
+  volatility points across strikes. Library: `src/lib/micro/liquidity.ts`.
+- **Prereqs:** 23, 43.
+
+### 48. No-arbitrage with frictions
+- **Goals:** Turn Part II's bounds and put–call parity into bands: an arbitrage must beat the bid–ask spread,
+  borrow fees and the gap between borrowing and lending rates. Read an implied borrow rate from parity and an
+  implied financing rate from a box spread. See the striking result that with proportional costs, the cheapest
+  super-replication of a call is to buy the stock.
+- **Key math:** the parity band $S^b - K B_{\text{lend}} \le C - P \le S^a - K B_{\text{borrow}}$,
+  read off as $a_C - b_P \ge S^b - K B_{\text{lend}}$ and $b_C - a_P \le S^a - K B_{\text{borrow}}$, plus a
+  borrow fee for shorting the stock; the box-spread rate $-\ln\big(\text{box}/(K_2 - K_1)\big)/T$; the Soner–Shreve–Cvitanić theorem.
+- **Widgets:** `ParityBand`: parity as a band around a line; arbitrage appears only where the quotes leave the
+  band. `BoxSpreadRate`: the rate implied by a box's bid and ask. Library: `src/lib/micro/frictions.ts`.
+- **Prereqs:** 8, 47.
+
+---
+
+## Part XII — Information and price formation ●●–●●●
+
+### 49. Inventory: why dealers charge to hold risk
+- **Goals:** Model a dealer facing random buy and sell orders. Without control, inventory wanders like a random
+  walk. A risk-averse dealer shades both quotes against the inventory, which pulls it back towards zero. Derive
+  the inventory component of the spread.
+- **Key math:** the one-period reservation price $r = M - \gamma\sigma^2\tau\,q$ and the inventory spread
+  $\gamma\sigma^2\tau$ per unit of size (Stoll, Ho–Stoll); Garman's ruin problem.
+- **Widgets:** `InventoryDealer`: seeded Poisson buys and sells against a dealer, with quote shading on or off;
+  inventory paths and the P&L distribution. Library: `src/lib/info/inventory.ts`.
+- **Prereqs:** 16, 47.
+
+### 50. Adverse selection: Glosten–Milgrom
+- **Goals:** Derive a spread from information alone: a fraction of traders know the true value, and a
+  competitive dealer sets the ask to the expected value given a buy. Update beliefs with Bayes' rule trade by
+  trade, watch prices converge to the truth, and see the market break down when too many traders are informed.
+  Prices are martingales (Chapter 40).
+- **Key math:** $a = \mathbb{E}[v \mid \text{buy}]$, $b = \mathbb{E}[v \mid \text{sell}]$; the Bayesian update; the
+  spread for a two-point value distribution.
+- **Widgets:** `GlostenMilgrom`: a sequence of trades, the dealer's belief and the bid–ask band narrowing towards
+  the true value, with a slider for the informed share. Library: `src/lib/info/glostenMilgrom.ts`.
+- **Prereqs:** 12, 47.
+
+### 51. Kyle's model
+- **Goals:** Solve Kyle's (1985) one-period model in full: an insider, noise traders and a competitive market
+  maker. Find the linear equilibrium as a fixed point of best responses. Interpret $\lambda$ (price impact) and
+  $1/\lambda$ (market depth), the insider's profit, and why exactly half the private information gets into the
+  price.
+- **Key math:** $x = \beta(v - p_0)$, $p = p_0 + \lambda(x + u)$; $\beta = \sigma_u/\sqrt{\Sigma_0}$,
+  $\lambda = \sqrt{\Sigma_0}/(2\sigma_u)$; $\mathrm{Var}(v \mid y) = \Sigma_0/2$; expected insider profit
+  $\tfrac12\sigma_u\sqrt{\Sigma_0}$.
+- **Widgets:** `KyleEquilibrium`: the insider's best response to a given $\lambda$ and the market maker's
+  $\lambda$ given $\beta$, iterated to the fixed point; a scatter of order flow against price change. Library:
+  `src/lib/info/kyle.ts`.
+- **Prereqs:** 16, 50.
+
+### 52. Kyle in continuous time
+- **Goals:** Let the insider trade many times (Kyle 1985) and in continuous time (Back 1992). The insider trades
+  gradually so as to stay hidden in the noise, information enters the price at a constant rate, and the price is
+  a Brownian martingale that ends exactly at the true value. The insider's order flow turns the price into a
+  Brownian bridge (Chapter 15).
+- **Key math:** $dp_t = \lambda\,dY_t$ with $\lambda = \sqrt{\Sigma_0}/(\sigma_u\sqrt{T})$; the insider's rate
+  $\dot x_t = (v - p_t)/\big(\lambda(T - t)\big)$; posterior variance $\Sigma_t = \Sigma_0(1 - t/T)$.
+- **Widgets:** `KyleContinuous`: price paths converging to the insider's value, posterior variance shrinking
+  linearly, and the insider's position. Library: `src/lib/info/kyle.ts`.
+- **Prereqs:** 17, 51.
+
+### 53. Informed trading in options
+- **Goals:** Ask where an informed trader should trade: the stock, or options with their leverage and wider
+  spreads (Easley–O'Hara–Srinivas). See how option order flow can predict stock returns, and how traders with
+  information about volatility, not direction, use options. Estimate the probability of informed trading (PIN)
+  by maximum likelihood.
+- **Key math:** the PIN likelihood (a mixture of Poisson distributions) and
+  $\text{PIN} = \alpha\mu/(\alpha\mu + 2\varepsilon)$; the venue choice as return per dollar after spreads.
+- **Widgets:** `VenueChoice`: the informed trader's expected return in the stock and in each option as spreads
+  change. `PINEstimator`: seeded days of buy and sell counts, fitted by maximum likelihood with Nelder–Mead.
+  Library: `src/lib/info/pin.ts`.
+- **Prereqs:** 50, 51.
+
+### 54. Price discovery across stock and options
+- **Goals:** Two markets trade one underlying value. Back out an implied stock price from options with parity,
+  measure which market moves first, and compute Hasbrouck information shares and Gonzalo–Granger component
+  shares.
+- **Key math:** observed prices $p^i_t = m_t + \text{noise}_t$ around a common efficient price $m_t$; the error
+  correction model; the information share bounds.
+- **Widgets:** `PriceDiscovery`: two noisy prices around one efficient price, with a slider for how fast each
+  market reacts, and the estimated information shares. Library: `src/lib/info/priceDiscovery.ts`.
+- **Prereqs:** 8, 53.
+
+---
+
+## Part XIII — The options market maker ●●–●●●
+
+### 55. From noisy quotes to a clean surface
+- **Goals:** Turn a raw chain into a volatility surface: choose between the mid, the size-weighted mid and the
+  microprice; turn bid and ask into an implied-volatility band; back out the forward and the discount factor
+  from parity across strikes; drop stale, crossed and zero-bid quotes; and fit a smile that stays inside the
+  bid–ask band.
+- **Key math:** the microprice $M^{\text{micro}} = (a\,V_b + b\,V_a)/(V_a + V_b)$; the parity regression
+  $C - P = B(F - K)$; spread-weighted least squares in volatility.
+- **Widgets:** `NoisyChainFit`: a seeded noisy chain, filters you can switch on and off, and an SVI fit with its
+  bid–ask band. Library: `src/lib/mm/surfaceFit.ts`.
+- **Prereqs:** 26, 48.
+
+### 56. Quoting around a theoretical value
+- **Goals:** Build quotes as theo plus edge, quoted in volatility rather than price. Tie quotes to the stock so
+  they move with delta. See how slow quotes get picked off when the stock moves, and split a market maker's P&L
+  into captured edge, hedging slippage and adverse selection.
+- **Key math:** quotes $V(S, \sigma_{\text{theo}}) \pm (e_\sigma \mathcal{V} + e_0)$; the tied price
+  $V + \Delta(S - S_{\text{ref}})$; the pick-off condition $|\Delta|\,|\delta S| > $ half-spread.
+- **Widgets:** `QuoteEngine`: a moving stock, quotes refreshed with a latency you choose, a stream of ordinary
+  orders and fast arbitrageurs, and the P&L breakdown. Library: `src/lib/mm/quoting.ts`.
+- **Prereqs:** 21, 55.
+
+### 57. Optimal market making: Avellaneda–Stoikov
+- **Goals:** Set up market making as stochastic control: a dealer with exponential utility, a mid-price
+  following Brownian motion, and fill rates that fall with distance from the mid. Derive the HJB equation, solve
+  it approximately, and read off the reservation price and the optimal spread. Add inventory limits with the
+  Guéant–Lehalle–Fernandez-Tapia solution.
+- **Key math:** $r(M, q, t) = M - q\gamma\sigma^2(T - t)$;
+  $\delta^a + \delta^b = \gamma\sigma^2(T - t) + \tfrac{2}{\gamma}\ln(1 + \gamma/k)$; fill intensity
+  $\Lambda(\delta) = A e^{-k\delta}$.
+- **Widgets:** `AvellanedaStoikov`: simulated quotes, fills and inventory for the optimal and the symmetric
+  strategy, and the two P&L distributions. Library: `src/lib/mm/avellanedaStoikov.ts`.
+- **Prereqs:** 19, 49.
+
+### 58. Making markets in many options
+- **Goals:** An options market maker's inventory is a vector of Greeks, not a share count. Hedge delta with the
+  stock, net vega and gamma across strikes and expiries, and skew every quote by the book's total vega, weighted
+  by each option's own vega.
+- **Key math:** the volatility skew for option $i$ in bucket $j$,
+  $\sigma_i^{\text{quote}} = \sigma_i - \gamma\sum_k \Omega_{jk}\,\mathcal{V}_{\text{book},k}$, where $\Omega$ is
+  the covariance of volatility moves across expiry buckets.
+- **Widgets:** `VegaBook`: trades arriving at several strikes, quotes skewed by book vega, and the vega
+  inventory mean-reverting. Library: `src/lib/mm/optionBook.ts`.
+- **Prereqs:** 23, 57.
+
+### 59. Hedging with transaction costs
+- **Goals:** Bring costs into Chapter 24's hedge: Leland's adjusted volatility, the trade-off between hedging
+  error and cost that sets an optimal rebalancing frequency, utility-indifference prices (Hodges–Neuberger), and
+  the Whalley–Wilmott no-trade band.
+- **Key math:** $\sigma_L^2 = \sigma^2\big(1 \pm \sqrt{2/\pi}\,\epsilon/(\sigma\sqrt{\delta t})\big)$; the
+  band half-width $\big(\tfrac32\,\epsilon\,S e^{-r\tau}\Gamma^2/\gamma\big)^{1/3}$.
+- **Widgets:** `HedgeSimulator` gains a cost slider. `HedgeBands`: hedging by time versus by band, with cost and
+  error for each. Library: `src/lib/pricing/hedging.ts` (costs), `src/lib/mm/transactionCosts.ts`.
+- **Prereqs:** 24.
+
+### 60. Demand-based option pricing
+- **Goals:** Dealers can't hedge perfectly, so they need paying to absorb net demand. Show how end-user demand
+  for one option raises its price and the prices of options correlated with it (Gârleanu–Pedersen–Poteshman). Use
+  it to explain the index skew and the variance risk premium.
+- **Key math:** the price shift $\partial p_i/\partial d_j = \gamma\,\mathrm{Cov}(\varepsilon_i, \varepsilon_j)$
+  where $\varepsilon$ is the unhedgeable part of each option's P&L.
+- **Widgets:** `DemandSmile`: drag the net demand at each strike and watch the smile respond. Library:
+  `src/lib/mm/demand.ts`.
+- **Prereqs:** 26, 58.
+
+---
+
+## Part XIV — Price impact and optimal execution ●●–●●●
+
+### 61. Price impact: what the data says
+- **Goals:** Separate temporary from permanent impact, and see why the impact of a large order (a metaorder)
+  grows like the square root of its size rather than linearly. Show impact decaying after the order ends.
+  Introduce the propagator model.
+- **Key math:** the square-root law $I(Q) = Y\sigma_{\text{day}}\sqrt{Q/V_{\text{day}}}$; the propagator
+  $p_t = p_0 + \sum_{s<t} G(t - s)\,\varepsilon_s$.
+- **Widgets:** `SquareRootImpact`: metaorders of different sizes run through a book with latent liquidity, with
+  impact against size on a log–log plot. `ImpactDecay`: price paths during and after a metaorder. Library:
+  `src/lib/exec/impact.ts`.
+- **Prereqs:** 43, 51.
+
+### 62. Optimal execution: Almgren–Chriss
+- **Goals:** Sell $X$ shares by time $T$ under linear permanent and temporary impact. Write the expected cost
+  and its variance, minimise a mean–variance objective by the calculus of variations, and get the hyperbolic-sine
+  trajectory. Trace the efficient frontier, from TWAP (no risk aversion) to selling at once.
+- **Key math:** $\mathbb{E}[C] = \tfrac12\lambda X^2 + \eta\int_0^T \dot x_t^2\,dt$,
+  $\mathrm{Var}[C] = \sigma^2\int_0^T x_t^2\,dt$; $x_t = X\sinh\big(\kappa(T - t)\big)/\sinh(\kappa T)$ with
+  $\kappa = \sqrt{\gamma\sigma^2/\eta}$.
+- **Widgets:** `AlmgrenChriss`: trajectories as risk aversion changes, the efficient frontier with the current
+  strategy on it, and simulated cost distributions. Library: `src/lib/exec/almgrenChriss.ts`.
+- **Prereqs:** 51, 61.
+
+### 63. Transient impact and resilient books
+- **Goals:** Let the book refill after each trade (Obizhaeva–Wang) and find the optimal strategy: a block at the
+  start, steady trading, and a block at the end. Explain Gatheral's no-dynamic-arbitrage conditions, which rule
+  out impact models that let a trader profit from pushing the price around.
+- **Key math:** an exponentially decaying impact kernel $G(t) = e^{-\rho t}$ and the Obizhaeva–Wang solution;
+  the condition on a power-law kernel's exponent.
+- **Widgets:** `ResilientBook`: the book's dent refilling after trades, and the costs of different schedules.
+  Library: `src/lib/exec/transientImpact.ts`.
+- **Prereqs:** 62.
+
+### 64. Execution algorithms in practice
+- **Goals:** Compare benchmarks: arrival price, TWAP, VWAP and the close. Build a VWAP schedule from an intraday
+  volume curve and a percentage-of-volume strategy. Choose between a limit order (cheaper, but may not fill) and
+  a market order. Measure implementation shortfall after the fact.
+- **Key math:** the VWAP schedule $x_t = X\big(1 - \int_0^t v_u\,du / \int_0^T v_u\,du\big)$; the expected cost
+  of a limit order, $-\pi\,\tfrac{s}{2} + (1 - \pi)\,\mathbb{E}[\text{chase cost}]$, with $\pi$ the fill
+  probability.
+- **Widgets:** `VWAPTracker`: a VWAP schedule against a noisy volume day, with tracking error. `LimitVsMarket`:
+  fill probability against distance from the mid, and the expected cost of each choice. Library:
+  `src/lib/exec/algos.ts`.
+- **Prereqs:** 62.
+
+### 65. Executing option trades
+- **Goals:** Work an order in a wide market: start at the mid, step towards the far side, and send stock-tied
+  orders that stay delta-neutral. Execute a vega notional across strikes, measure impact in volatility points,
+  and use block trades and requests for quote. Compare the round-trip cost of a volatility trade with the edge
+  it hopes to earn.
+- **Key math:** tied prices $V + \Delta(S - S_{\text{ref}})$; the breakeven realised volatility after costs.
+- **Widgets:** `VolTradeExecution`: a vega order worked across strikes, with costs in dollars and in volatility
+  points. Library: `src/lib/exec/optionExecution.ts`.
+- **Prereqs:** 56, 62.
+
+---
+
+## Part XV — When hedging moves the market ●●
+
+### 66. Dealer gamma and feedback
+- **Goals:** Turn dealers' hedging into order flow: a dealer short gamma must buy as the stock rises and sell as
+  it falls, which pushes the price further; a dealer long gamma does the opposite. Show realised volatility
+  rising or falling with the dealers' net gamma, and map gamma exposure by strike.
+- **Key math:** hedge flow $-\Gamma_{\text{dealer}}\,\delta S$ shares; with linear impact $\lambda$, the
+  effective volatility $\sigma/(1 + \lambda\,\Gamma_{\text{dealer}})$, which grows when dealers are short gamma.
+- **Widgets:** `DealerGammaSim`: seeded price paths with and without hedging feedback, and dealer gamma exposure
+  by strike. Library: `src/lib/feedback/dealerGamma.ts`.
+- **Prereqs:** 21, 61.
+
+### 67. Pinning at expiry
+- **Goals:** Explain why stocks with large open interest tend to close near a strike on expiry day: long-gamma
+  hedgers sell rallies and buy dips close to the strike. Simulate the effect and see its size depend on open
+  interest and liquidity.
+- **Key math:** with long-gamma hedgers, the local volatility $\sigma/\big(1 + \lambda\,\Gamma(S, t)\big)$
+  collapses near $K$ as $t \to T$, so the price gets stuck there.
+- **Widgets:** `PinningHistogram`: the distribution of the closing price around a strike with and without
+  hedgers. Library: `src/lib/feedback/pinning.ts`.
+- **Prereqs:** 66.
+
+### 68. Zero-days-to-expiry options and intraday dynamics
+- **Goals:** Look at options in their last day: theta and gamma per hour, gamma exploding near the strike,
+  volatility that follows a U-shape through the trading day, and event variance read off the term structure.
+- **Key math:** $\Gamma_{\text{ATM}} \approx \varphi(0)/(S\sigma\sqrt{\tau})$; variance time
+  $\int_t^T \sigma^2(u)\,du$ with intraday seasonality; event variance
+  $\sigma^2_{\text{event}} = \sigma^2_{T_2}T_2 - \sigma^2_{T_1}T_1 - \sigma^2_{\text{base}}(T_2 - T_1)$.
+- **Widgets:** `IntradayGamma`: an at-the-money option's value, gamma and theta through its final day.
+  `EventVariance`: extracting the variance of an earnings day from two expiries. Library:
+  `src/lib/feedback/intraday.ts`.
+- **Prereqs:** 22, 66.
+
+### 69. Liquidity spirals and volatility crashes
+- **Goals:** See how mechanical hedging and margin calls can turn a fall into a crash: portfolio insurance in
+  1987, margin and loss spirals (Brunnermeier–Pedersen), and the daily rebalancing of leveraged and inverse
+  volatility products. Explain why the index skew became steep after 1987.
+- **Key math:** the spiral multiplier $1/(1 - m)$; a leveraged product's rebalancing trade
+  $L(L - 1)\,r_t\,\text{AUM}$.
+- **Widgets:** `PortfolioInsuranceCrash`: a seeded market where synthetic-put hedgers and liquidity providers
+  meet. `LeveragedRebalance`: rebalancing flows against the day's move. Library: `src/lib/feedback/spirals.ts`.
+- **Prereqs:** 46, 66.
+
+---
+
+## Part XVI — High-frequency microstructure ●●●
+
+### 70. Order flow as a point process: Hawkes
+- **Goals:** Show that order arrivals cluster, so a Poisson model fails. Define the Hawkes process, its
+  branching ratio and stationarity condition, simulate it by thinning, and fit it by maximum likelihood.
+- **Key math:** $\lambda_t = \mu + \sum_{t_i < t} \alpha e^{-\beta(t - t_i)}$; branching ratio $\alpha/\beta < 1$;
+  mean intensity $\mu/(1 - \alpha/\beta)$; the log-likelihood.
+- **Widgets:** `HawkesFlow`: a seeded Hawkes process against a Poisson process with the same mean, with the
+  intensity drawn over the events. Library: `src/lib/hf/hawkes.ts`.
+- **Prereqs:** 31, 47.
+
+### 71. Queues, imbalance and the microprice
+- **Goals:** Model the best bid and ask queues as a Markov chain (Cont–Stoikov–Talreja) and compute the
+  probability that the next mid-price move is up. Define order-book imbalance and Stoikov's microprice, and
+  show order-flow imbalance explaining short-term price changes.
+- **Key math:** the probability of an up-move as a function of the queue sizes; imbalance
+  $\iota = V_b/(V_b + V_a)$; the regression $\delta M = \beta\,\text{OFI} + \text{noise}$.
+- **Widgets:** `QueueRace`: two queues depleting and refilling, with the up-move probability against imbalance.
+  Library: `src/lib/hf/queues.ts`.
+- **Prereqs:** 43, 70.
+
+### 72. Microstructure noise and realised volatility
+- **Goals:** Explain why realised variance blows up when sampled too often: observed prices are the efficient
+  price plus noise. Draw the volatility signature plot, find the best sampling frequency, and remove the noise
+  with two-scale realised variance. Revisit Chapter 25's estimator and Chapter 28's variance swaps.
+- **Key math:** $\mathbb{E}[\mathrm{RV}_n] = \sigma^2 T + 2n\,\omega^2$; the optimal $n^* \propto
+  (\sigma^2 T/\omega^2)^{2/3}$; the two-scale estimator.
+- **Widgets:** `SignaturePlot`: realised volatility against sampling interval for a noisy price, with the
+  two-scale estimate. Library: `src/lib/hf/realizedNoise.ts`.
+- **Prereqs:** 25, 47.
+
+### 73. Speed, ticks and market design
+- **Goals:** Explain latency arbitrage (Budish–Cramton–Shim): in a continuous market, fast traders snipe stale
+  quotes after public news, and liquidity providers widen spreads to pay for it. Compare frequent batch auctions.
+  Weigh tick sizes (spread against queue length) and the options-specific problems of millions of series and
+  quoting obligations.
+- **Key math:** the equilibrium half-spread at which the expected sniping loss equals the expected earnings from
+  ordinary orders.
+- **Widgets:** `SnipingRace`: quotes, a news jump, and a race between the provider's cancel and the snipers.
+  `BatchAuction`: the same order flow in a continuous market and in batches. Library: `src/lib/hf/marketDesign.ts`.
+- **Prereqs:** 44, 56.
+
 ---
 
 ## Shared components
@@ -489,6 +856,37 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 | `MeasureChange` | 40 | — |
 | `YieldCurveCaplets` | 41 | — |
 | `MertonCredit`, `PnLExplainWaterfall` | 42 | — |
+| `OrderBook`, `WalkTheBook` | 43 | 44, 45, 71 |
+| `MatchingRules`, `NBBOBuilder` | 44 | 73 |
+| `SpreadFromLegs`, `CallAuction` | 45 | 65, 73 |
+| `MarginScenarios` | 46 | 69 |
+| `SpreadDecomposition`, `ChainLiquidity` | 47 | 53, 55 |
+| `ParityBand`, `BoxSpreadRate` | 48 | 55 |
+| `InventoryDealer` | 49 | 57 |
+| `GlostenMilgrom` | 50 | 53 |
+| `KyleEquilibrium` | 51 | 62 |
+| `KyleContinuous` | 52 | — |
+| `VenueChoice`, `PINEstimator` | 53 | — |
+| `PriceDiscovery` | 54 | — |
+| `NoisyChainFit` | 55 | 60 |
+| `QuoteEngine` | 56 | 73 |
+| `AvellanedaStoikov` | 57 | 58 |
+| `VegaBook` | 58 | 60 |
+| `HedgeBands` | 59 | — |
+| `DemandSmile` | 60 | — |
+| `SquareRootImpact`, `ImpactDecay` | 61 | 63, 66 |
+| `AlmgrenChriss` | 62 | 64, 65 |
+| `ResilientBook` | 63 | — |
+| `VWAPTracker`, `LimitVsMarket` | 64 | — |
+| `VolTradeExecution` | 65 | — |
+| `DealerGammaSim` | 66 | 67, 69 |
+| `PinningHistogram` | 67 | — |
+| `IntradayGamma`, `EventVariance` | 68 | — |
+| `PortfolioInsuranceCrash`, `LeveragedRebalance` | 69 | — |
+| `HawkesFlow` | 70 | 71 |
+| `QueueRace` | 71 | — |
+| `SignaturePlot` | 72 | — |
+| `SnipingRace`, `BatchAuction` | 73 | — |
 | `Quiz`, `Slider`, `Toggle`, `Callout`, `Details` | 1 | all |
 
 ## Shared pricing library (`src/lib/`)
@@ -506,6 +904,14 @@ Chapters 1–2 come first as the reference implementation, and the rest follow i
 - **`numerics/`**: `finiteDifference` (θ-scheme, Rannacher), `monteCarlo`, `cos`, `lsm`.
 - **`rates/`**: `curve` (Nelson–Siegel, Black-76, Bachelier, caps, swaptions).
 - **`theory/`**: `measure` (Girsanov), `credit` (Merton), `pnlExplain`.
+- **`micro/`** (Part XI): `orderBook` (matching engine), `matching` (allocation rules, NBBO, fees), `auction`,
+  `margin`, `liquidity` (spread measures, Roll), `frictions` (parity bands, box spreads).
+- **`info/`** (Part XII): `inventory`, `glostenMilgrom`, `kyle` (one-period and continuous), `pin`, `priceDiscovery`.
+- **`mm/`** (Part XIII): `surfaceFit`, `quoting`, `avellanedaStoikov`, `optionBook`, `transactionCosts`, `demand`.
+- **`exec/`** (Part XIV): `impact` (square-root law, propagator), `almgrenChriss`, `transientImpact`, `algos`,
+  `optionExecution`.
+- **`feedback/`** (Part XV): `dealerGamma`, `pinning`, `intraday`, `spirals`.
+- **`hf/`** (Part XVI): `hawkes`, `queues`, `realizedNoise`, `marketDesign`.
 
 Each module comes with Vitest checks against reference values from the published literature, for example Hull's
 textbook examples, Haug's *Complete Guide to Option Pricing Formulas*, and Heston (1993).

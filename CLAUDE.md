@@ -4,7 +4,7 @@ This repo is an interactive, 3Blue1Brown-style course on options, in English, wr
 going up to graduate level.
 
 ## Read first
-- `docs/CURRICULUM.md` lists the 42 chapters, their goals, the key math, the planned widgets, and the
+- `docs/CURRICULUM.md` lists the 73 chapters, their goals, the key math, the planned widgets, and the
   prerequisites.
 - `docs/STYLE_GUIDE.md` covers voice, the chapter template, notation, colour tokens, and widget rules.
 - `src/content/chapters/01-*.mdx` and `02-*.mdx` are the **reference chapters**. Copy their structure.
@@ -28,7 +28,7 @@ Deployed to GitHub Pages by `.github/workflows/ci.yml`.
 - **Follow the chapter template exactly:** Hook → Intuition → Formalisation → Playground → Check yourself →
   Recap & next up. Each `##` heading starts with `<span class="section-tag">Hook</span>` (etc.).
 - **Use the colour semantics and the notation table from the style guide.** In TeX, colour with the macros
-  (`\Spot`, `\Strike`, `\Call`, `\Put`, `\Time`, `\Vol`, `\Rate`, `\Prob`, defined in
+  (`\Spot`, `\Strike`, `\Call`, `\Put`, `\Time`, `\Vol`, `\Rate`, `\Prob`, `\Bid`, `\Ask`, defined in
   `src/lib/katexMacros.ts`), not raw `\color`. If you introduce a new symbol, add it to the notation table in
   the same PR.
 - **Dollar signs:** `$…$` is math, so a literal dollar in MDX prose is written `\$`. Never put a `\$` inside
