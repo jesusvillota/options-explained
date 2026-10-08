@@ -119,6 +119,9 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $v_L$, $v_H$, $p$, $\alpha$ | Glosten–Milgrom: low and high values, the market maker's belief $\mathbb{P}(v = v_H)$, and the share of insiders (Chapter 50). In this chapter $p$ is a probability, not a price |
 | $p^+$, $p^-$ | Beliefs after a buy and after a sell (Chapter 50) |
 | $p_0$, $\Sigma_0$, $x$, $u$, $y$, $\sigma_u$, $\beta$, $\lambda$ | Kyle: prior mean and variance of the value, the insider's order, the noise traders' order, total order flow, noise volatility, the insider's trading intensity and the price impact $p = p_0 + \lambda y$ (Chapters 51–52). $\beta$ here is not SABR's |
+| $\Sigma_t$, $\theta_t$, $X_t$, $Z_t$, $Y_t$ | Continuous-time Kyle: the market's remaining variance, the insider's trading rate, and the cumulative orders of the insider, noise traders and both (Chapter 52) |
+| $\Omega$ | An option's elasticity $\Delta S/V$ (Chapter 53) |
+| $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |

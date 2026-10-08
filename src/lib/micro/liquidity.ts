@@ -130,28 +130,48 @@ export interface ChainLiquidityRow {
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
+export interface OptionQuote {
+  type: OptionType;
+  strike: number;
+  bid: number;
+  ask: number;
+  theo: number;
+  vol: number;
+  delta: number;
+  /** Vega per volatility point. */
+  vegaPt: number;
+}
+
+/**
+ * Quote one option on the skewed smile with time to expiry T: theo ± a
+ * half-spread that pays for handling, for vega risk and for hedging delta,
+ * rounded outwards to the tick grid.
+ */
+export function quoteOption(type: OptionType, K: number, T: number, rule: TickRule = 'standard', model: QuoteModel = DEFAULT_QUOTE_MODEL, S: number = DEFAULTS.S): OptionQuote {
+  const { r } = DEFAULTS;
+  const F = DEFAULTS.S * Math.exp(r * T);
+  const vol = ssviVol(Math.log(K / F), T, EQUITY_SSVI);
+  const input = { ...DEFAULTS, S, T, K, sigma: vol };
+  const theo = price(type, input);
+  const g = greeks(type, input);
+  const vegaPt = g.vega * 0.01;
+  const half = model.base + model.volEdge * vegaPt + Math.abs(g.delta) * model.stockHalfSpread;
+  const tb = tickFor(Math.max(theo - half, 0), rule), ta = tickFor(theo + half, rule);
+  const bid = Math.max(round2(Math.floor((theo - half) / tb + 1e-9) * tb), 0);
+  const ask = Math.max(round2(Math.ceil((theo + half) / ta - 1e-9) * ta), round2(bid + tickFor(bid, rule)));
+  return { type, strike: K, bid, ask, theo, vol, delta: g.delta, vegaPt };
+}
+
 /**
  * Quotes for out-of-the-money options (puts below the forward, calls above) on a
- * skewed smile: theo ± a half-spread that pays for handling, for vega risk and
- * for hedging delta, rounded outwards to the tick grid. Far from the money the
- * tick floor dominates.
+ * skewed smile. Far from the money the tick floor dominates.
  */
 export function chainLiquidity(T: number, strikes: number[], rule: TickRule = 'standard', model: QuoteModel = DEFAULT_QUOTE_MODEL): ChainLiquidityRow[] {
-  const { S, r } = DEFAULTS;
-  const F = S * Math.exp(r * T);
+  const F = DEFAULTS.S * Math.exp(DEFAULTS.r * T);
   return strikes.map((K) => {
-    const type: OptionType = K < F ? 'put' : 'call';
-    const vol = ssviVol(Math.log(K / F), T, EQUITY_SSVI);
-    const input = { ...DEFAULTS, T, K, sigma: vol };
-    const theo = price(type, input);
-    const g = greeks(type, input);
-    const vegaPt = g.vega * 0.01;
-    const half = model.base + model.volEdge * vegaPt + Math.abs(g.delta) * model.stockHalfSpread;
-    const tb = tickFor(Math.max(theo - half, 0), rule), ta = tickFor(theo + half, rule);
-    const bid = Math.max(round2(Math.floor((theo - half) / tb + 1e-9) * tb), 0);
-    const ask = Math.max(round2(Math.ceil((theo + half) / ta - 1e-9) * ta), round2(bid + tickFor(bid, rule)));
-    const spread = round2(ask - bid);
-    const mid = (bid + ask) / 2;
-    return { strike: K, type, bid, ask, theo, vol, vegaPt, spread, spreadPct: spread / mid, spreadVol: spread / vegaPt };
+    const q = quoteOption(K < F ? 'put' : 'call', K, T, rule, model);
+    const spread = round2(q.ask - q.bid);
+    const mid = (q.bid + q.ask) / 2;
+    return { strike: K, type: q.type, bid: q.bid, ask: q.ask, theo: q.theo, vol: q.vol, vegaPt: q.vegaPt, spread, spreadPct: spread / mid, spreadVol: spread / q.vegaPt };
   });
 }

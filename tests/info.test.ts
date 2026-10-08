@@ -217,3 +217,58 @@ describe('continuous-time Kyle (Back)', () => {
     expect(profit / 300).toBeLessThan(1.15);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 53: informed trading in options
+
+import { dayLogLikelihood, fitPin, pin, simulatePinDays } from '../src/lib/info/pin';
+import { venueReturns } from '../src/lib/info/venue';
+
+describe('PIN', () => {
+  const p = { alpha: 0.4, delta: 0.5, mu: 40, eps: 50 };
+
+  it('is the informed share of expected order flow', () => {
+    expect(pin(p)).toBeCloseTo(16 / 116, 12);
+    expect(pin({ ...p, alpha: 0 })).toBe(0);
+  });
+
+  it('has a likelihood that sums to one over all outcomes', () => {
+    let total = 0;
+    for (let b = 0; b < 60; b++) for (let s = 0; s < 60; s++) total += Math.exp(dayLogLikelihood(b, s, { alpha: 0.3, delta: 0.4, mu: 6, eps: 5 }));
+    expect(total).toBeCloseTo(1, 6);
+  });
+
+  it('recovers the parameters from simulated days by maximum likelihood', () => {
+    const f = fitPin(simulatePinDays(p, 250, 3));
+    expect(f.alpha).toBeCloseTo(0.4, 1);
+    expect(Math.abs(f.mu - 40) / 40).toBeLessThan(0.1);
+    expect(Math.abs(f.eps - 50) / 50).toBeLessThan(0.05);
+    expect(Math.abs(f.pin - pin(p))).toBeLessThan(0.03);
+  });
+});
+
+describe('venue choice', () => {
+  const strikes = [95, 100, 105, 110, 115, 120];
+
+  it('gives the stock a return equal to the move, less the half-spread', () => {
+    const r = venueReturns(0.03, 1 / 12, strikes)[0];
+    expect(r.ret).toBeCloseTo((103 - 100.01) / 100.01, 12);
+  });
+
+  it('makes slightly out-of-the-money calls the best bet on moderate news, and wings losers on small news', () => {
+    const small = venueReturns(0.01, 1 / 12, strikes);
+    const far = small.find((r) => r.strike === 120)!;
+    expect(far.ret).toBeLessThan(-0.5);
+    const mid = venueReturns(0.03, 1 / 12, strikes);
+    const best = mid.reduce((a, b) => (b.ret > a.ret ? b : a));
+    expect(best.strike).toBe(105);
+    expect(best.ret).toBeGreaterThan(30 * mid[0].ret);
+  });
+
+  it('uses puts on bad news', () => {
+    const r = venueReturns(-0.05, 1 / 12, [80, 85, 90, 95, 100]);
+    expect(r[0].label).toBe('Short stock');
+    expect(r[1].type).toBe('put');
+    expect(r[0].ret).toBeCloseTo((99.99 - 95) / 99.99, 12);
+  });
+});

@@ -576,7 +576,7 @@ the running example.
   $\text{PIN} = \alpha\mu/(\alpha\mu + 2\varepsilon)$; the venue choice as return per dollar after spreads.
 - **Widgets:** `VenueChoice`: the informed trader's expected return in the stock and in each option as spreads
   change. `PINEstimator`: seeded days of buy and sell counts, fitted by maximum likelihood with Nelder–Mead.
-  Library: `src/lib/info/pin.ts`.
+  Library: `src/lib/info/pin.ts`, `src/lib/info/venue.ts`.
 - **Prereqs:** 50, 51.
 
 ### 54. Price discovery across stock and options
@@ -906,7 +906,7 @@ the running example.
 - **`theory/`**: `measure` (Girsanov), `credit` (Merton), `pnlExplain`.
 - **`micro/`** (Part XI): `orderBook` (matching engine), `matching` (allocation rules, NBBO, fees), `packages`, `auction`,
   `margin`, `liquidity` (spread measures, Roll), `frictions` (parity bands, box spreads).
-- **`info/`** (Part XII): `inventory`, `glostenMilgrom`, `kyle` (one-period and continuous), `pin`, `priceDiscovery`.
+- **`info/`** (Part XII): `inventory`, `glostenMilgrom`, `kyle` (one-period and continuous), `pin`, `venue`, `priceDiscovery`.
 - **`mm/`** (Part XIII): `surfaceFit`, `quoting`, `avellanedaStoikov`, `optionBook`, `transactionCosts`, `demand`.
 - **`exec/`** (Part XIV): `impact` (square-root law, propagator), `almgrenChriss`, `transientImpact`, `algos`,
   `optionExecution`.
