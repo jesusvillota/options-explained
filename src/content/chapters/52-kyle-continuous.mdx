@@ -1,0 +1,200 @@
+---
+title: "Kyle in continuous time"
+part: 12
+chapter: 52
+difficulty: 3
+prerequisites: [17, 51]
+summary: "Given all day to trade, the insider trades slowly, information enters the price at a constant rate, and the price becomes a Brownian bridge that ends exactly at the truth."
+---
+import KyleContinuous from '../../components/plots/KyleContinuous';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Don't show your hand at the open
+
+The insider from Chapter 51 knows the call is worth 2.78, not 2.48, and the news will be public at tonight's close.
+This time there's a whole trading day. Should it buy everything at the open?
+
+If it does, the market maker sees a huge buy flow at 9:30, marks the price up, and the insider's edge is gone by
+9:31. If instead it trades a little at a time, each small order hides among the day's noise trading, and the
+insider can keep buying at prices that haven't caught up yet. But it mustn't be *too* slow: whatever is still
+unexploited at the close is lost, because the news comes out anyway.
+
+Kyle solved the many-round version in his 1985 paper, and Kerry Back gave the clean continuous-time version in 1992.
+The insider's optimal strategy turns the price into an object we met in Chapter 15, a **Brownian bridge**, pinned at
+today's price and at the insider's value tonight.
+
+## <span class="section-tag">Intuition</span>Trading at the rate the market forgets
+
+In continuous time, noise traders send a steady random stream of buys and sells. The insider trades at a **rate**:
+the gap between its value and the current price, divided by the time left:
+
+$$
+\text{rate} \propto \frac{v - p_t}{T - t} .
+$$
+
+Early in the day the time left is long, so the insider trades gently even if the mispricing is large. As the close
+approaches it trades harder and harder on whatever gap remains, and the gap is closed exactly at the bell.
+
+<KyleContinuous client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the price wanders, but every path, the bold one and the six faint ones,
+ends at the insider's value. The dashed grey path uses the same noise without the insider: it wanders off and ends
+anywhere. Watch the grey band, the market's uncertainty about the value: it narrows steadily, with half the variance
+gone by about 12:45 and all of it by 16:00. Now set the value equal to 2.48: the insider barely trades, and the price
+is just noise that happens to end where it started.</p>
+
+From the market maker's point of view, nothing looks unusual. Total order flow looks like plain noise, the price moves
+like a Brownian motion, and its price impact $\lambda$ is the same all day. It can't tell when the insider is
+trading, because the insider trades exactly so as not to be told apart. Yet by the close, the price has learned
+everything. From the insider's point of view the same price is a **bridge**: a random path with a drift that pulls it
+towards $v$ ever more strongly as time runs out.
+
+<Callout type="key" title="Information enters at a constant rate">
+In continuous-time Kyle, the market's remaining uncertainty falls linearly, $\Sigma_t = \Sigma_0(1 - t/T)$; price impact
+is constant, $\lambda = \sqrt{\Sigma_0}/(\sigma_u\sqrt{T})$; and the insider earns $\sigma_u\sqrt{\Sigma_0 T}$, twice what it
+earns trading once. Spreading trades over time hides them better, and patience pays.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Back's equilibrium
+
+**Setup.** The value $v \sim N(p_0, \Sigma_0)$ becomes public at time $T$. Noise traders' cumulative order is
+$Z_t = \sigma_u W_t$, with $W$ a Brownian motion independent of $v$. The insider's cumulative order is
+$X_t = \int_0^t \theta_s\,ds$, and the market maker sees the total flow $Y_t = X_t + Z_t$ and sets
+$p_t = \mathbb{E}[v \mid Y_s, s \le t]$. We look for an equilibrium with a constant linear pricing rule
+$dp_t = \lambda\,dY_t$.
+
+**The insider is indifferent at every instant.** The insider maximises $\mathbb{E}\big[\int_0^T (v - p_t)\,\theta_t\,dt\big]$.
+Guess the value function
+
+$$
+J(t, p) = \frac{(v - p)^2}{2\lambda} + \frac{\lambda\sigma_u^2}{2}(T - t) .
+$$
+
+Its HJB equation (Chapter 19's PDE methods, with a control) is
+$\max_\theta \big\{(v - p)\,\theta + J_t + \lambda\theta\,J_p + \tfrac12\lambda^2\sigma_u^2 J_{pp}\big\} = 0$. With
+$J_p = -(v - p)/\lambda$, $J_{pp} = 1/\lambda$ and $J_t = -\lambda\sigma_u^2/2$:
+
+- the terms in $\theta$ are $(v - p)\theta - (v - p)\theta = 0$, whatever $\theta$ is;
+- the rest is $-\tfrac12\lambda\sigma_u^2 + \tfrac12\lambda^2\sigma_u^2 \cdot \tfrac1\lambda = 0$.
+
+So *every* trading rate is equally good at every instant. What matters is the end: the insider must not leave any
+mispricing unexploited, which means it must make $p_T = v$. The rate
+
+$$
+\theta_t = \frac{v - p_t}{\lambda\,(T - t)}
+$$
+
+does exactly that, and its expected profit is $J(0, p_0) = (v - p_0)^2/(2\lambda) + \lambda\sigma_u^2 T/2$.
+
+**The price is a Brownian bridge.** Substituting the insider's rate,
+
+$$
+\begin{aligned}
+dp_t &= \lambda\,(\theta_t\,dt + \sigma_u\,dW_t) \\
+&= \frac{v - p_t}{T - t}\,dt + \lambda\sigma_u\,dW_t ,
+\end{aligned}
+$$
+
+which is the stochastic differential equation of a Brownian bridge from $p_0$ at time 0 to $v$ at time $T$, with
+volatility $\lambda\sigma_u$.
+
+**The market maker's filter pins down $\lambda$.** To the market maker, $dY_t = a_t\,(v - p_t)\,dt + \sigma_u\,dW_t$ with
+$a_t = 1/(\lambda(T - t))$ and $v$ unknown. This is a linear Gaussian filtering problem, solved by the Kalman–Bucy
+filter: the conditional mean moves by $dp_t = (\Sigma_t a_t/\sigma_u^2)\,dY_t$ and the conditional variance by
+$d\Sigma_t/dt = -\Sigma_t^2 a_t^2/\sigma_u^2$. A constant $\lambda$ requires $\Sigma_t a_t/\sigma_u^2 = \lambda$, that is
+$\Sigma_t = \lambda^2\sigma_u^2(T - t)$. Then $d\Sigma_t/dt = -\lambda^2\sigma_u^2$, consistent, and the initial condition
+$\Sigma_0 = \lambda^2\sigma_u^2 T$ gives
+
+$$
+\lambda = \frac{\sqrt{\Sigma_0}}{\sigma_u\sqrt{T}}, \qquad\qquad \Sigma_t = \Sigma_0\Big(1 - \frac{t}{T}\Big) .
+$$
+
+The price's volatility in the market maker's eyes is $\lambda\sigma_u = \sqrt{\Sigma_0/T}$: the private information
+gets released at a constant rate of $\Sigma_0/T$ per unit of time.
+
+**Profits.** Averaging $J(0, p_0)$ over $v$, with $\mathbb{E}[(v - p_0)^2] = \Sigma_0$,
+
+$$
+\begin{aligned}
+\mathbb{E}[\pi_{\text{insider}}] &= \frac{\Sigma_0}{2\lambda} + \frac{\lambda\sigma_u^2 T}{2} \\
+&= \frac{\sigma_u\sqrt{\Sigma_0 T}}{2} + \frac{\sigma_u\sqrt{\Sigma_0 T}}{2} \\
+&= \sigma_u\sqrt{\Sigma_0 T} .
+\end{aligned}
+$$
+
+With $T = 1$ that is twice the one-shot profit $\sigma_u\sqrt{\Sigma_0}/2$ of Chapter 51, and it all comes from noise
+traders. A deeper insight of Back's paper is that in equilibrium the total order flow $Y$, seen in its own filtration,
+is a Brownian motion with volatility $\sigma_u$: statistically indistinguishable from noise alone.
+
+**In the widget's units.** With $\sqrt{\Sigma_0}$ = 30 cents, $\sigma_u$ = 1,000 contracts per $\sqrt{\text{day}}$ and
+$T$ = one day, $\lambda = 0.30/1000 = 0.0003$ dollars per contract (3 cents per 100 contracts), and the expected profit
+is $1000 \times 0.30 = 300$ per share-unit, or \$30,000 in contract terms.
+
+## <span class="section-tag">Playground</span>A day in the market
+
+<KyleContinuous client:visible title="Playground: one day of continuous Kyle" />
+
+<div class="try-this">
+
+- **Linear revelation.** Read the market's uncertainty at noon: is it about $30\sqrt{1 - 2.5/6.5} \approx 24$ cents?
+- **Bigger secret, same price path shape.** Move the value to the edge of its range. The insider trades many more
+  contracts, but does the price get to the value any sooner?
+- **More noise.** Triple the noise trading. How do $\lambda$, the insider's position and its profit change? Compare
+  with the comparative statics of Chapter 51.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With $\sqrt{\Sigma_0}$ = 0.30, $\sigma_u$ = 1,500 contracts per √day and $T$ = 1 day, what's the continuous-time $\lambda$, in cents per 100 contracts?"
+  answer={2}
+  tolerance={0.01}
+  explanation="$\lambda = \sqrt{\Sigma_0}/(\sigma_u\sqrt{T}) = 0.30/1500 = 0.0002$ dollars per contract, which is 2 cents per 100 contracts."
+/>
+
+<Quiz
+  client:visible
+  question="Half way through the trading day, how much of the insider's private information is already in the price?"
+  options={[
+    "None: it all comes out at the close",
+    "Half: the remaining variance is $\\Sigma_0(1 - t/T) = \\Sigma_0/2$",
+    "Three quarters, because the insider trades more early on",
+    "All of it",
+  ]}
+  answer={1}
+  explanation="Information is released at a constant rate, so at $t = T/2$ the market's remaining variance is $\Sigma_0/2$."
+/>
+
+<Quiz
+  client:visible
+  question="Why does the insider trade faster and faster as the close approaches?"
+  options={[
+    "Because liquidity improves at the close",
+    "Because any mispricing left at $T$ is lost, and its rate $(v - p_t)/(\\lambda(T - t))$ must close the gap in the time remaining",
+    "Because noise traders leave the market",
+    "Because $\\lambda$ falls during the day",
+  ]}
+  answer={1}
+  explanation="The insider is indifferent about *when* it trades, as long as the price reaches $v$ by $T$. Dividing the remaining gap by the remaining time does exactly that; $\lambda$ stays constant all day."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- With time to trade, the insider trades at rate $\theta_t = (v - p_t)/(\lambda(T - t))$, hiding in the noise.
+- The price impact is constant, $\lambda = \sqrt{\Sigma_0}/(\sigma_u\sqrt{T})$, and the market's uncertainty falls linearly,
+  $\Sigma_t = \Sigma_0(1 - t/T)$.
+- To the market maker the price is a Brownian motion; to the insider it's a **Brownian bridge** from $p_0$ to $v$.
+- The insider earns $\sigma_u\sqrt{\Sigma_0 T}$, twice the one-shot profit, all paid by noise traders.
+
+**Next up:** where would an insider actually trade? Chapter 53 asks whether the stock or its options are the better
+place for private information, and how to detect informed trading in the data.
+
+### Further reading
+
+- A. S. Kyle, "Continuous auctions and insider trading", *Econometrica* 53 (1985), sections 4–6.
+- K. Back, "Insider trading in continuous time", *Review of Financial Studies* 5 (1992).
+- K. Back, *Asset Pricing and Portfolio Choice Theory*, Oxford University Press (2017), chapter on market
+  microstructure.

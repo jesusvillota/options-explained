@@ -177,3 +177,43 @@ describe("Kyle's one-period model", () => {
     expect(Math.abs(mean((d) => (d.p - d.v) * d.y))).toBeLessThan(0.5);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 52: Kyle in continuous time
+
+import { kyleContinuous, posteriorVariance, simulateKyleContinuous } from '../src/lib/info/kyle';
+import { normalRng } from '../src/lib/math/rng';
+
+describe('continuous-time Kyle (Back)', () => {
+  const S0 = 0.3 ** 2, SU = 1000, T = 1;
+
+  it('has a constant λ = √Σ0/(σ_u√T) and doubles the one-shot profit', () => {
+    const e = kyleContinuous(S0, SU, T);
+    expect(e.lambda).toBeCloseTo(0.0003, 15);
+    expect(e.priceVol).toBeCloseTo(0.3, 12);
+    expect(e.insiderProfit).toBeCloseTo(2 * kyleEquilibrium(S0, SU).insiderProfit, 10);
+    expect(posteriorVariance(S0, 0.25, 1)).toBeCloseTo(0.75 * S0, 15);
+  });
+
+  it('drives the price to the insider’s value by the close', () => {
+    for (const v of [2.0, 2.48, 3.1]) {
+      const path = simulateKyleContinuous({ p0: 2.48, sigma0Sq: S0, sigmaU: SU, T, steps: 2000, v, insider: true, seed: 11 });
+      expect(Math.abs(path.p[2000] - v)).toBeLessThan(0.03);
+    }
+  });
+
+  it('reveals information linearly in time, and earns σ_u√(Σ0 T) on average', () => {
+    const z = normalRng(77);
+    const runs = 1500, steps = 200;
+    let gap2 = 0, profit = 0;
+    for (let k = 0; k < runs; k++) {
+      const v = 2.48 + 0.3 * z();
+      const path = simulateKyleContinuous({ p0: 2.48, sigma0Sq: S0, sigmaU: SU, T, steps, v, insider: true, seed: 1000 + k });
+      gap2 += (v - path.p[steps / 2]) ** 2 / runs;
+      profit += path.profit[steps] / runs;
+    }
+    expect(gap2 / (S0 / 2)).toBeCloseTo(1, 1);
+    expect(profit / 300).toBeGreaterThan(0.85);
+    expect(profit / 300).toBeLessThan(1.15);
+  });
+});
