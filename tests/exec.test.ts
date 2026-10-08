@@ -10,6 +10,20 @@ import {
   simulateMetaorders,
   sqrtLawImpact,
 } from '../src/lib/exec/impact';
+import {
+  AC_DEFAULTS,
+  costVariance,
+  discreteExpectedCost,
+  expectedCost,
+  frontier,
+  halfLife,
+  holdings,
+  kappa,
+  objective,
+  schedule,
+  simulateShortfall,
+  tradingRate,
+} from '../src/lib/exec/almgrenChriss';
 
 describe('Chapter 61: price impact', () => {
   it('square-root law: 1% of daily volume with Y = 0.7 and σ = 2% moves the price 14 bp', () => {
@@ -104,5 +118,88 @@ describe('Chapter 61: price impact', () => {
     const p = metaorderPath({ beta: 0.5, permanent: 0.1 }, 60, 180, 30);
     expect(noisyPath(p, 0, 1)).toEqual(p);
     expect(noisyPath(p, 5, 9)).toEqual(noisyPath(p, 5, 9));
+  });
+});
+
+describe('Chapter 62: Almgren–Chriss', () => {
+  const p = AC_DEFAULTS;
+  const integrate = (f: (t: number) => number, T: number, n = 20000) => {
+    let s = 0;
+    for (let i = 0; i < n; i++) s += f(((i + 0.5) * T) / n);
+    return (s * T) / n;
+  };
+
+  it('TWAP limit: E = ½λX² + ηX²/T = $350,000 and Var = σ²X²T/3', () => {
+    const twap = { ...p, gamma: 0 };
+    expect(expectedCost(twap)).toBeCloseTo(350000, 6);
+    expect(costVariance(twap)).toBeCloseTo((4 * 1e12) / 3, -3);
+    expect(holdings(twap, 0.25)).toBeCloseTo(750000, 6);
+  });
+
+  it('κ = √(γσ²/η) and the sinh trajectory hits its endpoints', () => {
+    expect(kappa(p)).toBeCloseTo(Math.sqrt(4 / 3), 12);
+    expect(holdings(p, 0)).toBeCloseTo(p.X, 6);
+    expect(holdings(p, p.T)).toBeCloseTo(0, 6);
+    expect(holdings(p, 0.5)).toBeCloseTo((p.X * Math.sinh(kappa(p) * 0.5)) / Math.sinh(kappa(p)), 6);
+  });
+
+  it('closed forms match numerical integrals of η∫ẋ² and σ²∫x²', () => {
+    for (const gamma of [1e-8, 1e-7, 1e-6, 1e-5]) {
+      const q = { ...p, gamma };
+      const E = 0.5 * q.lambda * q.X ** 2 + q.eta * integrate((t) => tradingRate(q, t) ** 2, q.T);
+      const V = q.sigma ** 2 * integrate((t) => holdings(q, t) ** 2, q.T);
+      expect(expectedCost(q) / E).toBeCloseTo(1, 6);
+      expect(costVariance(q) / V).toBeCloseTo(1, 6);
+    }
+  });
+
+  it('the sinh trajectory beats perturbed trajectories on E + γ Var', () => {
+    const q = { ...p, gamma: 1e-6 };
+    const best = objective(q);
+    for (const eps of [-0.05, 0.05, 0.2]) {
+      // x_t + ε X sin(πt/T): same endpoints.
+      const x = (t: number) => holdings(q, t) + eps * q.X * Math.sin(Math.PI * t);
+      const v = (t: number) => tradingRate(q, t) - eps * q.X * Math.PI * Math.cos(Math.PI * t);
+      const obj = 0.5 * q.lambda * q.X ** 2 + q.eta * integrate((t) => v(t) ** 2, 1) + q.gamma * q.sigma ** 2 * integrate((t) => x(t) ** 2, 1);
+      expect(obj).toBeGreaterThan(best);
+    }
+  });
+
+  it('efficient frontier: more risk aversion costs more and risks less; flat at TWAP', () => {
+    const f = frontier(p, [0, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5]);
+    for (let i = 1; i < f.length; i++) {
+      expect(f[i].mean).toBeGreaterThanOrEqual(f[i - 1].mean - 1e-6);
+      expect(f[i].sd).toBeLessThan(f[i - 1].sd);
+    }
+    // First-order free risk reduction: tiny γ cuts variance much more than it adds cost.
+    const dE = f[2].mean - f[0].mean, dSd = f[0].sd - f[2].sd;
+    // Along the frontier dE/dsd = −2γ·sd, so near γ = 0 the slope vanishes.
+    expect(dE / dSd).toBeLessThan(0.02);
+  });
+
+  it('half-life tends to ln 2 / κ for urgent sellers', () => {
+    const q = { ...p, gamma: 1e-4 };
+    expect(halfLife(q) * kappa(q)).toBeCloseTo(Math.LN2, 4);
+    expect(halfLife({ ...p, gamma: 0 })).toBeCloseTo(0.5, 6);
+  });
+
+  it('simulated shortfall matches the discrete mean and variance', () => {
+    const q = { ...p, gamma: 1e-6 };
+    const n = schedule(q, 78);
+    expect(n.reduce((a, b) => a + b, 0)).toBeCloseTo(q.X, 4);
+    const costs = simulateShortfall(q, n, 20000, 62);
+    const m = costs.reduce((a, b) => a + b, 0) / costs.length;
+    const sd = Math.sqrt(costs.reduce((a, b) => a + (b - m) ** 2, 0) / costs.length);
+    const tau = q.T / 78;
+    let left = q.X, v = 0;
+    for (const k of n) {
+      left -= k;
+      v += q.sigma ** 2 * tau * left ** 2;
+    }
+    expect(Math.abs(m - discreteExpectedCost(q, n))).toBeLessThan((4 * Math.sqrt(v)) / Math.sqrt(costs.length));
+    expect(sd / Math.sqrt(v)).toBeCloseTo(1, 1);
+    // Fine slicing: the discrete cost approaches the continuous formula.
+    expect(discreteExpectedCost(q, n) / expectedCost(q)).toBeCloseTo(1, 1);
+    expect(simulateShortfall(q, n, 5, 1)).toEqual(simulateShortfall(q, n, 5, 1));
   });
 });

@@ -131,6 +131,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $d$, $\Sigma$, $p^0$, $c_i$, $s_\sigma$, $\pi$ | End users' net demand, the covariance of unhedgeable P&L, the hedgeable value, an option's delta-hedged crash loss, volatility uncertainty and crash probability (Chapter 60) |
 | $Q$, $V$ (Part XIV), $\mathcal{I}$, $Y$, $\delta$ | A metaorder's size, the daily volume, its impact, the square-root law's prefactor and the impact exponent (Chapter 61) |
 | $\rho(x) = Lx^{\alpha}$, $G$, $\beta$ (kernel), $G_\infty$, $\varepsilon_s$ | Latent liquidity at distance $x$ from the price, the propagator, its decay exponent and permanent floor, and the sign of the trade at time $s$ (Chapter 61) |
+| $x_t$, $v_t$, $\eta$, $\lambda$ (Part XIV), $\gamma$, $\kappa$, $C$ | Shares still to trade, the trading rate, temporary and permanent impact, risk aversion, the urgency $\sqrt{\gamma\sigma^2/\eta}$ and the implementation shortfall (Chapter 62) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
