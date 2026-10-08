@@ -95,6 +95,10 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $s$ | Quoted spread $a - b$ (Part XI on). In Chapter 42, $s$ is a credit spread |
 | $Q$, $q_i$ | Size of an order, and the part of it filled at price level $i$ or allocated to order $i$ |
 | $d_t$ | Trade sign: $+1$ for a buyer-initiated trade, $-1$ for a seller-initiated one |
+| $a_i$, $A_i$; $b_i$, $B_i$ | Price and size of the $i$-th best offer and the $i$-th best bid in a book (Chapter 43) |
+| $D_a(p)$, $D_b(p)$ | Cumulative depth: contracts offered at $p$ or less, bid at $p$ or more |
+| $\bar p(Q)$, $p_{\text{last}}(Q)$ | Average and marginal (last-contract) fill price of an order of size $Q$ |
+| $\Lambda$ | Arrival rate of orders, in contracts (or orders) per unit time |
 
 Conventions:
 - Time is measured in years and rates are annualised and continuously compounded. Switch to discrete compounding
