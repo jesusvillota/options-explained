@@ -24,6 +24,7 @@ import type { Order } from '../src/lib/micro/orderBook';
 import { STRATEGIES, complexQuote, impliedFromLegs, leggingRiskSd, quoteLegs } from '../src/lib/micro/packages';
 import { MARGIN_POSITIONS, assignmentOdds, nakedRequirementPerShare, positionValue, riskArray, scaledGrid, scenarioMargin, strategyMargin } from '../src/lib/micro/margin';
 import { chainLiquidity, decompose, firstAutocovariance, rollSpread, simulateTrades, tickFor } from '../src/lib/micro/liquidity';
+import { boxRate, chainWithBorrowFee, impliedBorrow, parityArbitrage, parityBand, syntheticMarket, type Frictions } from '../src/lib/micro/frictions';
 import { clearAuction, demandAt, openingOrders, priceGrid, supplyAt, type AuctionOrder } from '../src/lib/micro/auction';
 
 const totalSize = (book: ReturnType<typeof callBook>) =>
@@ -519,5 +520,87 @@ describe('spreads across the chain', () => {
     coarse.forEach((r, i) => expect(fine[i].spread).toBeLessThanOrEqual(r.spread + 1e-9));
     expect(tickFor(2.99, 'penny')).toBe(0.01);
     expect(tickFor(3, 'standard')).toBe(0.1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chapter 48: no-arbitrage with frictions
+
+describe('parity with frictions', () => {
+  const T = 0.25;
+  const none: Frictions = { stockBid: 100, stockAsk: 100, rLend: 0.05, rBorrow: 0.05, borrowFee: 0, T };
+  const real: Frictions = { stockBid: 99.99, stockAsk: 100.01, rLend: 0.05, rBorrow: 0.055, borrowFee: 0, T };
+
+  it('collapses to the parity line without frictions', () => {
+    const b = parityBand(100, none);
+    expect(b.lower).toBeCloseTo(100 - 100 * Math.exp(-0.05 * T), 12);
+    expect(b.upper).toBeCloseTo(b.lower, 12);
+  });
+
+  it('widens into a band with spreads, a borrowing rate above the lending rate, and a borrow fee', () => {
+    const b = parityBand(100, real), c = parityBand(100, { ...real, borrowFee: 0.05 });
+    expect(b.upper - b.lower).toBeGreaterThan(0.1);
+    expect(c.lower).toBeLessThan(b.lower);
+    expect(c.upper).toBeCloseTo(b.upper, 12);
+  });
+
+  it('finds no arbitrage in the Chapter 4 chain, even though its mids miss the parity line', () => {
+    const chain = chainWithBorrowFee(T, [80, 90, 100, 110, 120], 0);
+    const atm = chain.find((r) => r.strike === 100)!;
+    const midSynthetic = (atm.call.bid + atm.call.ask) / 2 - (atm.put.bid + atm.put.ask) / 2;
+    expect(Math.abs(midSynthetic - (100 - 100 * Math.exp(-0.05 * T)))).toBeGreaterThan(0.05);
+    for (const row of chain) expect(parityArbitrage(row, real).kind).toBeNull();
+    expect(syntheticMarket(atm)).toEqual({ bid: 4.5 - 3.5, ask: 4.8 - 3.2 });
+  });
+
+  it('prices a conversion when the call is quoted too high', () => {
+    const row = chainWithBorrowFee(T, [105], 0)[0];
+    const rich = { ...row, call: { ...row.call, bid: row.call.bid + 0.6, ask: row.call.ask + 0.6 } };
+    const arb = parityArbitrage(rich, real);
+    expect(arb.kind).toBe('conversion');
+    expect(arb.profit).toBeCloseTo(105 - (100.01 - rich.call.bid + rich.put.ask) * Math.exp(0.055 * T), 12);
+    expect(arb.profit).toBeGreaterThan(0);
+  });
+
+  it('prices a reversal when the call is quoted too low', () => {
+    const row = chainWithBorrowFee(T, [105], 0)[0];
+    const cheap = { ...row, call: { ...row.call, bid: row.call.bid - 0.6, ask: row.call.ask - 0.6 } };
+    const arb = parityArbitrage(cheap, real);
+    expect(arb.kind).toBe('reversal');
+    expect(arb.profit).toBeGreaterThan(0);
+  });
+
+  it('reads the borrow fee back from mid prices', () => {
+    for (const fee of [0, 0.05, 0.1]) {
+      const rows = chainWithBorrowFee(T, [90, 100, 110], fee);
+      // Quotes are rounded to the tick, so the implied fee is right to about half a percent.
+      for (const r of rows) expect(Math.abs(impliedBorrow((r.call.bid + r.call.ask) / 2, (r.put.bid + r.put.ask) / 2, 100, r.strike, T, 0.05) - fee)).toBeLessThan(0.006);
+    }
+  });
+});
+
+describe('box spreads', () => {
+  const box = (k1: number, k2: number) => quoteLegs([
+    { type: 'call', strike: k1, qty: 1 }, { type: 'call', strike: k2, qty: -1 },
+    { type: 'put', strike: k2, qty: 1 }, { type: 'put', strike: k1, qty: -1 },
+  ]);
+
+  it('is worth the discounted width, with no delta and no vega', () => {
+    const m = impliedFromLegs(box(90, 110));
+    expect(m.theo).toBeCloseTo(20 * Math.exp(-0.05 * 0.25), 10);
+    expect(Math.abs(m.delta)).toBeLessThan(1e-12);
+    expect(Math.abs(m.vegaPt)).toBeLessThan(1e-12);
+    expect(boxRate(m.theo, 20, 0.25)).toBeCloseTo(0.05, 10);
+  });
+
+  it('implies absurd rates leg by leg, and sensible ones as a package', () => {
+    const legs = box(90, 110), m = impliedFromLegs(legs), c = complexQuote(legs);
+    expect(boxRate(m.ask, 20, 0.25)).toBeLessThan(0);
+    expect(boxRate(m.bid, 20, 0.25)).toBeGreaterThan(0.15);
+    expect(boxRate(c.ask, 20, 0.25)).toBeGreaterThan(0.035);
+    expect(boxRate(c.bid, 20, 0.25)).toBeLessThan(0.065);
+    // A wider box spreads the same handling cost over more principal.
+    const wide = complexQuote(box(80, 120));
+    expect(boxRate(wide.bid, 40, 0.25) - boxRate(wide.ask, 40, 0.25)).toBeLessThan(boxRate(c.bid, 20, 0.25) - boxRate(c.ask, 20, 0.25));
   });
 });

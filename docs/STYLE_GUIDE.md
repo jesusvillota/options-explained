@@ -107,6 +107,9 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $m_t$, $u_t$, $\lambda$ | Efficient price, public news, and the permanent impact of one trade (Chapter 47 on). $\lambda$ is also Kyle's lambda (Chapter 51) |
 | $e_t$, $\rho_t$, $\iota_t$ | Effective half-spread, realised half-spread and price impact of trade $t$ (Chapter 47) |
 | $s_{\%}$, $s_\sigma$ | Spread as a fraction of the mid, and in volatility points $(a - b)/\mathcal{V}$ |
+| $S^b$, $S^a$; $r_\ell$, $r_b$; $f$ | Stock bid and ask; lending and borrowing rates; the fee to borrow stock, as a yield (Chapter 48) |
+| $B$ (box) | Price of a box spread (Chapter 48), not to be confused with a bid $b$ or a discount factor $B(t,T)$ |
+| $\epsilon$ | Proportional transaction cost, as a fraction of the value traded |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |

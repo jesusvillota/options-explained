@@ -26,7 +26,7 @@ export interface LegQuote extends PackageLeg {
 
 /** The 3-month chain of Chapters 4 and 43 (same seed), as quoted on the exchanges. */
 export const PACKAGE_MARKET: Omit<BSInput, 'K'> = { ...DEFAULTS, T: 0.25 };
-export const PACKAGE_STRIKES = [90, 95, 100, 105, 110];
+export const PACKAGE_STRIKES = [80, 85, 90, 95, 100, 105, 110, 115, 120];
 
 export function threeMonthChain(): ChainRow[] {
   return optionChain({ ...PACKAGE_MARKET, strikes: PACKAGE_STRIKES, seed: 7 });

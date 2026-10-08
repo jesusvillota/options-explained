@@ -1,0 +1,274 @@
+---
+title: "No-arbitrage with frictions"
+part: 11
+chapter: 48
+difficulty: 2
+prerequisites: [8, 47]
+summary: "With spreads, borrowing costs and fees, put–call parity becomes a band, box spreads become loans, and exact replication breaks down."
+---
+import ParityBand from '../../components/plots/ParityBand';
+import BoxSpreadRate from '../../components/plots/BoxSpreadRate';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Parity, broken?
+
+Chapter 8 proved that a call and a put with the same strike and expiry satisfy, with no dividends,
+
+$$
+\Call{C} - \Put{P} = \Spot{S} - \Strike{K}e^{-\Rate{r}\Time{T}} .
+$$
+
+Let's check it on the three-month chain of Chapter 4. The \$100 call is quoted 4.50 / 4.80 and the \$100 put 3.20 /
+3.50. Using mids, $\Call{C} - \Put{P} = 4.65 - 3.35 = 1.30$. The right-hand side is
+$100 - 100e^{-0.05 \times 0.25} = 1.24$. Parity is off by 6 cents a share. Should you sell the call, buy the put and
+buy the stock, and pocket \$6 a contract for free?
+
+You can't. You don't trade at the mid: you sell the call at 4.50 and buy the put at 3.50. You can't borrow at the
+same rate you lend at. And if the stock is hard to borrow, shorting it costs a fee. Each of these frictions turns an
+exact law of Part II into a band of prices, and inside the band there's no free lunch. This chapter measures the
+bands, reads interest rates and borrow costs from them, and ends with a surprising result about what frictions do to
+replication.
+
+## <span class="section-tag">Intuition</span>Parity becomes a band
+
+Parity is enforced by two trades.
+
+- A **conversion**: buy the stock, sell the call, buy the put. At expiry you're sure to sell the stock for exactly
+  $\Strike{K}$ (through the put if the stock is below the strike, through the call you sold if it's above). It's a
+  riskless loan: you pay now and get $\Strike{K}$ back later. It pays if the call is rich compared with the put.
+- A **reversal** (or *reverse conversion*): short the stock, buy the call, sell the put. You're sure to buy the
+  stock back for $\Strike{K}$. It's riskless borrowing, and it pays if the call is cheap.
+
+With frictions, each trade must cross its own spreads and pay its own costs: the conversion borrows money, at the
+**borrowing rate**, and the reversal lends money, at the **lending rate**, and must pay to **borrow the stock** it
+shorts. So each trade becomes profitable only beyond its own edge of a band.
+
+<ParityBand client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the default frictions, every strike's bar overlaps the band:
+no arbitrage, even though the mids miss the frictionless line. Now push the \$105 call's quotes up by 60 cents. Its
+bar rises clear of the band, and a conversion locks in a riskless profit. Then put the \$105 call back and raise the
+borrow fee to 5%: every bar drops below the line, as if puts were "too expensive", yet nothing is an arbitrage,
+because the band has stretched down with them.</p>
+
+That last experiment is common in real markets. When a stock is **hard to borrow**, short sellers must pay a high fee,
+and that cost shows up in option prices: puts trade rich and calls cheap compared with parity, exactly as if the stock
+paid a dividend equal to the fee. Traders read the borrow cost straight off the option prices, and the readout under
+the widget does the same.
+
+<Callout type="key" title="Parity is a band, not a line">
+With frictions, put–call parity says only that the market for the synthetic $\Call{C} - \Put{P}$ must overlap the
+range in which neither a conversion nor a reversal makes money. The band's width is the sum of the costs: the stock's
+spread, the gap between borrowing and lending rates, and the fee for borrowing the stock. Prices can wander anywhere
+inside it.
+</Callout>
+
+## <span class="section-tag">Intuition</span>A box spread is a loan
+
+Combine a bull call spread with a bear put spread on the same two strikes: buy the $K_1$ call and sell the $K_2$
+call, buy the $K_2$ put and sell the $K_1$ put. That's a **box spread**, and at expiry it pays exactly
+$K_2 - K_1$, *whatever* the stock does. A riskless payment in three months is a zero-coupon bond, so the box's price
+is an interest rate. Buy the box and you've lent money; sell it and you've borrowed.
+
+<BoxSpreadRate client:visible />
+
+<p class="try-this"><strong>Try this:</strong> leg by leg, the 90/110 box implies you could lend at about −10% or
+borrow at 18%: four spreads add up to more than a year's interest. As one package (Chapter 45), with its net delta
+and vega exactly zero, the market maker's quote implies rates within a point of the risk-free 5%. Switch to the
+80/120 box: twice the principal for the same handling cost, so an even tighter rate.</p>
+
+Box spreads on index options really are used this way, as a way for traders to borrow and lend cash at close to
+market rates. Two cautions. Boxes need **European** options: with American options, a short leg can be exercised
+early, which breaks the box apart and leaves a position that isn't riskless anymore. And the rate still depends on
+the clearing house standing behind every leg (Chapter 46), which is what makes the loan safe.
+
+## <span class="section-tag">Intuition</span>When replication itself breaks
+
+Frictions do more than widen bounds. The whole theory of Parts III–IV rested on **replication**: hold delta shares,
+rebalance continuously, and you reproduce the option exactly. Continuous rebalancing means trading an infinite
+amount: a Brownian path wiggles so much (Chapter 15) that the total number of shares bought and sold over any
+interval is infinite. With any cost proportional to the amount traded, perfect replication would cost an infinite
+amount.
+
+So what's the cheapest way to be *certain* of covering a call's payoff, in every scenario, when trading costs money?
+The answer, proved by Soner, Shreve and Cvitanić in 1995, is startling: **buy one share and hold it**. With
+proportional transaction costs, the super-replication price of a call is the stock price $\Spot{S}$, the trivial upper
+bound of Chapter 7. Asking for certainty with frictions throws away almost everything that hedging buys you. Real
+traders don't ask for certainty: they hedge approximately and get paid for the risk that's left, which is the subject
+of Chapter 59 (hedging with costs) and of all of Part XIII.
+
+## <span class="section-tag">Formalisation</span>Bands, borrow costs and boxes
+
+**The band.** Let the stock be quoted $(S^b, S^a)$, let cash borrow at $r_b$ and lend at $r_\ell \le r_b$, and let
+shorting the stock cost a fee $f$, paid continuously like a dividend yield, so that to be short one share at $T$
+you short $e^{-fT}$ shares today. Write the option quotes as $(b_C, a_C)$ and $(b_P, a_P)$.
+
+*Conversion.* Buy the stock, sell the call, buy the put. Cash needed today: $S^a - b_C + a_P$, borrowed at $r_b$. At
+expiry you deliver the stock for $\Strike{K}$ and repay the loan. Profit at expiry:
+
+$$
+\Strike{K} - \big(S^a - b_C + a_P\big)\,e^{r_b T},
+$$
+
+which is positive exactly when $b_C - a_P > S^a - \Strike{K}e^{-r_b T}$.
+
+*Reversal.* Short $e^{-fT}$ shares at $S^b$, buy the call, sell the put. Cash raised today:
+$S^b e^{-fT} - a_C + b_P$, lent at $r_\ell$. At expiry you buy one share for $\Strike{K}$ and return it. Profit at
+expiry:
+
+$$
+\big(S^b e^{-fT} - a_C + b_P\big)\,e^{r_\ell T} - \Strike{K},
+$$
+
+positive exactly when $a_C - b_P < S^b e^{-fT} - \Strike{K}e^{-r_\ell T}$.
+
+No arbitrage therefore requires the synthetic's market $[\,b_C - a_P,\ a_C - b_P\,]$ to reach into the band
+
+$$
+\big[\,S^b e^{-fT} - \Strike{K}e^{-r_\ell T},\ \ S^a - \Strike{K}e^{-r_b T}\,\big] .
+$$
+
+Without frictions ($S^b = S^a$, $r_\ell = r_b$, $f = 0$) the band shrinks to the parity line. For the hook's at-the-money
+strike, with a 1-cent stock half-spread and borrowing at 5.5%, the band is $[1.232, 1.376]$, about 14 cents wide, and
+the market $[4.50 - 3.50,\ 4.80 - 3.20] = [1.00, 1.60]$ overlaps it comfortably.
+
+**The implied borrow cost.** If the market prices options with parity in the form
+$\Call{C} - \Put{P} = \Spot{S}e^{-qT} - \Strike{K}e^{-\Rate{r}T}$, the yield $q$ (a dividend yield, a borrow fee, or both)
+can be read from mid prices:
+
+$$
+q = -\frac{1}{T}\ln\frac{\Call{C} - \Put{P} + \Strike{K}e^{-\Rate{r}T}}{\Spot{S}} .
+$$
+
+**Boxes.** For any $\Spot{S_T}$,
+
+$$
+\begin{aligned}
+&\underbrace{(\Spot{S_T} - K_1)^+ - (\Spot{S_T} - K_2)^+}_{\text{call spread}} \\
+&+ \underbrace{(K_2 - \Spot{S_T})^+ - (K_1 - \Spot{S_T})^+}_{\text{put spread}} = K_2 - K_1 .
+\end{aligned}
+$$
+
+<details>
+<summary>Why the payoffs always add up to $K_2 - K_1$</summary>
+
+Use $(x)^+ - (-x)^+ = x$, which holds for every real $x$. Grouping the strike-$K_1$ terms,
+$(\Spot{S_T} - K_1)^+ - (K_1 - \Spot{S_T})^+ = \Spot{S_T} - K_1$. Grouping the strike-$K_2$ terms,
+$(K_2 - \Spot{S_T})^+ - (\Spot{S_T} - K_2)^+ = K_2 - \Spot{S_T}$. Adding the two gives $K_2 - K_1$.
+
+</details>
+
+So the box is worth $(K_2 - K_1)e^{-\Rate{r}T}$, and a box bought for price $B$ (with $B$ for bond, not to be confused
+with a bid) lends at the rate
+
+$$
+r_{\text{box}} = -\frac{1}{T}\ln\frac{B}{K_2 - K_1} .
+$$
+
+Leg by leg, the box's spread is the sum of four option spreads (Chapter 45). For small spreads, the gap between the
+borrowing and lending rates it implies is roughly
+
+$$
+r_{\text{borrow}} - r_{\text{lend}} \approx \frac{a_{\text{box}} - b_{\text{box}}}{(K_2 - K_1)\,T},
+$$
+
+so a wider box and a longer expiry give a tighter rate for the same trading cost. For the 90/110 box as one package,
+quoted 19.71 / 19.80: $-4\ln(19.80/20) = 4.02\%$ to lend and $-4\ln(19.71/20) = 5.84\%$ to borrow.
+
+**Super-replication with costs.** In the Black–Scholes model, suppose every purchase or sale of stock costs a fraction
+$\epsilon > 0$ of its value. A strategy *super-replicates* the call if its value at expiry is at least
+$(\Spot{S_T} - \Strike{K})^+$ in every scenario. Soner, Shreve and Cvitanić showed that the cheapest such strategy
+costs exactly $\Spot{S_0}$: buy one share and hold it. Any strategy that trades continuously runs up infinite costs,
+because the Brownian path has infinite total variation, and any strategy that trades only finitely often can be beaten
+by some path unless it holds a full share. Exact, riskless pricing with frictions therefore says only
+$\Call{C} \le \Spot{S}$, which is Chapter 7's trivial bound.
+
+## <span class="section-tag">Playground</span>A hard-to-borrow stock
+
+<ParityBand client:visible initialFee={0.06} title="Playground: a hard-to-borrow stock" />
+
+<div class="try-this">
+
+- **Read the fee.** The stock costs 6% a year to borrow. Check that the implied borrow cost in the readout recovers it.
+  Why is it only approximately 6%? (The quotes are rounded to the tick.)
+- **Who can arbitrage?** The fee is already in the prices. Push the \$105 call's quotes down until a reversal
+  appears, and compare with the easy-to-borrow stock in the first widget. Who can actually do this trade, and what
+  does it cost the ones who can't borrow the stock at all?
+- **Cheap money.** Set the borrowing rate 3% above the lending rate. Which edge of the band moves, and why only that
+  one?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A three-month 90/110 box trades at 19.71. What annual interest rate (continuously compounded, in %) does buying it earn?"
+  answer={5.84}
+  tolerance={0.02}
+  explanation="The box pays 20 in three months, so $r = -\tfrac{1}{0.25}\ln(19.71/20) = -4 \times \ln(0.9855) \approx 5.84\%$."
+/>
+
+<Quiz
+  client:visible
+  question="At-the-money mid prices give $\Call{C} - \Put{P} = 1.30$, while $\Spot{S} - \Strike{K}e^{-\Rate{r}T} = 1.24$. The call is quoted 4.50 / 4.80 and the put 3.20 / 3.50. Is there an arbitrage?"
+  options={[
+    "Yes: sell the call, buy the put and buy the stock for 6 cents",
+    "No: selling the call at the bid and buying the put at the ask gives only 1.00, below 1.24, so the conversion loses money",
+    "Yes: buy the call, sell the put and short the stock",
+    "It depends on the stock's volatility",
+  ]}
+  answer={1}
+  explanation="A conversion sells the synthetic at its bid, $b_C - a_P = 4.50 - 3.50 = 1.00$, and needs more than $\Spot{S} - \Strike{K}e^{-r_bT} \approx 1.24$ to pay. A reversal buys it at $a_C - b_P = 1.60$, which is far too dear. The mids are inside the band, not evidence of free money."
+/>
+
+<Quiz
+  client:visible
+  question="A stock becomes very hard to borrow. What happens to its options, compared with parity at the risk-free rate?"
+  options={[
+    "Calls get more expensive and puts cheaper",
+    "Puts get more expensive and calls cheaper, as if the stock paid a dividend equal to the borrow fee",
+    "Nothing, because options don't involve the stock",
+    "Both calls and puts get cheaper",
+  ]}
+  answer={1}
+  explanation="The reversal that would push a rich put back down needs a short sale, which now costs the fee. Prices settle where $\Call{C} - \Put{P} = \Spot{S}e^{-fT} - \Strike{K}e^{-\Rate{r}T}$, which is lower: puts rich, calls cheap."
+/>
+
+<Quiz
+  client:visible
+  question="With proportional transaction costs in the Black–Scholes model, what's the cheapest way to cover a call's payoff with certainty?"
+  options={[
+    "Delta-hedge continuously, as in Chapter 24",
+    "Delta-hedge once a day",
+    "Buy one share and hold it, at a cost of $\\Spot{S_0}$",
+    "Buy a bond paying $\\Strike{K}$",
+  ]}
+  answer={2}
+  explanation="That's the Soner–Shreve–Cvitanić theorem. Continuous hedging costs infinitely much with proportional costs, and discrete hedging leaves paths uncovered, so certainty requires holding the share."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Conversions** and **reversals** enforce parity. With frictions, no arbitrage means the synthetic's market
+  overlaps the band $[\,S^b e^{-fT} - \Strike{K}e^{-r_\ell T},\ S^a - \Strike{K}e^{-r_b T}\,]$.
+- A **hard-to-borrow** stock makes puts rich and calls cheap; the **implied borrow cost** can be read from parity.
+- A **box spread** pays $K_2 - K_1$ in every scenario, so its price is an interest rate. Traded as one package it
+  borrows and lends close to market rates; leg by leg it doesn't.
+- With proportional costs, **exact replication fails**: the super-replication price of a call is $\Spot{S}$.
+  Real prices come from approximate hedging and compensation for risk.
+
+**Next up:** that compensation is what a market maker charges. Part XII asks where the bid–ask spread comes from in
+the first place, starting in Chapter 49 with the dealer's simplest problem: carrying inventory it didn't choose.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 11 (properties of stock options, including box
+  spreads).
+- H. M. Soner, S. E. Shreve and J. Cvitanić, "There is no nontrivial hedging portfolio for option pricing with
+  transaction costs", *Annals of Applied Probability* 5 (1995).
+- B. Bensaid, J.-P. Lesne, H. Pagès and J. Scheinkman, "Derivative asset pricing with transaction costs",
+  *Mathematical Finance* 2 (1992).
+- A. Ofek, M. Richardson and R. F. Whitelaw, "Limited arbitrage and short sales restrictions: evidence from the
+  options markets", *Journal of Financial Economics* 74 (2004).
