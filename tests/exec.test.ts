@@ -38,6 +38,19 @@ import {
   twapSchedule,
 } from '../src/lib/exec/transientImpact';
 import { solveLinear } from '../src/lib/math/linear';
+import {
+  BINS,
+  algoSchedule,
+  expectedWait,
+  hitProbability,
+  limitOrderCost,
+  shortfall,
+  simulateDay,
+  simulateLimitOrder,
+  slippageVsVwap,
+  trackingStudy,
+  volumeCurve,
+} from '../src/lib/exec/algos';
 
 describe('Chapter 61: price impact', () => {
   it('square-root law: 1% of daily volume with Y = 0.7 and σ = 2% moves the price 14 bp', () => {
@@ -284,5 +297,63 @@ describe('Chapter 63: transient impact', () => {
     expect(flashImpact(1, 1e-12, 0.5, 0.3)).toBeLessThan(0.01);
     expect(flashImpact(1, 1e-8, 0.5, 0.7)).toBeGreaterThan(10);
     expect(flashImpact(4, 1, 0.5, 0.5)).toBeCloseTo(4, 12);
+  });
+});
+
+describe('Chapter 64: execution algorithms', () => {
+  it('the volume curve sums to one and is U-shaped', () => {
+    const c = volumeCurve();
+    expect(c).toHaveLength(BINS);
+    expect(c.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+    expect(c[0]).toBeGreaterThan(2.5 * c[39]);
+    expect(c[BINS - 1]).toBeGreaterThan(2.5 * c[39]);
+  });
+
+  it('every algorithm buys exactly X; POV follows realised volume', () => {
+    const { volume } = simulateDay(3, { binNoise: 0.4 });
+    for (const a of ['twap', 'vwap', 'pov'] as const) expect(algoSchedule(a, 0.1, volume).reduce((x, y) => x + y, 0)).toBeCloseTo(0.1, 12);
+    const pov = algoSchedule('pov', 0.1, volume);
+    expect(pov[5]).toBeCloseTo(0.1 * volume[5], 12);
+  });
+
+  it('slippage against VWAP: zero when trading in proportion to volume', () => {
+    const price = [0, 10, 20], volume = [1, 2, 1];
+    expect(slippageVsVwap([0.1, 0.2, 0.1], price, volume)).toBeCloseTo(0, 12);
+    expect(slippageVsVwap([0, 0, 1], price, volume)).toBeCloseTo(10, 12); // VWAP is 10
+  });
+
+  it('VWAP tracks its benchmark better than TWAP; without noise it is exact', () => {
+    expect(trackingStudy('vwap', 0.1, 200, 5, { binNoise: 0 }).sd).toBeLessThan(1e-9);
+    const vwap = trackingStudy('vwap', 0.1, 400, 5, { binNoise: 0.4 });
+    const twap = trackingStudy('twap', 0.1, 400, 5, { binNoise: 0.4 });
+    expect(vwap.sd).toBeLessThan(twap.sd);
+    expect(Math.abs(vwap.mean)).toBeLessThan(4 * vwap.sd / Math.sqrt(400));
+  });
+
+  it('first passage: 2Φ(−δ/σ√h) without drift, and drift up makes fills rarer', () => {
+    expect(hitProbability(10, 0, 10, 1)).toBeCloseTo(2 * 0.15865525393145707, 8);
+    expect(hitProbability(10, 2, 10, 1)).toBeLessThan(hitProbability(10, 0, 10, 1));
+    expect(hitProbability(10, -2, 10, 1)).toBeGreaterThan(hitProbability(10, 0, 10, 1));
+    expect(expectedWait(1e9, 0, 10, 5)).toBeCloseTo(5, 8);
+  });
+
+  it('limit-order cost: (1 − P)s/2 + μE[τ∧h], confirmed by simulation', () => {
+    const sig = 200 / Math.sqrt(390);
+    const r0 = limitOrderCost(5, 10, 0, sig, 5);
+    expect(r0.cost).toBeCloseTo((1 - r0.fill) * 5, 12);
+    const r = limitOrderCost(5, 10, 1, sig, 5);
+    const mc = simulateLimitOrder(5, 10, 1, sig, 5, 4000, 64, 20000);
+    expect(Math.abs(mc - r.cost)).toBeLessThan(0.4);
+    // Without drift the limit order always beats the market order; with enough drift it doesn't.
+    expect(r0.cost).toBeLessThan(5);
+    expect(limitOrderCost(5, 10, 4, sig, 15).cost).toBeGreaterThan(5);
+  });
+
+  it("Perold's decomposition of implementation shortfall", () => {
+    const r = shortfall({ target: 10000, decision: 50, arrival: 50.1, fills: [{ qty: 4000, price: 50.2 }, { qty: 4000, price: 50.3 }], close: 50.6 });
+    expect(r.delay).toBeCloseTo(800, 9);
+    expect(r.execution).toBeCloseTo(400 + 800, 9);
+    expect(r.opportunity).toBeCloseTo(1200, 9);
+    expect(r.total).toBeCloseTo(3200, 9);
   });
 });
