@@ -39,9 +39,10 @@
 .prose details[open] > summary { margin-bottom: 0.6rem; }
 
 /* Inline colour helpers for prose: <span class="c-call">call</span> */
-.prose .c-spot, .prose .c-strike, .prose .c-call, .prose .c-put, .prose .c-time, .prose .c-vol, .prose .c-rate { font-weight: 600; }
+.prose .c-spot, .prose .c-strike, .prose .c-call, .prose .c-put, .prose .c-time, .prose .c-vol, .prose .c-rate,
+.prose .c-bid, .prose .c-ask { font-weight: 600; }
 .prose .katex .c-spot, .prose .katex .c-strike, .prose .katex .c-call, .prose .katex .c-put,
-.prose .katex .c-time, .prose .katex .c-vol, .prose .katex .c-rate { font-weight: inherit; }
+.prose .katex .c-time, .prose .katex .c-vol, .prose .katex .c-rate, .prose .katex .c-bid, .prose .katex .c-ask { font-weight: inherit; }
 
 .prose .try-this { font-family: var(--font-ui); font-size: 0.92rem; color: var(--text-muted); }
 .prose .try-this strong { color: var(--text); }

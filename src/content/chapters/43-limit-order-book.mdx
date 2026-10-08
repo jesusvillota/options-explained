@@ -132,13 +132,20 @@ where $(x)^+ = \max(x, 0)$ as in Chapter 2. Its **average price** and **marginal
 contract) are
 
 $$
-\bar p(Q) = \frac{1}{Q}\sum_i a_i\, q_i, \qquad\qquad p_{\text{last}}(Q) = \min\{p : D_a(p) \ge Q\} .
+\bar p(Q) = \frac{1}{Q}\sum_i a_i\, q_i ,
+$$
+
+$$
+p_{\text{last}}(Q) = \min\{p : D_a(p) \ge Q\} .
 $$
 
 **Cost against the mid.** Compared with an imaginary trade of everything at the mid, the order costs
 
 $$
-Q\big(\bar p(Q) - M\big) = \underbrace{\tfrac12 s\cdot Q}_{\text{half-spread}} \;+\; \underbrace{\sum_i q_i\,(a_i - a_1)}_{\text{walking the book}} ,
+\begin{aligned}
+Q\big(\bar p(Q) - M\big) &= \underbrace{\tfrac12 s\cdot Q}_{\text{half-spread}} \\
+&\quad + \underbrace{\sum_i q_i\,(a_i - a_1)}_{\text{walking the book}} ,
+\end{aligned}
 $$
 
 per share, which you multiply by $m = 100$ for dollars. The first term is paid by every market order, however
@@ -170,7 +177,11 @@ same number of contracts, $\rho$, at every tick. Then the marginal price rises b
 contracts, and the average rises half as fast:
 
 $$
-p_{\text{last}}(Q) \approx a_1 + \frac{Q}{\rho}\,\text{tick}, \qquad\qquad \bar p(Q) \approx a_1 + \frac{Q}{2\rho}\,\text{tick}.
+p_{\text{last}}(Q) \approx a_1 + \frac{Q}{\rho}\,\text{tick},
+$$
+
+$$
+\bar p(Q) \approx a_1 + \frac{Q}{2\rho}\,\text{tick}.
 $$
 
 Price impact is then **linear** in size, with a slope that falls as the book gets deeper. Hold on to that
