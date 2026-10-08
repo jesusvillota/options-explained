@@ -110,6 +110,12 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $S^b$, $S^a$; $r_\ell$, $r_b$; $f$ | Stock bid and ask; lending and borrowing rates; the fee to borrow stock, as a yield (Chapter 48) |
 | $B$ (box) | Price of a box spread (Chapter 48), not to be confused with a bid $b$ or a discount factor $B(t,T)$ |
 | $\epsilon$ | Proportional transaction cost, as a fraction of the value traded |
+| $q$, $q_t$ (inventory) | A dealer's inventory, in units (Parts XII–XIII, where there are no dividends, so no clash with the yield $q$) |
+| $\gamma$ | Constant absolute risk aversion of a dealer or trader (Parts XII–XIV) |
+| $r$ (reservation) | A dealer's reservation price $v - \gamma\sigma^2\tau q$ (Chapters 49 and 57). Interest rates play no role there |
+| $v$ | Fair (or, in Chapters 50–52, true liquidation) value of an asset |
+| $A$, $k$, $\lambda_0$ | Order-arrival intensity $A e^{-k\delta}$ at distance $\delta$ from fair value, and the rate $\lambda_0$ at the quoted half-spread (Chapters 49, 57). Here $k$ is not log-moneyness |
+| $c$ (shading) | How far a dealer shades both quotes per unit of inventory (Chapter 49) |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |

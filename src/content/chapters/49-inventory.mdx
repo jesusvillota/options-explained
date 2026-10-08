@@ -1,0 +1,203 @@
+---
+title: "Inventory: why dealers charge to hold risk"
+part: 12
+chapter: 49
+difficulty: 2
+prerequisites: [16, 47]
+summary: "A dealer who quotes both sides ends up holding whatever customers leave behind. Shading the quotes controls that inventory, and the risk of holding it is one reason the spread exists."
+---
+import InventoryDealer from '../../components/plots/InventoryDealer';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Long fifteen calls by lunchtime
+
+You're the dealer in the three-month \$105 call. All morning you quote 2.40 / 2.55 around a fair value of 2.48, and
+customers trade with you at random: some buy at your ask, some sell at your bid. Every trade earns you about half the
+spread, 7.5 cents a share, against fair value. A dream job?
+
+By lunchtime, by pure chance, more customers have sold to you than bought from you, and you're **long 15 contracts**.
+Then the stock drops a dollar, the call loses almost 40 cents, and you lose \$570: the half-spread on about 75
+trades. You didn't choose that position. It's what your customers left behind.
+
+This is the oldest explanation of the bid–ask spread: a dealer must **carry inventory** it didn't ask for, and it
+needs paying for the risk. This Part asks where the spread comes from, and it starts here, with inventory. Chapter 50
+adds the second reason, informed traders, and Chapters 51–52 build the theory of how information gets into prices.
+
+## <span class="section-tag">Intuition</span>Inventory wanders
+
+If you quote the same prices all day and customers are equally likely to buy or sell, each trade moves your inventory
+by $+1$ or $-1$ at random. Your inventory is a **random walk** (Chapter 15). Its typical size grows like the square
+root of the number of trades: after 100 trades, around ±10 contracts; after 400, around ±20. And nothing pulls it
+back. Mark Garman pointed out in 1976 that a dealer with fixed quotes will, sooner or later, hit any limit on its
+inventory or its cash, however generous the spread.
+
+The fix is to make customers want to undo your position. If you're long, lower **both** quotes a little. Your ask is
+now more attractive, so more customers buy from you; your bid is less attractive, so fewer sell to you. Your inventory
+drifts back towards zero. If you're short, raise both quotes. This is called **shading** (or *skewing*) the quotes.
+
+<InventoryDealer client:visible />
+
+<p class="try-this"><strong>Try this:</strong> look at the dashed path: with no shading, inventory wanders to ±10
+contracts and more. With shading of half a cent per contract, the solid path hugs zero. In the table, the daily P&L's
+standard deviation falls by more than half while its average barely moves. Push the shading to 3 cents: inventory is
+now tightly controlled, but the average falls, because you're giving away edge to get rid of every contract. Then
+try the half-spread: very narrow quotes trade a lot but earn little each time, very wide ones earn a lot but rarely
+trade. The best half-spread is in between, around 5 cents here.</p>
+
+Shading has a cost, which is the price you accept to unload a position. What it buys is a much smaller risk. A dealer
+that doesn't care about risk has no reason to shade; a risk-averse one does, and it charges for any inventory it can't
+avoid. That charge is the **inventory component** of the spread.
+
+<Callout type="key" title="Two prices, one centre">
+A dealer's quotes are centred not on fair value but on a <strong>reservation price</strong>: what the asset is worth
+to the dealer, given what it already holds. Long inventory lowers the reservation price, short inventory raises it.
+The spread around it pays for the risk of taking on one more unit.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The reservation price and mean-reverting inventory
+
+**A one-period dealer.** Following Stoll (1978) and Ho and Stoll (1981), let the asset be worth $v$ on average at the
+end of a holding period $\tau$, with variance $\Vol{\sigma}^2\tau$, and let the dealer hold $q$ units. A dealer with
+constant absolute risk aversion $\gamma$ values an uncertain, normally distributed wealth $W$ at its **certainty
+equivalent** $\mathbb{E}[W] - \tfrac12\gamma\,\mathrm{Var}[W]$. For the inventory alone,
+
+$$
+\mathrm{CE}(q) = q\,v - \tfrac12\gamma\Vol{\sigma}^2\tau\,q^2 .
+$$
+
+The **reservation bid** is the price $b$ at which buying one more unit leaves the dealer exactly as well off:
+$\mathrm{CE}(q + 1) - b = \mathrm{CE}(q)$. Expanding,
+
+$$
+\begin{aligned}
+b &= v - \tfrac12\gamma\Vol{\sigma}^2\tau\big((q + 1)^2 - q^2\big) \\
+&= v - \gamma\Vol{\sigma}^2\tau\,\big(q + \tfrac12\big) .
+\end{aligned}
+$$
+
+In the same way, selling one unit at $a$ requires $\mathrm{CE}(q - 1) + a = \mathrm{CE}(q)$, so
+$a = v - \gamma\Vol{\sigma}^2\tau\,\big(q - \tfrac12\big)$. The quotes are centred on the **reservation price** and
+are $\gamma\Vol{\sigma}^2\tau$ apart:
+
+$$
+r = v - \gamma\Vol{\sigma}^2\tau\,q, \qquad\qquad a - b = \gamma\Vol{\sigma}^2\tau .
+$$
+
+Everything in the inventory spread is in that one product. It's wider when the dealer is more **risk-averse**, when
+the asset is more **volatile**, and when the dealer expects to hold it **longer** before an offsetting trade arrives.
+That last factor is why busy markets, where positions can be unloaded quickly, have narrow spreads. For an order of
+$Q$ units the same argument gives a spread of $\gamma\Vol{\sigma}^2\tau\,Q$ per unit: bigger trades cost more per
+contract, a theme Part XIV returns to.
+
+**Fixed quotes: a random walk.** With symmetric fixed quotes, customer buys and sells each arrive at the same rate
+$\lambda_0$, and each moves inventory by one unit. After time $t$ the inventory has mean zero and variance
+
+$$
+\mathrm{Var}[q_t] = 2\lambda_0 t,
+$$
+
+which grows without bound. In the widget, customers arrive at $\lambda_0 = A e^{-kh} = 0.5\,e^{-20 \times 0.075} \approx 0.11$
+per minute on each side: about 87 trades a day, and an end-of-day inventory of typically $\sqrt{87} \approx 9$ contracts.
+
+**Shading: an Ornstein–Uhlenbeck process.** Shade both quotes by $c$ per unit, so they sit at $r \pm h$ with
+$r = v - cq$. A quote's distance from fair value is now $h + cq$ for the ask and $h - cq$ for the bid, so the arrival
+rates become
+
+$$
+\lambda_{\text{buy}} = A e^{-k(h + cq)} \approx \lambda_0(1 - kcq),
+$$
+
+$$
+\lambda_{\text{sell}} = A e^{-k(h - cq)} \approx \lambda_0(1 + kcq),
+$$
+
+for small $kcq$. Customer sales add to inventory and purchases subtract from it, so its expected drift is
+
+$$
+\lambda_{\text{sell}} - \lambda_{\text{buy}} \approx -2\lambda_0 k c\, q ,
+$$
+
+a pull back towards zero at rate $\kappa = 2\lambda_0 kc$, while the noise still has variance $2\lambda_0$ per unit
+time. That makes $q_t$ approximately an Ornstein–Uhlenbeck process, $dq = -\kappa q\,dt + \sqrt{2\lambda_0}\,dW$, whose
+stationary variance is
+
+$$
+\mathrm{Var}[q] = \frac{2\lambda_0}{2\kappa} = \frac{1}{2kc} .
+$$
+
+Remarkably, it doesn't depend on how busy the market is. With $k = 20$ and $c$ = half a cent, $\mathrm{Var}[q] = 5$: a
+typical inventory of about $\pm 2.2$ contracts, as in the widget.
+
+Matching the two models, shading by $c$ per unit is what a risk-averse dealer does with $c = \gamma\Vol{\sigma}^2\tau$.
+Chapter 57 makes this precise: Avellaneda and Stoikov derive the optimal shading and the optimal spread from a
+continuous-time version of this problem, and the half-spread of about $1/k$ that the widget favours appears there
+as an exact term.
+
+## <span class="section-tag">Playground</span>Your risk appetite
+
+<InventoryDealer client:visible initialShade={0} title="Playground: choose your shading" />
+
+<div class="try-this">
+
+- **The trade-off.** Increase the shading from zero in steps of half a cent. Note the mean and the standard deviation
+  of daily P&L each time. Where does extra shading stop paying for itself?
+- **A volatile day.** Shading's value comes from the asset's volatility. Without changing anything else, why would
+  you want more shading on a day when the stock is twice as volatile? (Look at the formula $r = v - \gamma\sigma^2\tau q$.)
+- **Re-simulate.** The single-day path changes every time, but the table hardly does. Which numbers in the table are
+  the most stable, and why?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A dealer values the call at 2.48, holds 10 contracts long, and has $\gamma\sigma^2\tau = 0.005$ per contract. What's its reservation price?"
+  answer={2.43}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="$r = v - \gamma\sigma^2\tau\,q = 2.48 - 0.005 \times 10 = 2.43$. Its quotes are centred 5 cents below fair value, so it's keener to sell than to buy."
+/>
+
+<Quiz
+  client:visible
+  question="Two options have the same spread from information, but one has twice the volatility of the other. In the inventory model, how do their inventory spreads compare?"
+  options={[
+    "The same: the spread doesn't depend on volatility",
+    "Twice as wide for the volatile option",
+    "Four times as wide for the volatile option, because the spread is proportional to $\\sigma^2$",
+    "Half as wide, because volatile options trade more",
+  ]}
+  answer={2}
+  explanation="The inventory spread is $\gamma\sigma^2\tau$, proportional to the variance. Doubling the volatility quadruples it, unless the holding period $\tau$ also shrinks."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Customers' arrival rate falls off with $k = 25$ per dollar, and the dealer shades by $c$ = 2 cents per contract. What's the standard deviation of its inventory, in contracts?"
+  answer={1}
+  tolerance={0.01}
+  explanation="$\mathrm{Var}[q] = 1/(2kc) = 1/(2 \times 25 \times 0.02) = 1$, so the standard deviation is 1 contract."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A dealer with fixed quotes ends up with **random-walk inventory**: its variance grows as $2\lambda_0 t$, without
+  limit.
+- **Shading** both quotes against inventory pulls it back, turning it into a mean-reverting process with variance
+  about $1/(2kc)$.
+- A risk-averse dealer quotes around a **reservation price** $r = v - \gamma\sigma^2\tau q$, and its inventory spread
+  is $\gamma\sigma^2\tau$: wider for riskier assets, more risk-averse dealers and longer holding periods.
+- Inventory risk explains why spreads exist even when nobody knows more than the dealer.
+
+**Next up:** some customers *do* know more. In Chapter 50 a dealer facing informed traders sets a spread even though
+it has no inventory risk at all.
+
+### Further reading
+
+- M. B. Garman, "Market microstructure", *Journal of Financial Economics* 3 (1976).
+- H. R. Stoll, "The supply of dealer services in securities markets", *Journal of Finance* 33 (1978).
+- T. Ho and H. R. Stoll, "Optimal dealer pricing under transactions and return uncertainty", *Journal of Financial
+  Economics* 9 (1981).
+- M. O'Hara, *Market Microstructure Theory*, Blackwell (1995), chapter 2.
