@@ -194,7 +194,10 @@ than $Q$.
 ahead of it has traded:
 
 $$
-N_{\text{ahead}} = \sum_{i:\, b_i > p} B_i \;+\; \big(\text{size at } p \text{ that arrived before you}\big) .
+\begin{aligned}
+N_{\text{ahead}} = {} & \sum_{i:\, b_i > p} B_i \\
+& + \big(\text{earlier orders at } p\big) .
+\end{aligned}
 $$
 
 If sell market orders arrive at an average rate of $\Lambda$ contracts per minute and nobody ahead of you cancels,

@@ -104,8 +104,10 @@ more often than chance would suggest.
 out-of-the-money amount $\text{OTM}$, the classic requirement per share is
 
 $$
-V + \max\big(0.20\,\Spot{S} - \text{OTM},\ 0.10\,X\big), \qquad X = \begin{cases} \Spot{S} & \text{call} \\ \Strike{K} & \text{put}. \end{cases}
+V + \max\big(0.20\,\Spot{S} - \text{OTM},\ 0.10\,X\big),
 $$
+
+where the floor uses $X = \Spot{S}$ for a call and $X = \Strike{K}$ for a put.
 
 For the hook's put: $V = 1.53$, $\text{OTM} = 100 - 95 = 5$, so the requirement is
 $1.53 + \max(20 - 5,\ 9.50) = 16.53$ per share, or \$1,653 per contract. A credit spread that sells the \$95 put and
@@ -145,7 +147,10 @@ $k$ are exercised and assigned at random, each short contract equally likely. Th
 hypergeometric distribution, with mean $k\,n/N$, and
 
 $$
-\mathbb{P}(\text{none of yours}) = \frac{\binom{N - n}{k}}{\binom{N}{k}} = \prod_{i=0}^{k-1}\frac{N - n - i}{N - i} .
+\begin{aligned}
+\mathbb{P}(\text{none of yours}) &= \frac{\binom{N - n}{k}}{\binom{N}{k}} \\
+&= \prod_{i=0}^{k-1}\frac{N - n - i}{N - i} .
+\end{aligned}
 $$
 
 With $N = 1{,}000$, $n = 10$ and $k = 100$, you expect one assignment, and the chance of escaping entirely is about
