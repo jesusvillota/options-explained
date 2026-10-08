@@ -127,3 +127,38 @@ describe('Avellaneda–Stoikov', () => {
     expect(inv.sdInventory).toBeLessThan(0.5 * sym.sdInventory);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 58: making markets in many options
+
+import { quoteShift, simulateVegaBook, vegaBookStats, vegaRisk, volCovariance } from '../src/lib/mm/optionBook';
+
+describe('a book of vega', () => {
+  it('has a covariance with vol-of-vol on the diagonal and decaying correlation', () => {
+    const O = volCovariance(0.8);
+    expect(O[0][0]).toBeCloseTo(2.25, 12);
+    expect(O[0][1]).toBeCloseTo(1.5 * 1.0 * 0.8, 12);
+    expect(O[0][2]).toBeCloseTo(1.5 * 0.7 * 0.64, 12);
+  });
+
+  it('measures risk as √(VᵀΩV), and nets offsetting buckets when they are correlated', () => {
+    const O = volCovariance(0.9);
+    expect(vegaRisk([1000, 0, 0], O)).toBeCloseTo(1500, 8);
+    expect(vegaRisk([1000, -1500, 0], O)).toBeLessThan(vegaRisk([1000, 0, 0], O));
+  });
+
+  it('shifts every correlated bucket against a long position in one', () => {
+    const d = quoteShift([2000, 0, 0], volCovariance(0.8), 1e-4);
+    expect(d[0]).toBeLessThan(0);
+    expect(d[1]).toBeLessThan(0);
+    expect(d[0]).toBeLessThan(d[1]);
+  });
+
+  it('cuts the book’s vol risk sharply by shading, for a small loss of edge', () => {
+    const base = { trades: 300, size: 10, edge: 0.5, k: 2, rho: 0.8 };
+    const off = vegaBookStats({ ...base, gamma: 0 }, 150, 1), on = vegaBookStats({ ...base, gamma: 3e-5 }, 150, 1);
+    expect(on.rmsRisk).toBeLessThan(0.65 * off.rmsRisk);
+    expect(on.meanEdge).toBeGreaterThan(0.97 * off.meanEdge);
+    expect(simulateVegaBook({ ...base, gamma: 3e-5, seed: 4 })).toEqual(simulateVegaBook({ ...base, gamma: 3e-5, seed: 4 }));
+  });
+});

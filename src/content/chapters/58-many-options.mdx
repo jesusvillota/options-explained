@@ -1,0 +1,180 @@
+---
+title: "Making markets in many options"
+part: 13
+chapter: 58
+difficulty: 3
+prerequisites: [23, 57]
+summary: "An options market maker's inventory is a vector of Greeks. After hedging delta, it manages vega by expiry, and shades every quote by the risk of the whole book."
+---
+import VegaBook from '../../components/plots/VegaBook';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two thousand series, one book
+
+A market maker in index options may quote two thousand series at once: dozens of strikes across a dozen expiries.
+All morning, customers buy one-month puts, as they often do. The market maker hedges the delta in the futures within
+milliseconds; that part is easy, because the futures are deep and cheap to trade. But it's now **short volatility** in
+the one-month expiry, and it can't simply buy those puts back, because the customers are buyers, not sellers.
+
+What's its inventory? Not a number of contracts. It's a vector: vega in each expiry, gamma, exposure to the skew. And
+its quotes must respond to the whole vector, not to each option alone. This chapter extends Chapter 57's reservation
+price from one asset to a book of options.
+
+## <span class="section-tag">Intuition</span>Inventory is a vector of Greeks
+
+Group the book by expiry into **vega buckets**: the dollar change in its value per volatility point of each expiry's
+implied volatility. After delta hedging, the book's daily P&L is mostly
+
+$$
+\delta\Pi \approx \sum_j V_j\,\delta\Vol{\sigma}_j ,
+$$
+
+where $V_j$ is the vega in bucket $j$ and $\delta\Vol{\sigma}_j$ is that expiry's volatility move. Short-dated volatility
+moves the most from day to day, and neighbouring expiries move together. So a long position in one month and a short
+position in three months partly cancel; two long positions add up.
+
+A market maker who's long one-month vega wants to sell volatility, so it lowers its one-month quotes (in volatility
+points, Chapter 56). But it also lowers its three-month quotes, a little, because three-month volatility moves with
+one-month volatility: a customer who buys three-month vega from it reduces its risk too. Each quote is shaded by its
+bucket's **correlation-weighted** share of the book's risk.
+
+<VegaBook client:visible />
+
+<p class="try-this"><strong>Try this:</strong> switch shading off. The three vega lines wander far from zero, and the
+book's volatility risk at the close is large. Turn shading back on: the lines are pulled together and towards zero,
+and the table shows the risk falling sharply for almost no loss of edge. Now raise the correlation to 0.95: the shift
+lines move together, and the book carries larger offsetting positions across expiries while its total risk falls.
+The book is using one expiry to hedge another.</p>
+
+<Callout type="key" title="Reservation volatility">
+In a book of options, each quote is shaded by $-\gamma\,(\Omega V)_j$ volatility points: risk aversion times the
+covariance-weighted vega of the whole book, seen from bucket $j$. Every option in the same bucket shifts by the same
+number of vol points, and buckets that move together shift together.
+</Callout>
+
+In practice desks go further. They bucket by strike as well as expiry, because the skew can steepen without the
+at-the-money volatility moving, and they track **gamma**, which short-dated options carry and long-dated ones
+mostly don't: a book can be flat vega and still badly short gamma. The same certainty-equivalent logic applies to any
+risk factor that can be measured and given a covariance.
+
+## <span class="section-tag">Formalisation</span>From a scalar to a vector
+
+**The book's risk.** Let $V = (V_1, \dots, V_n)$ be the book's vega by bucket, in dollars per volatility point, and let
+the daily volatility moves $\delta\Vol{\sigma} = (\delta\Vol{\sigma}_1, \dots, \delta\Vol{\sigma}_n)$ have covariance $\Omega$. Then
+
+$$
+\mathrm{Var}[\delta\Pi] = V^\top \Omega\, V .
+$$
+
+In the widget, $\Omega_{ij} = s_i s_j \rho^{|i - j|}$ with daily vol-of-vol $s = (1.5, 1.0, 0.7)$ points for one month, three
+months and one year.
+
+**The reservation volatility.** A dealer with risk aversion $\gamma$ values the book at its certainty equivalent,
+$\mathrm{CE} = \mathbb{E}[\Pi] - \tfrac12\gamma\,V^\top\Omega V$. Buying $n$ contracts of an option with vega $v$ (per
+contract) in bucket $j$ at price $p$, when its fair value is $f$, changes $V$ to $V + n v\, e_j$, and
+
+$$
+\begin{aligned}
+\Delta\mathrm{CE} = {} & n(f - p) - \gamma\,n v\,(\Omega V)_j \\
+& - \tfrac12\gamma\,n^2 v^2\,\Omega_{jj} .
+\end{aligned}
+$$
+
+<details>
+<summary>The quadratic expansion</summary>
+
+$(V + nv\,e_j)^\top\Omega(V + nv\,e_j) = V^\top\Omega V + 2nv\,e_j^\top\Omega V + n^2v^2\,e_j^\top\Omega e_j$, and
+$e_j^\top\Omega V = (\Omega V)_j$, $e_j^\top\Omega e_j = \Omega_{jj}$. Multiply by $-\tfrac12\gamma$.
+
+</details>
+
+For a small trade the last term is negligible, so the dealer is indifferent at $p = f - \gamma v\,(\Omega V)_j$. Since
+the option's price moves by $v$ per volatility point, this is a shift of
+
+$$
+d_j = -\gamma\,(\Omega V)_j \quad \text{volatility points}
+$$
+
+for every option in bucket $j$. With one bucket, $d = -\gamma s^2 V$: Chapter 49's $r = v - \gamma\sigma^2\tau q$, measured in
+volatility. The quadratic term, $\tfrac12\gamma v\,\Omega_{jj}$ per unit, is a size premium: big orders cost more per
+contract.
+
+**The best hedge.** If the dealer can trade bucket $k$ directly (with other dealers, say), the variance-minimising
+amount of vega to add is
+
+$$
+x_k^* = -\frac{(\Omega V)_k}{\Omega_{kk}} ,
+$$
+
+which is the same correlation-weighted exposure that drives the shading. Shading is a way of getting customers to do
+the hedging, and earning their spread for it.
+
+**A worked number.** With $\gamma = 3 \times 10^{-5}$, the book long \$2,000 of one-month vega and nothing else, the
+one-month shift is $-3\times10^{-5} \times 2.25 \times 2000 = -0.135$ volatility points, and with $\rho = 0.8$ the
+three-month shift is $-3\times10^{-5} \times (1.5 \times 1.0 \times 0.8) \times 2000 = -0.072$ points.
+
+## <span class="section-tag">Playground</span>Shade the whole book
+
+<VegaBook client:visible title="Playground: shade the book" />
+
+<div class="try-this">
+
+- **How much shading?** Step $\gamma$ from 0 to 30. Where does extra shading stop reducing risk much, and what does it
+  cost in edge?
+- **Uncorrelated expiries.** Set $\rho = 0$. Now each bucket must be managed on its own. Why does the total risk
+  fall less from shading than when expiries are correlated?
+- **Which bucket matters most?** At the end of a day, which expiry's vega contributes most to risk, given that
+  one-month volatility moves twice as much as one-year volatility but one-year options carry three times the vega?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A book is long \$1,000 of one-month vega and short \$1,000 of three-month vega. Daily vol-of-vol is 1.5 and 1.0 points, with correlation 0.8. What's the book's daily volatility risk $\sqrt{V^\top\Omega V}$, in dollars?"
+  answer={922}
+  tolerance={1}
+  prefix="\$"
+  explanation="$V^\top\Omega V = 1000^2(2.25 + 1.0 - 2 \times 1.5 \times 1.0 \times 0.8) = 1000^2 \times 0.85$, so the risk is $1000\sqrt{0.85} \approx 922$ dollars."
+/>
+
+<Quiz
+  client:visible
+  question="The book is long one-month vega only. Why does the dealer also lower its three-month quotes?"
+  options={[
+    "To match competitors",
+    "Because three-month volatility moves with one-month volatility, so selling three-month vega also reduces the book's risk",
+    "Because three-month options are always overpriced",
+    "It shouldn't: only the one-month quotes matter",
+  ]}
+  answer={1}
+  explanation="The shift in bucket $j$ is $-\gamma(\Omega V)_j$, which is non-zero wherever $\Omega$ links bucket $j$ to the one-month bucket. Customers who buy three-month volatility hedge part of the dealer's one-month position."
+/>
+
+<NumericQuiz
+  client:visible
+  question="With $\gamma = 3\times10^{-5}$ and one-month vol-of-vol of 1.5 points, how many volatility points does a dealer long \$2,000 of one-month vega (and nothing else) shift its one-month quotes? (Give a negative number for down.)"
+  answer={-0.135}
+  tolerance={0.001}
+  explanation="$d_1 = -\gamma\,\Omega_{11}V_1 = -3\times10^{-5} \times 2.25 \times 2000 = -0.135$ volatility points."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- After delta hedging, an options book's inventory is its **vega by bucket** (and its gamma and skew exposure).
+- The book's daily volatility risk is $\sqrt{V^\top\Omega V}$; correlated buckets net or add up.
+- The dealer's **reservation volatility** shifts every quote in bucket $j$ by $-\gamma(\Omega V)_j$ volatility points, so a
+  position in one expiry cheapens or richens correlated expiries too.
+- Shading gets customers to hedge the book; the variance-minimising direct hedge, $-(\Omega V)_k/\Omega_{kk}$, has the same
+  shape.
+
+**Next up:** every hedge costs money to trade. In Chapter 59 we put transaction costs into Chapter 24's delta hedge and
+find the rebalancing rule that balances hedging error against cost.
+
+### Further reading
+
+- S. Stoikov and M. Sağlam, "Option market making under inventory risk", *Review of Derivatives Research* 12 (2009).
+- B. Baldacci, P. Bergault and O. Guéant, "Algorithmic market making for options", *Quantitative Finance* 21 (2021).
+- O. Guéant, *The Financial Mathematics of Market Liquidity*, CRC Press (2016), on multi-asset market making.
