@@ -125,6 +125,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $M^{\text{micro}}$, $V_b$, $V_a$ | Microprice, and the sizes at the best bid and ask (Chapter 55) |
 | $\sigma^b$, $\sigma^a$, $\sigma^{\text{mid}}$ | Implied volatilities of a quote's bid, ask and mid (Chapter 55) |
 | $e_\sigma$, $\ell$, $\bar\tau$, $\bar e$ | Quoting: half-spread in volatility points, the market maker's reaction time, snipers' mean reaction time, and customers' mean tolerance (Chapter 56) |
+| $\delta^b$, $\delta^a$, $\omega$ | Distances of the bid and ask from the mid, and the Guéant–Lehalle–Fernandez-Tapia inventory skew per unit (Chapter 57) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

@@ -86,3 +86,44 @@ describe('quoting', () => {
     expect(net(1)).toBeGreaterThan(net(2));
   });
 });
+
+// ---------------------------------------------------------------------------
+// Chapter 57: Avellaneda–Stoikov
+
+import { asQuotes, asStats, glftQuotes, optimalSpread, reservationPrice } from '../src/lib/mm/avellanedaStoikov';
+
+describe('Avellaneda–Stoikov', () => {
+  const p = { gamma: 0.1, sigma: 2, k: 1.5, A: 140, T: 1 };
+
+  it('shades the reservation price against inventory, less as the horizon nears', () => {
+    expect(reservationPrice(100, 0, 0, p)).toBe(100);
+    expect(reservationPrice(100, 3, 0, p)).toBeCloseTo(100 - 3 * 0.1 * 4, 12);
+    expect(reservationPrice(100, 3, 0.75, p)).toBeCloseTo(100 - 3 * 0.1 * 4 * 0.25, 12);
+  });
+
+  it('has the optimal spread γσ²(T − t) + (2/γ)ln(1 + γ/k)', () => {
+    expect(optimalSpread(0, p)).toBeCloseTo(0.4 + 20 * Math.log(1 + 0.1 / 1.5), 12);
+    const q = asQuotes(100, -2, 0, p);
+    expect(q.ask - q.bid).toBeCloseTo(optimalSpread(0, p), 12);
+    expect((q.ask + q.bid) / 2).toBeCloseTo(reservationPrice(100, -2, 0, p), 12);
+  });
+
+  it('tends to 2/k as risk aversion vanishes, the risk-neutral monopolist spread', () => {
+    expect(optimalSpread(0.5, { ...p, gamma: 1e-6 })).toBeCloseTo(2 / 1.5, 4);
+  });
+
+  it('gives GLFT quotes that are symmetric at zero inventory and skew linearly in q', () => {
+    const z = glftQuotes(100, 0, p), one = glftQuotes(100, 1, p), two = glftQuotes(100, 2, p);
+    expect(100 - z.bid).toBeCloseTo(z.ask - 100, 12);
+    expect((one.bid - two.bid)).toBeCloseTo(z.bid - one.bid, 12);
+    expect(one.ask).toBeLessThan(z.ask);
+  });
+
+  it('cuts P&L risk sharply for a small cost in mean, as in the original paper', () => {
+    const base = { ...p, dt: 0.005, s0: 100 };
+    const inv = asStats({ ...base, strategy: 'inventory' }, 300, 1), sym = asStats({ ...base, strategy: 'symmetric' }, 300, 1);
+    expect(inv.sdPnl).toBeLessThan(0.6 * sym.sdPnl);
+    expect(inv.meanPnl).toBeGreaterThan(0.9 * sym.meanPnl);
+    expect(inv.sdInventory).toBeLessThan(0.5 * sym.sdInventory);
+  });
+});
