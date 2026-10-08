@@ -24,6 +24,20 @@ import {
   simulateShortfall,
   tradingRate,
 } from '../src/lib/exec/almgrenChriss';
+import {
+  blockSchedule,
+  continuousTwapCost,
+  dentPath,
+  dentsBefore,
+  flashImpact,
+  obizhaevaWang,
+  optimalSchedule,
+  pumpAndDump,
+  scheduleCost,
+  tradeTimes,
+  twapSchedule,
+} from '../src/lib/exec/transientImpact';
+import { solveLinear } from '../src/lib/math/linear';
 
 describe('Chapter 61: price impact', () => {
   it('square-root law: 1% of daily volume with Y = 0.7 and σ = 2% moves the price 14 bp', () => {
@@ -201,5 +215,74 @@ describe('Chapter 62: Almgren–Chriss', () => {
     // Fine slicing: the discrete cost approaches the continuous formula.
     expect(discreteExpectedCost(q, n) / expectedCost(q)).toBeCloseTo(1, 1);
     expect(simulateShortfall(q, n, 5, 1)).toEqual(simulateShortfall(q, n, 5, 1));
+  });
+});
+
+describe('Chapter 63: transient impact', () => {
+  const X = 1e5, T = 60, q = 5e5, N = 60, times = tradeTimes(T, N);
+  const rho = Math.LN2 / 5;
+
+  it('linear solver', () => {
+    const x = solveLinear([[0, 2, 1], [1, 1, 1], [2, 1, 3]], [7, 6, 13]);
+    [1, 2, 3].forEach((v, i) => expect(x[i]).toBeCloseTo(v, 12));
+  });
+
+  it('a block walks the book: X²/(2q) = $10,000, whatever the resilience', () => {
+    expect(scheduleCost(blockSchedule(X, N), times, q, rho)).toBeCloseTo(10000, 8);
+    expect(scheduleCost(blockSchedule(X, N), times, q, 10)).toBeCloseTo(10000, 8);
+  });
+
+  it('the dent refills exponentially between trades', () => {
+    const D = dentsBefore([1000, 1000], [0, 5], 5e5, rho);
+    expect(D[0]).toBe(0);
+    expect(D[1]).toBeCloseTo(0.002 / 2, 12); // half-life of 5 minutes
+    expect(scheduleCost([1000, 1000], [0, 5], 5e5, rho)).toBeCloseTo(1000 * 0.001 + 2 * (1000 * 1000) / (2 * 5e5), 12);
+    const path = dentPath([1000], [0], 5e5, rho, 10, 4);
+    expect(path[1][1]).toBeCloseTo(0.002, 12);
+    expect(path[path.length - 1][1]).toBeCloseTo(0.0005, 12);
+  });
+
+  it('without resilience every schedule costs the same; with it, TWAP matches the continuous formula', () => {
+    expect(scheduleCost(twapSchedule(X, N), times, q, 1e-12)).toBeCloseTo(10000, 3);
+    expect(scheduleCost(twapSchedule(X, N), times, q, rho) / continuousTwapCost(X, T, q, rho)).toBeCloseTo(1, 1);
+  });
+
+  it('the optimal schedule: equal end blocks, flat middle, and the Obizhaeva–Wang cost', () => {
+    const n = optimalSchedule(X, times, rho);
+    expect(n.reduce((a, b) => a + b, 0)).toBeCloseTo(X, 6);
+    expect(n[0]).toBeCloseTo(n[N], 6);
+    expect(n[0]).toBeGreaterThan(5 * n[30]);
+    for (let k = 2; k < N - 1; k++) expect(n[k]).toBeCloseTo(n[30], 3);
+    const ow = obizhaevaWang(X, T, q, rho);
+    expect(ow.cost).toBeCloseTo(X ** 2 / (q * (rho * T + 2)), 8);
+    expect(scheduleCost(n, times, q, rho) / ow.cost).toBeCloseTo(1, 2);
+    // It beats TWAP and the block, and small perturbations make it worse.
+    const best = scheduleCost(n, times, q, rho);
+    expect(best).toBeLessThan(scheduleCost(twapSchedule(X, N), times, q, rho));
+    const bumped = n.map((v, k) => v + (k === 0 ? 500 : k === 30 ? -500 : 0));
+    expect(scheduleCost(bumped, times, q, rho)).toBeGreaterThan(best);
+  });
+
+  it('Obizhaeva–Wang holds the dent constant during continuous trading', () => {
+    const ow = obizhaevaWang(X, T, q, rho);
+    expect(ow.dent).toBeCloseTo(ow.block / q, 12);
+    // Inflow ρ·dent·q equals the trading rate.
+    expect(rho * ow.dent * q).toBeCloseTo(ow.rate, 8);
+    expect(2 * ow.block + ow.rate * T).toBeCloseTo(X, 6);
+  });
+
+  it('pump and dump: concave impact with exponential decay pays; linear impact never does', () => {
+    const lim = -(1 - 2 * Math.exp(-1)); // buy cost e⁻¹ minus resale value 1 − e⁻¹
+    expect(pumpAndDump({ X: 1, T1: 1, tau2: 1e-6, delta: 0.5, rho: 1 })).toBeCloseTo(lim, 2);
+    expect(pumpAndDump({ X: 1, T1: 1, tau2: 0.01, delta: 0.5, rho: 1 })).toBeLessThan(0);
+    for (const tau2 of [1, 0.1, 0.01, 1e-4]) expect(pumpAndDump({ X: 1, T1: 1, tau2, delta: 1, rho: 1 })).toBeGreaterThan(0);
+    // Instant dump with linear impact: e⁻¹ − (1 − e⁻¹) + ½.
+    expect(pumpAndDump({ X: 1, T1: 1, tau2: 1e-6, delta: 1, rho: 1 })).toBeCloseTo(Math.exp(-1) - (1 - Math.exp(-1)) + 0.5, 3);
+  });
+
+  it('flash impact vanishes for fast trades only when β + δ < 1', () => {
+    expect(flashImpact(1, 1e-12, 0.5, 0.3)).toBeLessThan(0.01);
+    expect(flashImpact(1, 1e-8, 0.5, 0.7)).toBeGreaterThan(10);
+    expect(flashImpact(4, 1, 0.5, 0.5)).toBeCloseTo(4, 12);
   });
 });

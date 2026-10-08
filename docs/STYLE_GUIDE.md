@@ -132,6 +132,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $Q$, $V$ (Part XIV), $\mathcal{I}$, $Y$, $\delta$ | A metaorder's size, the daily volume, its impact, the square-root law's prefactor and the impact exponent (Chapter 61) |
 | $\rho(x) = Lx^{\alpha}$, $G$, $\beta$ (kernel), $G_\infty$, $\varepsilon_s$ | Latent liquidity at distance $x$ from the price, the propagator, its decay exponent and permanent floor, and the sign of the trade at time $s$ (Chapter 61) |
 | $x_t$, $v_t$, $\eta$, $\lambda$ (Part XIV), $\gamma$, $\kappa$, $C$ | Shares still to trade, the trading rate, temporary and permanent impact, risk aversion, the urgency $\sqrt{\gamma\sigma^2/\eta}$ and the implementation shortfall (Chapter 62) |
+| $q$ (book depth), $D_t$, $\rho$ (resilience), $f(v)$ | Shares per dollar above the ask, the dent left by past trades, the rate at which it refills, and the price push from trading at rate $v$ (Chapter 63) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

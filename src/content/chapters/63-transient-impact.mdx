@@ -1,0 +1,199 @@
+---
+title: "Transient impact and resilient books"
+part: 14
+chapter: 63
+difficulty: 3
+prerequisites: [62]
+summary: "Order books refill after you trade. With a book that heals exponentially, the best schedule is a block at the start, trading as fast as the book refills, and a block at the end. Some impact models let a trader profit from pushing prices around, and Gatheral shows which."
+---
+import ResilientBook from '../../components/plots/ResilientBook';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The book heals
+
+Buy 10,000 shares with a market order and you clear out the first few levels of the book (Chapter 43). Wait a
+minute, and look again: new sell orders have appeared, and the ask has slid most of the way back. Market makers
+and patient sellers see the gap and fill it. The book is **resilient**.
+
+Almgren–Chriss (Chapter 62) had no room for this. Temporary impact vanished instantly, so the only thing that mattered
+was the trading rate at each moment. If instead the book takes a few minutes to heal, then how much you pay now
+depends on how much you bought a moment ago, and the best schedule looks quite different. Anna Obizhaeva and Jiang
+Wang worked it out in 2013, and the answer has a surprising shape.
+
+## <span class="section-tag">Intuition</span>Dent, refill, repeat
+
+Picture the book above the ask as a wall of sell orders of constant thickness. A purchase digs a dent: the bigger the
+purchase, the higher the ask climbs. Then the dent fills back in, quickly at first and more slowly as it closes.
+
+- Buying everything at once digs the deepest dent possible, and you pay for every level of it.
+- Buying evenly lets the book recover between trades, but each trade still lands on top of what's left of the
+  previous dents.
+- The best plan is to dig a dent of the right depth at the start, then buy **exactly as fast as the book refills**,
+  keeping the dent at that depth, and at the very end buy one more block, since there's no future left to protect.
+
+<ResilientBook client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start with <em>All at once</em>: the ask jumps 20¢ and you pay
+10¢ a share on average. Switch to <em>Evenly</em>: the dent climbs to a plateau and the cost collapses. Now pick
+<em>Optimal</em>: a block of about 10,000 shares at the start lifts the ask straight to the plateau; steady buying holds
+it there; a final block finishes the job. Make the book slower to heal: the end blocks grow, and with no resilience
+at all every strategy costs the same.</p>
+
+<Callout type="key" title="The Obizhaeva–Wang strategy">
+With a flat book of depth $q$ that refills at rate $\rho$, buy $X$ by time $T$ with blocks of $X/(\rho T + 2)$ at the
+start and the end and a constant rate $\rho X/(\rho T + 2)$ in between. The total cost is $X^2/\big(q(\rho T + 2)\big)$.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The Obizhaeva–Wang model
+
+**The book.** Above the undisturbed ask $A_0$, the book offers $q$ shares per dollar of price, at every level. Buying
+$n$ shares when the ask already sits $D$ above $A_0$ walks it up to $D + n/q$, at an average premium of $D + n/(2q)$.
+Between trades, the **dent** $D_t$ refills exponentially: $\dot D_t = -\rho D_t$, with **resilience** $\rho$, or a
+half-life of $\ln 2/\rho$. So if you buy $n_k$ shares at times $t_k$, the dent just before trade $k$ is
+
+$$
+D_k = \sum_{j < k} \frac{n_j}{q}\,e^{-\rho(t_k - t_j)} ,
+$$
+
+a propagator model (Chapter 61) with an exponential kernel.
+
+**The cost is a quadratic form.** Adding up $n_k\big(D_k + n_k/(2q)\big)$ over all trades gives
+
+$$
+C = \frac{1}{2q}\sum_{j,k} n_j\,n_k\,e^{-\rho|t_j - t_k|} = \frac{1}{2q}\,n^\top M\,n ,
+$$
+
+with $M_{jk} = e^{-\rho|t_j - t_k|}$. Minimising it subject to $\sum_k n_k = X$ gives, with a Lagrange multiplier,
+$M n \propto \mathbf{1}$, so $n \propto M^{-1}\mathbf{1}$. The widget solves this on a grid of 61 trades.
+
+**The continuous-time answer.** As the grid gets finer, the solution converges to blocks at both ends and a constant
+rate in between. Guess that shape: a first block $b$ digs a dent $b/q$. To keep the dent constant, purchases must
+replace what refills, a rate $v = \rho b$. A final block $b$ is bought on top of the dent. The schedule must add up to
+$X$, so $2b + \rho b\,T = X$ and
+
+$$
+b = \frac{X}{\rho T + 2}, \qquad v = \frac{\rho X}{\rho T + 2} .
+$$
+
+The first block costs $b^2/(2q)$, the continuous part pays the constant dent $b/q$ on $\rho b\,T$ shares, and the final
+block costs $b\,(b/q + b/(2q))$. Altogether,
+
+$$
+C^* = \frac{b^2}{q}\Big(\tfrac12 + \rho T + \tfrac32\Big) = \frac{X^2}{q(\rho T + 2)} .
+$$
+
+Two limits check it. Without resilience, $\rho = 0$, every schedule costs $X^2/(2q)$: the dent never heals, so it
+doesn't matter when you dig it. With a very resilient book, $\rho T \to \infty$, the blocks shrink to nothing and the
+cost to zero.
+
+In the widget, with a 5-minute half-life, buying all 100,000 shares at once costs \$10,000; buying evenly costs about
+\$2,090; the optimum costs about \$1,940, close to the continuous formula's \$1,938.
+
+**No dynamic arbitrage.** A good impact model must not let a trader make money by trading in a circle: buying,
+pushing the price up, and selling back at a profit. Jim Gatheral (2010) called this **price manipulation** and asked
+which models rule it out. Take a propagator model where trading at rate $v$ pushes the price by $f(v)$ per unit of time,
+and the push decays with kernel $G$:
+
+$$
+\Spot{S}_t = \Spot{S}_0 + \int_0^t f(v_s)\,G(t - s)\,ds + \text{noise} .
+$$
+
+- With **linear** $f$, the cost of any round trip is $\tfrac12\iint v_s\,v_t\,G(|t - s|)\,ds\,dt$, which is never negative
+  when $G$ is a positive-definite kernel, as the exponential and the power law are. Obizhaeva–Wang is safe.
+- With **concave** $f$, such as the square root, and exponential decay, there's a free lunch: buy slowly, which
+  pushes the price up a lot per share, then dump everything in a flash, which hardly moves it, since a fast trade of
+  $X$ over a time $\tau$ pushes the price by $f(X/\tau)\,\tau \to 0$ as $\tau \to 0$. Gatheral concluded that
+  **exponential decay is only consistent with linear impact**.
+- With $f(v) \propto v^{\delta}$ and a power-law kernel $G(\tau) \propto \tau^{-\beta}$, the price move from trading $X$ in
+  time $\tau$ is proportional to $X^{\delta}\,\tau^{1 - \beta - \delta}$. A flash dump is free unless this grows as
+  $\tau \to 0$, which needs
+
+$$
+\beta + \delta \ge 1 .
+$$
+
+With the square-root law, $\delta = \tfrac12$, the kernel must decay no faster than $\tau^{-1/2}$: the same exponent
+that makes impact grow like $\sqrt{t}$ in Chapter 61's propagator.
+
+## <span class="section-tag">Playground</span>How fast does the book heal?
+
+<ResilientBook client:visible initialStrategy="twap" initialHalfLife={10} title="Playground: resilience and strategy" />
+
+<div class="try-this">
+
+- **Savings.** At each half-life from 1 to 30 minutes, how much does the optimal schedule save against buying
+  evenly? When is it worth the trouble?
+- **The plateau.** In the optimal schedule, how high does the dent sit, in cents? Check it against $X/\big(q(\rho T + 2)\big)$
+  with $q$ = 5,000 shares per cent.
+- **Immediacy.** At a 30-minute half-life, how big are the end blocks? Why do they grow as the book gets slower to
+  heal?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A book holds 2,000 shares per cent above the ask and never refills. You buy 20,000 shares at once. By how many cents does the ask rise, and what's the average premium per share, in cents? Enter the average premium."
+  answer={5}
+  tolerance={0.01}
+  explanation="The ask rises by $20{,}000/2{,}000 = 10$ cents. You pay every level from 0 to 10 cents, 5 cents on average."
+/>
+
+<Quiz
+  client:visible
+  question="In the Obizhaeva–Wang optimum, why does the trader buy at a constant rate between the two blocks?"
+  options={[
+    "Because volatility is constant",
+    "Because buying exactly as fast as the book refills holds the dent at a constant depth, which turns out to be optimal",
+    "Because the exchange requires it",
+    "Because it minimises risk",
+  ]}
+  answer={1}
+  explanation="Between the blocks, the trader keeps the dent at $b/q$ by buying at the refill rate $\rho b$. There's no risk term in this model; the shape comes from impact alone."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Buy $X$ = 60,000 shares within $T$ = 10 minutes in a book with resilience $\rho$ = 0.4 per minute. How many shares go into the first block?"
+  answer={10000}
+  tolerance={1}
+  explanation="$b = X/(\rho T + 2) = 60{,}000/(4 + 2) = 10{,}000$ shares, the same at the end, and $\rho b = 4{,}000$ shares a minute in between."
+/>
+
+<Quiz
+  client:visible
+  question="Impact is a square root of the trading rate ($\delta = \tfrac12$) and decays exponentially. What does Gatheral's argument say?"
+  options={[
+    "The model is fine",
+    "A trader can buy slowly and sell in a flash at a profit, so the model permits price manipulation",
+    "Impact must be permanent",
+    "Prices can't move",
+  ]}
+  answer={1}
+  explanation="Selling $X$ over a time $\tau$ moves the price by about $X^{1/2}\tau^{1/2} \to 0$, so a flash dump at the inflated price is almost free. Exponential decay is only consistent with linear impact."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Real books are **resilient**: the dent a trade leaves refills over time. The **Obizhaeva–Wang** model has a flat
+  book of depth $q$ refilling at rate $\rho$.
+- The cost of a schedule is a quadratic form $\tfrac{1}{2q}n^\top M n$ with $M_{jk} = e^{-\rho|t_j - t_k|}$.
+- The optimum: **blocks** of $X/(\rho T + 2)$ at both ends, and in between buy as fast as the book refills. The cost is
+  $X^2/\big(q(\rho T + 2)\big)$.
+- **No dynamic arbitrage** (Gatheral): exponential decay only fits linear impact; with $f \propto v^{\delta}$ and
+  $G \propto \tau^{-\beta}$, we need $\beta + \delta \ge 1$.
+
+**Next up:** real execution algorithms don't optimise in a vacuum: they track benchmarks like VWAP, follow the day's
+volume curve, and choose between limit and market orders. Chapter 64 opens the toolbox.
+
+### Further reading
+
+- A. A. Obizhaeva and J. Wang, "Optimal trading strategy and supply/demand dynamics", *Journal of Financial Markets*
+  16 (2013).
+- J. Gatheral, "No-dynamic-arbitrage and market impact", *Quantitative Finance* 10 (2010).
+- A. Alfonsi, A. Schied and A. Slynko, "Order book resilience, price manipulation, and the positive portfolio
+  problem", *SIAM Journal on Financial Mathematics* 3 (2012).
+- J. Gatheral and A. Schied, "Dynamical models of market impact and algorithms for order execution", in *Handbook on
+  Systemic Risk*, Cambridge University Press (2013).
