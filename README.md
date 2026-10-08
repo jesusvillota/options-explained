@@ -43,3 +43,12 @@ Whether you are **new to options**, studying **finance or economics**, or workin
 You don't need to install anything. Open the course in your browser, choose a chapter, and interact with the figures as you learn.
 
 **[Start learning Options, Explained →](https://jesusvillota.github.io/options-explained/)**
+
+## License
+
+*Options, Explained* is available under two complementary licenses:
+
+- **Course content:** Original explanations, derivations, exercises, and illustrations are licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE-CONTENT.md). You may reuse and adapt them, including commercially, with appropriate credit.
+- **Source code:** Interactive components, pricing libraries, and site code are licensed under the [MIT License](LICENSE).
+
+See the linked license files for scope, attribution guidance, and third-party exceptions.
