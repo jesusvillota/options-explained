@@ -100,6 +100,9 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\bar p(Q)$, $p_{\text{last}}(Q)$ | Average and marginal (last-contract) fill price of an order of size $Q$ |
 | $\Lambda$ | Arrival rate of orders, in contracts (or orders) per unit time |
 | $\rho$ (depth) | Contracts per tick in a book with uniform depth (Chapter 43) |
+| $a_{\text{pkg}}$, $b_{\text{pkg}}$ | A package's ask and bid (Chapter 45) |
+| $h$ | A quoted half-spread around a value: the quote is value $\pm h$ |
+| $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |
 | $f_v$ | Fee per contract on exchange $v$ (negative for a rebate) |

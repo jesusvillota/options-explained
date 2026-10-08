@@ -21,6 +21,8 @@ import {
 import { DEFAULTS, price } from '../src/lib/pricing/blackScholes';
 import { consolidated, customerPriority, leadMarketMaker, nbbo, priceTime, proRata, routeOrder, threeVenues } from '../src/lib/micro/matching';
 import type { Order } from '../src/lib/micro/orderBook';
+import { STRATEGIES, complexQuote, impliedFromLegs, leggingRiskSd, quoteLegs } from '../src/lib/micro/packages';
+import { clearAuction, demandAt, openingOrders, priceGrid, supplyAt, type AuctionOrder } from '../src/lib/micro/auction';
 
 const totalSize = (book: ReturnType<typeof callBook>) =>
   [...book.bids, ...book.asks].reduce((a, l) => a + l.orders.reduce((b, o) => b + o.size, 0), 0);
@@ -280,5 +282,90 @@ describe('three venues', () => {
     expect(r.fills[0]).toMatchObject({ venue: 1, price: 2.45, size: 8 });
     expect(r.fills[1]).toMatchObject({ venue: 2, price: 2.4, size: 2 });
     expect(r.netAvgPrice).toBeLessThan(r.avgPrice + 1e-12);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chapter 45: complex orders and auctions
+
+describe('packages', () => {
+  it('builds a bull call spread market of 1.95 / 2.40 from the legs', () => {
+    const m = impliedFromLegs(quoteLegs(STRATEGIES.bullCall.legs));
+    expect(m.bid).toBeCloseTo(1.95, 10);
+    expect(m.ask).toBeCloseTo(2.4, 10);
+    expect(m.theo).toBeCloseTo(4.615 - 2.478, 2);
+  });
+
+  it('quotes the spread itself much tighter, because its legs offset', () => {
+    const c = complexQuote(quoteLegs(STRATEGIES.bullCall.legs));
+    expect(c.bid).toBe(2.11);
+    expect(c.ask).toBe(2.17);
+    const fly = complexQuote(quoteLegs(STRATEGIES.butterfly.legs));
+    expect([fly.bid, fly.ask]).toEqual([0.9, 1.02]);
+    expect(impliedFromLegs(quoteLegs(STRATEGIES.butterfly.legs)).ask - impliedFromLegs(quoteLegs(STRATEGIES.butterfly.legs)).bid).toBeCloseTo(1.15, 10);
+  });
+
+  it('never quotes a package worse than its legs, and always brackets theo', () => {
+    for (const s of Object.values(STRATEGIES)) {
+      const legs = quoteLegs(s.legs);
+      const m = impliedFromLegs(legs), c = complexQuote(legs);
+      expect(c.bid).toBeGreaterThanOrEqual(m.bid - 1e-9);
+      expect(c.ask).toBeLessThanOrEqual(m.ask + 1e-9);
+      expect(c.bid).toBeLessThan(c.theo);
+      expect(c.ask).toBeGreaterThan(c.theo);
+    }
+    // A long strangle's legs add up rather than offset: no discount at all.
+    const strangle = quoteLegs(STRATEGIES.strangle.legs);
+    expect([complexQuote(strangle).bid, complexQuote(strangle).ask]).toEqual([3.85, 4.15]);
+  });
+
+  it('has legging risk growing like the square root of the delay', () => {
+    const legs = quoteLegs(STRATEGIES.bullCall.legs);
+    expect(leggingRiskSd(legs, 4)).toBeCloseTo(2 * leggingRiskSd(legs, 1), 12);
+    // After buying the 100 call, the short 105 call's delta (−0.377) is exposed: 0.377 × 0.2 × 100 × √(1/98280).
+    expect(leggingRiskSd(legs, 1)).toBeCloseTo(0.3772 * 20 * Math.sqrt(1 / 98280), 4);
+  });
+});
+
+describe('call auction', () => {
+  const orders = openingOrders();
+  const grid = priceGrid(2.2, 2.8, 0.05);
+
+  it('has demand falling and supply rising with price', () => {
+    for (let i = 1; i < grid.length; i++) {
+      expect(demandAt(orders, grid[i])).toBeLessThanOrEqual(demandAt(orders, grid[i - 1]));
+      expect(supplyAt(orders, grid[i])).toBeGreaterThanOrEqual(supplyAt(orders, grid[i - 1]));
+    }
+  });
+
+  it('clears the opening at 2.45 for 125 contracts', () => {
+    const r = clearAuction(orders, grid, 2.48);
+    expect(r.price).toBe(2.45);
+    expect(r.volume).toBe(125);
+    expect(r.imbalance).toBe(-5);
+    for (const p of grid) expect(Math.min(demandAt(orders, p), supplyAt(orders, p))).toBeLessThanOrEqual(125);
+  });
+
+  it('fills the same number of contracts on each side, best limits and market orders first', () => {
+    const r = clearAuction(orders, grid, 2.48);
+    const total = (side: 'buy' | 'sell') => orders.filter((o) => o.side === side).reduce((a, o) => a + (r.fills.get(o.id) ?? 0), 0);
+    expect(total('buy')).toBe(125);
+    expect(total('sell')).toBe(125);
+    for (const o of orders) {
+      const f = r.fills.get(o.id) ?? 0;
+      if (o.limit === null) expect(f).toBe(o.size);
+      if (o.side === 'buy' && o.limit !== null && o.limit > 2.45 + 1e-9) expect(f).toBe(o.size);
+      if (o.side === 'buy' && o.limit !== null && o.limit < 2.45 - 1e-9) expect(f).toBe(0);
+    }
+  });
+
+  it('breaks ties by imbalance, then by closeness to the reference price', () => {
+    const two: AuctionOrder[] = [
+      { id: 1, side: 'buy', limit: 2.5, size: 10, owner: 'x' },
+      { id: 2, side: 'sell', limit: 2.4, size: 10, owner: 'x' },
+    ];
+    expect(clearAuction(two, priceGrid(2.3, 2.6, 0.05), 2.48).price).toBe(2.5);
+    expect(clearAuction(two, priceGrid(2.3, 2.6, 0.05), 2.41).price).toBe(2.4);
+    expect(clearAuction([two[0]], priceGrid(2.3, 2.6, 0.05), 2.48).price).toBeNull();
   });
 });

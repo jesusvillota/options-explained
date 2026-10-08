@@ -1,0 +1,234 @@
+---
+title: "Complex orders and auctions"
+part: 11
+chapter: 45
+difficulty: 1
+prerequisites: [5, 44]
+summary: "Why a spread trades tighter as one package than as its legs, what legging in risks, and how an auction finds one price for everyone."
+---
+import SpreadFromLegs from '../../components/plots/SpreadFromLegs';
+import CallAuction from '../../components/plots/CallAuction';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The spread costs more than it's worth
+
+In Chapter 5 you built a **bull call spread**: buy the \$100 call, sell the \$105 call. Let's buy one on the
+three-month chain from Chapter 4. The \$100 call is quoted 4.50 / 4.80 and the \$105 call 2.40 / 2.55. To buy the
+spread you pay the ask on the call you buy and receive the bid on the call you sell:
+
+$$
+4.80 - 2.40 = 2.40 .
+$$
+
+Black–Scholes says the spread is worth about 2.14. So you'd pay 26 cents a share, \$26 a contract, over its value,
+and that's before the stock has moved at all. Yet on a trader's screen the same spread shows a market of
+**2.11 / 2.17**: you could buy it for 2.17. Where does that market come from, and why is it so much tighter?
+
+## <span class="section-tag">Intuition</span>Trading a strategy as one package
+
+Exchanges let you send a **complex order** (also called a *spread order* or *multi-leg order*): one order for the
+whole package, all legs or nothing, at one net price. Complex orders have their own book, separate from the books
+for single options, and market makers quote packages there directly.
+
+Their quotes can be much tighter than the legs, because a market maker's spread pays for the **risk** it takes on
+(Chapter 47 measures this, and Chapter 49 models it). Each leg on its own is risky. The package's legs **offset**:
+when the stock or its volatility moves, the long \$100 call and the short \$105 call move in nearly opposite ways. The
+package's risk is the *net* of its legs' risks, while its leg-by-leg cost is the *sum* of their spreads.
+
+<SpreadFromLegs client:visible />
+
+<p class="try-this"><strong>Try this:</strong> switch to the butterfly. Leg by leg, its market is 0.30 / 1.45, more
+than a dollar wide for a package worth 96 cents. As one package it's 0.90 / 1.02. Now try the straddle and the
+strangle: their legs don't offset (both are long volatility), so packaging them saves little or nothing.</p>
+
+You don't have to use a market maker's package quote, of course. You could **leg in**: buy the \$100 call now and
+sell the \$105 call later, hoping for better prices. But in the meantime the stock moves, and you hold a naked call
+whose value moves with it. That's **legging risk**. Raise the delay in the widget: after five minutes, the
+standard deviation of what the move costs or earns you is several dollars per spread, and it grows with the square
+root of the wait.
+
+Complex books also connect to the single-option books. An exchange can fill a package by trading against the
+legs' quotes at once, all legs together, whenever that gives a better net price (this is often called *legging
+into* the leg markets). And on many exchanges packages can be priced in pennies even when the individual options
+trade in nickels. The result is the same in both cases: the package's market is never worse than the legs', and
+usually better.
+
+<Callout type="key" title="Spreads add, risks net">
+The leg-by-leg spread of a package is the sum of its legs' spreads, weighted by quantity. Its risk is the
+<em>signed</em> sum of its legs' risks, which is smaller whenever the legs offset. A market maker who prices risk
+can therefore quote an offsetting package (a vertical, a butterfly, a risk reversal) much more tightly than the sum
+of its legs. A package whose legs add up (a straddle) gets no such discount.
+</Callout>
+
+## <span class="section-tag">Intuition</span>One price for everyone: the auction
+
+Before the market opens, overnight news has piled up and nobody knows where the price should start. Rather than let
+the first few orders set it, exchanges hold an **opening auction** (a **call auction**). For a short while they
+only collect orders. Then everything that can trade, trades at **one price**, the price at which the most contracts
+change hands.
+
+<CallAuction client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the curves cross between 2.40 and 2.50, and the auction opens at 2.45
+with 125 contracts trading. Add a market buy for 100. Demand shifts up everywhere, and the opening price rises to
+fill it. Remove it and add a limit sell for 60 at 2.40: now supply shifts, and the price falls.</p>
+
+The **demand** curve counts, at each price, all the contracts that buyers will take at that price or better. It
+falls as the price rises. The **supply** curve counts what sellers will give, and it rises with the price. Where
+they cross, the largest number of contracts can trade. The same idea runs the closing auction at the end of the
+day, and it's also why an auction is the natural tool for a fair price after a trading halt. Price-improvement
+auctions (Chapter 44) are small cousins of this: a short window in which others may offer a single order a better
+price.
+
+## <span class="section-tag">Formalisation</span>Package arithmetic, legging risk, and the auction price
+
+**A package from its legs.** Take a package with signed quantities $n_i$ (positive bought, negative sold) of
+options quoted $(b_i, a_i)$. To *buy* the package you buy the long legs at their asks and sell the short legs at
+their bids; to *sell* it you do the opposite:
+
+$$
+a_{\text{pkg}} = \sum_{n_i > 0} n_i\, a_i + \sum_{n_i < 0} n_i\, b_i ,
+$$
+
+$$
+b_{\text{pkg}} = \sum_{n_i > 0} n_i\, b_i + \sum_{n_i < 0} n_i\, a_i .
+$$
+
+Subtracting, the package's leg-by-leg spread is
+
+$$
+a_{\text{pkg}} - b_{\text{pkg}} = \sum_i |n_i|\,(a_i - b_i) .
+$$
+
+Spreads **add**, whatever the signs. For the butterfly (+1 \$95 call, −2 \$100 calls, +1 \$105 call):
+$0.40 + 2 \times 0.30 + 0.15 = 1.15$.
+
+**Risks net.** The package's Greeks are signed sums, for example $\Delta_{\text{pkg}} = \sum_i n_i \Delta_i$ and
+$\mathcal{V}_{\text{pkg}} = \sum_i n_i \mathcal{V}_i$, so by the triangle inequality
+
+$$
+|\mathcal{V}_{\text{pkg}}| = \Big|\sum_i n_i\,\mathcal{V}_i\Big| \le \sum_i |n_i|\,|\mathcal{V}_i| .
+$$
+
+If a market maker's half-spread is proportional to the risk it takes on, the package deserves a smaller spread than
+the sum of its legs. The widget's market maker charges half a volatility point of net vega plus a cent for each of
+the package's $n_{\text{legs}}$ legs,
+
+$$
+h = 0.5\,|\mathcal{V}_{\text{pkg}}| + 0.01\, n_{\text{legs}},
+$$
+
+with vega per volatility point, around the package's Black–Scholes value. For the bull spread the vegas are 0.196 and
+0.190 per point, so the net vega is only 0.0065, and the half-spread $h$ is about 2.3 cents: a market of 2.11 / 2.17 around
+a value of 2.137. For the straddle the vegas add up to 0.39, and the quote is barely tighter than the legs.
+
+**Legging risk.** Suppose you trade the first leg now and the rest after a delay $\delta t$. Until then you hold
+the *rest* of the package the wrong way round, with delta $\Delta_{\text{rest}} = \sum_{i \ge 2} n_i \Delta_i$. Over
+a short delay the stock moves by about $\delta \Spot{S} \sim N\big(0,\ \Vol{\sigma}^2 \Spot{S}^2\,\delta t\big)$, so the
+price you'll get for the remaining legs changes by about $\Delta_{\text{rest}}\,\delta\Spot{S}$, with standard
+deviation
+
+$$
+\mathrm{sd} \approx |\Delta_{\text{rest}}|\;\Vol{\sigma}\,\Spot{S}\sqrt{\delta t} .
+$$
+
+With $\delta t$ in years: a trading year has about $252 \times 390 = 98{,}280$ minutes. For the bull spread, after
+buying the \$100 call the short \$105 call is still to do, with $\Delta_{\text{rest}} = -0.377$. Five minutes
+later, $\mathrm{sd} \approx 0.377 \times 0.2 \times 100 \times \sqrt{5/98{,}280} \approx 0.054$: about \$5 per
+spread. That's a gamble, not a certain cost: it is as likely to help as to hurt, and it grows like the square root
+of the delay. Traders who leg in are betting that they can earn more than the package's spread before the stock
+moves against them.
+
+**The auction price.** Collect buy orders with limits $L$ and sizes, and sell orders likewise. Market orders have no
+limit. Define, for each price $p$ on the tick grid,
+
+$$
+\mathcal{D}(p) = \sum_{\text{buys with } L \ge p} \text{size},
+$$
+
+$$
+\mathcal{S}(p) = \sum_{\text{sells with } L \le p} \text{size},
+$$
+
+and the quantity that can trade at $p$ is $Q(p) = \min\big(\mathcal{D}(p),\, \mathcal{S}(p)\big)$. Demand falls with
+$p$ and supply rises, so $Q$ rises while supply is the constraint and falls once demand is. The clearing price is
+
+$$
+p^* = \arg\max_p Q(p),
+$$
+
+with ties broken by the smallest imbalance $|\mathcal{D}(p) - \mathcal{S}(p)|$ and then by the price nearest a reference
+(here the previous value, 2.48). In the widget's opening book,
+$Q(2.40) = \min(130, 110) = 110$, $Q(2.45) = \min(125, 130) = 125$ and $Q(2.50) = \min(115, 200) = 115$, so the
+auction opens at 2.45, with 5 contracts of supply left over. Buyers above 2.45 and sellers below it fill in full;
+orders limited at exactly 2.45 share the rest in time priority.
+
+## <span class="section-tag">Playground</span>Packages and the open
+
+<SpreadFromLegs client:visible initialStrategy="butterfly" title="Playground: price a package" />
+
+<div class="try-this">
+
+- **Which packages gain most?** Rank the six strategies by how much packaging saves. What do the winners have in
+  common? (Look at their net vega.)
+- **A risk reversal** (buy the \$105 call, sell the \$95 put) has a big delta but a small vega. Why does the
+  widget's market maker still quote it tightly? What would it charge if it priced delta too?
+- **Back in the auction above:** find the smallest market buy that lifts the opening price to 2.55. How many
+  contracts trade then?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="The \$95 put is quoted 1.45 / 1.60 and the \$100 put 3.20 / 3.50. What does a bear put spread (buy the \$100 put, sell the \$95 put) cost per share, bought leg by leg?"
+  answer={2.05}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="You pay the ask on the put you buy and receive the bid on the put you sell: $3.50 - 1.45 = 2.05$."
+/>
+
+<Quiz
+  client:visible
+  question="Why can a market maker quote a butterfly far more tightly than the sum of its legs' spreads?"
+  options={[
+    "Because exchanges subsidise complex orders",
+    "Because the legs' risks largely offset, so the package's net risk is small even though its legs' spreads add up",
+    "Because butterflies are always worth less than a dollar",
+    "Because complex orders are never filled",
+  ]}
+  answer={1}
+  explanation="The leg-by-leg spread is $\sum_i |n_i|(a_i - b_i)$, but the risk is a signed sum like $\sum_i n_i \mathcal{V}_i$, which nearly cancels for a butterfly. A spread that pays for risk can be small."
+/>
+
+<NumericQuiz
+  client:visible
+  question="An auction collects buys of 20 at 2.50 and 30 at 2.45, and sells of 25 at 2.40 and 30 at 2.50. How many contracts trade at the clearing price?"
+  answer={25}
+  tolerance={0.01}
+  explanation="At 2.45, demand is $20 + 30 = 50$ and supply is 25, so 25 trade. At 2.50, demand falls to 20 while supply is 55, so only 20 would trade. At 2.40, demand is 50 and supply 25: also 25, and the tie is settled by the imbalance and the reference price. Either way the volume is 25."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A **complex order** trades a whole strategy at one net price. Leg by leg, a package's spread is
+  $\sum_i |n_i|(a_i - b_i)$: spreads add.
+- Its risk is a **signed** sum of the legs' Greeks, which is small when the legs offset. That's why verticals,
+  butterflies and risk reversals trade far tighter as packages, while straddles don't.
+- **Legging in** saves the package spread only by taking on stock risk while you wait: about
+  $|\Delta_{\text{rest}}|\,\sigma S\sqrt{\delta t}$.
+- A **call auction** trades everything at one price, $p^* = \arg\max_p \min\big(\mathcal{D}(p), \mathcal{S}(p)\big)$,
+  which is how markets open and close.
+
+**Next up:** every trade so far ended with a handshake and a price. In Chapter 46 we'll see what happens after
+the trade: the clearing house, margin, and who gets assigned when an option is exercised.
+
+### Further reading
+
+- L. Harris, *Trading and Exchanges*, Oxford University Press (2003), chapter 5 (call markets and auctions).
+- A. Madhavan, "Trading mechanisms in securities markets", *Journal of Finance* 47 (1992): continuous trading
+  against call auctions.
+- Cboe and other options exchanges' rulebooks on complex orders, for how complex books interact with the leg
+  markets.

@@ -479,7 +479,7 @@ the running example.
   auction price $p^* = \arg\max_p \min\{D(p), S(p)\}$.
 - **Widgets:** `SpreadFromLegs`: a vertical spread's quote built from its legs, against a tighter quote from a
   complex-order book. `CallAuction`: the supply and demand step curves of an opening auction crossing at the
-  clearing price. Library: `src/lib/micro/auction.ts`.
+  clearing price. Library: `src/lib/micro/packages.ts`, `src/lib/micro/auction.ts`.
 - **Prereqs:** 5, 44.
 
 ### 46. Clearing, margin and assignment
@@ -904,7 +904,7 @@ the running example.
 - **`numerics/`**: `finiteDifference` (θ-scheme, Rannacher), `monteCarlo`, `cos`, `lsm`.
 - **`rates/`**: `curve` (Nelson–Siegel, Black-76, Bachelier, caps, swaptions).
 - **`theory/`**: `measure` (Girsanov), `credit` (Merton), `pnlExplain`.
-- **`micro/`** (Part XI): `orderBook` (matching engine), `matching` (allocation rules, NBBO, fees), `auction`,
+- **`micro/`** (Part XI): `orderBook` (matching engine), `matching` (allocation rules, NBBO, fees), `packages`, `auction`,
   `margin`, `liquidity` (spread measures, Roll), `frictions` (parity bands, box spreads).
 - **`info/`** (Part XII): `inventory`, `glostenMilgrom`, `kyle` (one-period and continuous), `pin`, `priceDiscovery`.
 - **`mm/`** (Part XIII): `surfaceFit`, `quoting`, `avellanedaStoikov`, `optionBook`, `transactionCosts`, `demand`.
