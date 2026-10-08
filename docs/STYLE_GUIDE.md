@@ -134,6 +134,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $x_t$, $v_t$, $\eta$, $\lambda$ (Part XIV), $\gamma$, $\kappa$, $C$ | Shares still to trade, the trading rate, temporary and permanent impact, risk aversion, the urgency $\sqrt{\gamma\sigma^2/\eta}$ and the implementation shortfall (Chapter 62) |
 | $q$ (book depth), $D_t$, $\rho$ (resilience), $f(v)$ | Shares per dollar above the ask, the dent left by past trades, the rate at which it refills, and the price push from trading at rate $v$ (Chapter 63) |
 | $u_t$, $\varphi$, $\pi$ (fill), $\tau$ (fill time), $p_d$, $p_a$ | Market volume rate, a POV algorithm's participation rate, a limit order's fill probability and fill time, and the decision and arrival prices (Chapter 64) |
+| $Q_i$, $L_i$, $\sigma_{\text{vol}}$, $\phi$, $\Spot{S}_{\text{ref}}$ | Vega bought at strike $i$, its daily traded vega, the daily volatility of implied volatility, the share of the half-spread paid when working an order, and a tied order's reference stock price (Chapter 65) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

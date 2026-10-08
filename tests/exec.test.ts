@@ -51,6 +51,16 @@ import {
   trackingStudy,
   volumeCurve,
 } from '../src/lib/exec/algos';
+import {
+  allocate,
+  entryCost,
+  hedgingDragVol,
+  impactVol,
+  ladderFraction,
+  strikeRows,
+  tiedPrice,
+  volTradePlan,
+} from '../src/lib/exec/optionExecution';
 
 describe('Chapter 61: price impact', () => {
   it('square-root law: 1% of daily volume with Y = 0.7 and σ = 2% moves the price 14 bp', () => {
@@ -355,5 +365,64 @@ describe('Chapter 64: execution algorithms', () => {
     expect(r.execution).toBeCloseTo(400 + 800, 9);
     expect(r.opportunity).toBeCloseTo(1200, 9);
     expect(r.total).toBeCloseTo(3200, 9);
+  });
+});
+
+describe('Chapter 65: executing option trades', () => {
+  const rows = strikeRows();
+
+  it('stock-tied prices move by delta', () => {
+    expect(tiedPrice(2.4, 0.5, 100.4, 100)).toBeCloseTo(2.6, 12);
+    expect(tiedPrice(3.1, -0.4, 99, 100)).toBeCloseTo(3.5, 12);
+  });
+
+  it('strike rows: half-spreads in vol points are dollars over vega', () => {
+    expect(rows.map((r) => r.strike)).toEqual([90, 95, 100, 105, 110]);
+    for (const r of rows) {
+      expect(r.halfSpreadVol).toBeGreaterThan(0.2);
+      expect(r.halfSpreadVol).toBeLessThan(2);
+    }
+    expect(rows[2].dailyVega).toBe(400000);
+    expect(rows[0].dailyVega).toBeLessThan(rows[1].dailyVega);
+  });
+
+  it('allocations add up; liquidity weighting equalises impact and minimises it', () => {
+    for (const m of ['atm', 'even', 'liquidity'] as const) expect(allocate(50000, rows, m).reduce((a, b) => a + b, 0)).toBeCloseTo(50000, 6);
+    const liq = allocate(50000, rows, 'liquidity');
+    const impacts = liq.map((q, i) => impactVol(q, rows[i]));
+    for (const v of impacts) expect(v).toBeCloseTo(impacts[0], 12);
+    const total = (a: number[]) => a.reduce((s, q, i) => s + q * impactVol(q, rows[i]), 0);
+    expect(total(liq)).toBeLessThan(total(allocate(50000, rows, 'even')));
+    expect(total(liq)).toBeLessThan(total(allocate(50000, rows, 'atm')));
+    // Square-root law: four times the vega, twice the impact.
+    expect(impactVol(40000, rows[2]) / impactVol(10000, rows[2])).toBeCloseTo(2, 12);
+  });
+
+  it('working the order pays about half the half-spread', () => {
+    const l = ladderFraction();
+    expect(l.fraction).toBeCloseTo(0.53, 2);
+    expect(ladderFraction(1).fraction).toBe(1);
+    // With certain fills at the mid, working is free.
+    expect(ladderFraction(5, 1).fraction).toBe(0);
+  });
+
+  it('entry costs: dollars are vega times vol points; a quote costs more as size grows', () => {
+    const legs = entryCost(allocate(20000, rows, 'even'), rows, 'screen');
+    for (const l of legs) expect(l.dollars).toBeCloseTo(l.vega * (l.spread + l.impact), 9);
+    const small = volTradePlan({ Q: 10000, allocation: 'even', method: 'rfq', edge: 1 });
+    const big = volTradePlan({ Q: 100000, allocation: 'even', method: 'rfq', edge: 1 });
+    expect(big.entryVol).toBeGreaterThan(small.entryVol);
+  });
+
+  it('hedging drag: a long hedger realises σ√(1 − Le)', () => {
+    const le = Math.sqrt(2 / Math.PI) * (2 * 0.0002) / (0.2 * Math.sqrt(1 / 252));
+    expect(hedgingDragVol(0.2, 0.0002, 1 / 252)).toBeCloseTo((0.2 - 0.2 * Math.sqrt(1 - le)) * 100, 10);
+  });
+
+  it('breakeven and P&L add up', () => {
+    const p = volTradePlan({ Q: 50000, allocation: 'liquidity', method: 'work', edge: 1.5 });
+    expect(p.roundTripVol).toBeCloseTo(2 * p.entryVol, 12);
+    expect(p.breakevenVol).toBeCloseTo(p.roundTripVol + p.hedgeVol, 12);
+    expect(p.expectedPnl).toBeCloseTo((1.5 - p.breakevenVol) * 50000, 6);
   });
 });
