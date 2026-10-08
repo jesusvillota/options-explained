@@ -17,7 +17,7 @@ Options become easier to understand when you can *see* how they work. Start with
 
 ## What you'll learn
 
-The course contains **42 chapters in 10 progressively more advanced parts**. Start without mathematical prerequisites, or jump to a topic you want to understand more deeply.
+The course contains **73 chapters in 16 progressively more advanced parts**: ten on pricing and hedging in a frictionless market, and six on market microstructure, how options actually trade. Start without mathematical prerequisites, or jump to a topic you want to understand more deeply. Chapters still being written are marked *coming soon*.
 
 | Part | Explore |
 | --- | --- |
@@ -31,8 +31,14 @@ The course contains **42 chapters in 10 progressively more advanced parts**. Sta
 | **VIII. Numerical methods** | [Monte Carlo, finite differences, Fourier pricing, and American options](https://jesusvillota.github.io/options-explained/chapters/33-monte-carlo/) |
 | **IX. Exotic & multi-asset options** | [Exotic payoffs, path dependence, and multi-asset derivatives](https://jesusvillota.github.io/options-explained/chapters/37-path-independent-exotics/) |
 | **X. Deep theory & applications** | [Martingale pricing, interest-rate options, credit, and real options](https://jesusvillota.github.io/options-explained/chapters/40-martingale-pricing/) |
+| **XI. Inside the options market** | [Order books, matching rules, auctions, clearing and margin, liquidity, and arbitrage with frictions](https://jesusvillota.github.io/options-explained/chapters/43-limit-order-book/) |
+| **XII. Information and price formation** | Inventory, Glosten–Milgrom, Kyle's model, informed trading and price discovery (*coming soon*) |
+| **XIII. The options market maker** | Building a surface from quotes, quoting, Avellaneda–Stoikov, and hedging with costs (*coming soon*) |
+| **XIV. Price impact and optimal execution** | The square-root law, Almgren–Chriss, transient impact, and executing option trades (*coming soon*) |
+| **XV. When hedging moves the market** | Dealer gamma, pinning, zero-day options, and liquidity spirals (*coming soon*) |
+| **XVI. High-frequency microstructure** | Hawkes processes, queues and the microprice, microstructure noise, and market design (*coming soon*) |
 
-[**Browse the full course and all 42 chapters →**](https://jesusvillota.github.io/options-explained/)
+[**Browse the full course →**](https://jesusvillota.github.io/options-explained/)
 
 ## Who is it for?
 
