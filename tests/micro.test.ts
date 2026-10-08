@@ -23,6 +23,7 @@ import { consolidated, customerPriority, leadMarketMaker, nbbo, priceTime, proRa
 import type { Order } from '../src/lib/micro/orderBook';
 import { STRATEGIES, complexQuote, impliedFromLegs, leggingRiskSd, quoteLegs } from '../src/lib/micro/packages';
 import { MARGIN_POSITIONS, assignmentOdds, nakedRequirementPerShare, positionValue, riskArray, scaledGrid, scenarioMargin, strategyMargin } from '../src/lib/micro/margin';
+import { chainLiquidity, decompose, firstAutocovariance, rollSpread, simulateTrades, tickFor } from '../src/lib/micro/liquidity';
 import { clearAuction, demandAt, openingOrders, priceGrid, supplyAt, type AuctionOrder } from '../src/lib/micro/auction';
 
 const totalSize = (book: ReturnType<typeof callBook>) =>
@@ -440,5 +441,83 @@ describe('random assignment', () => {
     expect(assignmentOdds(1000, 10, 100).pNone).toBeCloseTo(0.3469, 4);
     expect(assignmentOdds(50, 10, 45).pNone).toBe(0);
     expect(assignmentOdds(50, 10, 0).pNone).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chapter 47: measuring liquidity
+
+describe('spread decomposition', () => {
+  const h = 0.075;
+  const sim = (lambda: number, seed = 3, n = 20000) => simulateTrades({ n, h, lambda, sigmaU: 0.02, m0: 2.475, seed });
+
+  it('is deterministic for a seed', () => {
+    expect(sim(0.03, 5, 100)).toEqual(sim(0.03, 5, 100));
+  });
+
+  it('always has effective = realised + impact', () => {
+    for (const k of [1, 5, 10]) {
+      const d = decompose(sim(0.03), k);
+      expect(d.effective).toBeCloseTo(d.realised + d.impact, 12);
+    }
+  });
+
+  it('measures an effective half-spread of h, and an impact of λ', () => {
+    for (const lambda of [0, 0.03, 0.06]) {
+      const d = decompose(sim(lambda), 5);
+      expect(d.effective).toBeCloseTo(h, 12);
+      // Standard error of the impact over 20,000 trades is about √5 × 0.02 / √20000 ≈ 0.0003.
+      expect(Math.abs(d.impact - lambda)).toBeLessThan(0.0015);
+      expect(Math.abs(d.realised - (h - lambda))).toBeLessThan(0.0015);
+    }
+  });
+
+  it("recovers the spread with Roll's estimator when trades carry no information", () => {
+    expect(rollSpread(sim(0).price)).toBeCloseTo(2 * h, 2);
+  });
+
+  it("sees only the reversing part of the spread when they do: 2√(h(h − λ))", () => {
+    const lambda = 0.04;
+    expect(rollSpread(sim(lambda).price)).toBeCloseTo(2 * Math.sqrt(h * (h - lambda)), 2);
+    expect(firstAutocovariance(sim(lambda).price)).toBeCloseTo(-h * (h - lambda), 3);
+  });
+});
+
+describe('spreads across the chain', () => {
+  const strikes = Array.from({ length: 13 }, (_, i) => 70 + 5 * i);
+  const onGrid = (x: number, tick: number) => Math.abs(x / tick - Math.round(x / tick)) < 1e-9;
+
+  it('brackets each option’s value with quotes on the tick grid', () => {
+    for (const rule of ['standard', 'penny'] as const) {
+      for (const row of chainLiquidity(0.25, strikes, rule)) {
+        expect(row.bid).toBeLessThanOrEqual(row.theo);
+        expect(row.ask).toBeGreaterThan(row.theo);
+        expect(onGrid(row.bid, rule === 'penny' ? 0.01 : 0.05)).toBe(true);
+        expect(onGrid(row.ask, rule === 'penny' ? 0.01 : 0.05)).toBe(true);
+        expect(row.spreadVol).toBeCloseTo(row.spread / row.vegaPt, 12);
+      }
+    }
+  });
+
+  it('uses out-of-the-money puts below the forward and calls above it', () => {
+    const rows = chainLiquidity(0.25, strikes);
+    expect(rows.find((r) => r.strike === 100)!.type).toBe('put');
+    expect(rows.find((r) => r.strike === 105)!.type).toBe('call');
+  });
+
+  it('has the widest dollar spreads near the money and the widest percentage spreads in the wings', () => {
+    const rows = chainLiquidity(0.25, strikes);
+    const atm = rows.find((r) => r.strike === 100)!, wing = rows.find((r) => r.strike === 125)!;
+    expect(atm.spread).toBeGreaterThan(wing.spread);
+    expect(wing.spreadPct).toBeGreaterThan(5 * atm.spreadPct);
+    expect(wing.bid).toBe(0);
+    expect(wing.spreadPct).toBe(2);
+  });
+
+  it('tightens with finer ticks', () => {
+    const coarse = chainLiquidity(0.25, strikes, 'standard'), fine = chainLiquidity(0.25, strikes, 'penny');
+    coarse.forEach((r, i) => expect(fine[i].spread).toBeLessThanOrEqual(r.spread + 1e-9));
+    expect(tickFor(2.99, 'penny')).toBe(0.01);
+    expect(tickFor(3, 'standard')).toBe(0.1);
   });
 });
