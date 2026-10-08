@@ -1,0 +1,197 @@
+---
+title: "From noisy quotes to a clean surface"
+part: 13
+chapter: 55
+difficulty: 2
+prerequisites: [26, 48]
+summary: "A market maker's day starts with a messy screen. Cleaning the quotes, backing out the forward from parity, and fitting a smile inside the bid–ask bands turns it into a volatility surface you can trade on."
+---
+import NoisyChainFit from '../../components/plots/NoisyChainFit';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Eight o'clock, a messy screen
+
+Part VI treated the volatility smile as something you could simply look up. A market maker arriving at 8 a.m. has
+to *build* it, from a screen that looks nothing like a textbook. Far out-of-the-money options have no bid at all.
+One put shows a bid above its ask. Two strikes are still quoted off yesterday's close, because nobody has updated
+them. And the calls and puts at the same strike, which should imply the same volatility, don't.
+
+Before it can quote anything (Chapter 56) or manage a book (Chapter 58), the desk needs one clean, smooth,
+arbitrage-free smile per expiry. This Part is about the options market maker's job, and it starts with turning raw
+quotes into that surface: deciding which prices to believe, finding the forward the market is really using, and
+fitting a curve that respects every bid and ask.
+
+## <span class="section-tag">Intuition</span>One band per quote
+
+An option quote is two prices, so it gives two implied volatilities: one from the bid and one from the ask. The
+truth, as far as the market is concerned, lies somewhere in between. So instead of one point per option, think of a
+**vertical band** from the bid's volatility to the ask's (Chapter 47 measured its width in volatility points). A good
+smile should pass through every band that deserves trust.
+
+Which point inside the band? The obvious choice is the volatility of the mid price. A refinement is the
+**microprice**, which leans towards the side with less size: if 30 contracts are bid and only 10 offered, the next
+trade is more likely to lift the offer, so fair value is above the mid. Chapter 71 shows why that works.
+
+## <span class="section-tag">Intuition</span>Cleaning, step by step
+
+Here is the morning screen, turned into volatility bands: green for calls, red for puts, each with a dot at its mid.
+Switch on the cleaning steps one at a time.
+
+<NoisyChainFit client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with raw quotes, the fit is dragged around by bars that make no sense,
+and at most strikes the green and red bars don't even overlap. <em>Drop bad</em> removes zero bids and the crossed
+put. <em>Drop stale</em> removes the two strikes still quoted off yesterday's \$102. The big change comes with
+<em>parity forward</em>: the calls and puts snap together at every strike, and the fit runs through every band.
+Weighting by the bands' widths gives the tightest quotes the most say.</p>
+
+Each step has a reason.
+
+- **Bad quotes.** A zero bid means nobody will buy at any price, so its "mid" is meaningless. A crossed quote (bid
+  above ask) is an error or a stale order. Both go.
+- **Stale quotes.** Put–call parity ties each strike's call to its put (Chapter 8). A strike whose call and put
+  imply a different stock price from all the others is out of date. A robust regression across strikes finds it.
+- **The forward.** To turn a price into a volatility you need the forward price and the discount factor. Using
+  $\Spot{S}e^{\Rate{r}T}$ ignores dividends and the cost of borrowing the stock (Chapter 48), which shifts every
+  call's volatility one way and every put's the other. The market's own forward can be read off parity across
+  strikes, and with it, calls and puts agree.
+- **Weights.** Some bands are a tenth of a point wide, others five points. A least-squares fit should trust the
+  narrow ones more.
+
+<Callout type="key" title="Let parity give you the forward">
+Never assume the forward: read it from the options. Across strikes, $\Call{C} - \Put{P} = B\,(F - \Strike{K})$ is a
+straight line in $\Strike{K}$, whose slope is the discount factor and whose intercept gives the forward. Calls and puts
+then imply the same volatilities, and strikes that miss the line are flagged as stale.
+</Callout>
+
+In practice desks fit only **out-of-the-money** options (puts below the forward, calls above), because in-the-money
+options are less liquid and, for American options, carry early-exercise value that a European smile shouldn't
+absorb. With European options and a correct forward, both give the same smile, as the widget shows.
+
+## <span class="section-tag">Formalisation</span>Parity regression, volatility bands, weighted fitting
+
+**The parity regression.** For European options with the same expiry, put–call parity reads
+$\Call{C}(\Strike{K}) - \Put{P}(\Strike{K}) = B\,(F - \Strike{K})$, with $B$ the discount factor and $F$ the forward
+(which absorbs any dividends or borrow cost). Regress $y_K = \text{mid}(C) - \text{mid}(P)$ on $\Strike{K}$ by least
+squares:
+
+$$
+y_K \approx \beta_0 + \beta_1 \Strike{K},
+$$
+
+so that $B = -\beta_1$ and $F = \beta_0/B$.
+
+To make it robust, repeatedly drop the strike with the worst residual, as long as that residual is larger than the
+quotes allow (half the call's spread plus half the put's), and refit. In the widget this finds the two stale strikes
+and recovers $F \approx 101.02$ against a true 101.005, where the naive $\Spot{S}e^{\Rate{r}T} = 101.26$ is off by a
+quarter of a dollar.
+
+**Volatility bands.** With $F$ and $B$, invert Black's formula (Chapter 41),
+
+$$
+\Call{C} = B\big(F\,N(d_1) - \Strike{K}\,N(d_2)\big),
+$$
+
+$$
+d_{1,2} = \frac{\ln(F/\Strike{K}) \pm \tfrac12\Vol{\sigma}^2T}{\Vol{\sigma}\sqrt{T}},
+$$
+
+for the bid, the ask and the mid. Because the price increases with volatility, $\sigma(b) \le \sigma(\text{mid}) \le \sigma(a)$,
+and the band's width is about $(a - b)/\mathcal{V}$. A bid of zero has no volatility, so its band starts at zero.
+
+**The microprice.** With bid and ask sizes $V_b$ and $V_a$,
+
+$$
+M^{\text{micro}} = \frac{a\,V_b + b\,V_a}{V_a + V_b},
+$$
+
+the mid weighted towards the side that's more likely to be consumed next.
+
+**Weighted SVI.** Fit Gatheral's SVI total variance (Chapter 26),
+$w(k) = a + b\big(\rho(k - m) + \sqrt{(k - m)^2 + s^2}\big)$ with $k = \ln(\Strike{K}/F)$, by minimising
+
+$$
+\sum_i \frac{\big(\sqrt{w(k_i)/T} - \sigma_i^{\text{mid}}\big)^2}{\big(\sigma_i^{a} - \sigma_i^{b}\big)^2},
+$$
+
+subject to $w \ge 0$ everywhere (that is, $a + b\,s\sqrt{1 - \rho^2} \ge 0$). Dividing by the squared band width makes
+every residual "number of bands away". A good fit should then pass inside every kept band, and should be checked for
+arbitrage: a positive implied density (Chapter 27) and total variance increasing with expiry across the surface.
+
+**Mid of volatilities or volatility of the mid?** They differ. Implied volatility is a nonlinear function of price,
+so $\sigma(\text{mid}) \ne \tfrac12\big(\sigma(b) + \sigma(a)\big)$ in general, and the gap is largest far from the money
+where the price–volatility curve bends most. Desks pick one convention and stick to it.
+
+## <span class="section-tag">Playground</span>Clean it yourself
+
+<NoisyChainFit client:visible initialStage="2" title="Playground: the forward makes the difference" />
+
+<div class="try-this">
+
+- **The forward.** At this stage the stale and bad quotes are gone, but the forward is naive. At the \$100 strike,
+  which implies the higher volatility, the call or the put? Explain the sign from parity with a dividend yield.
+- **Weights.** Compare the last two stages. Where does weighting by band width change the fit most, near the money or
+  in the wings?
+- **What the wings say.** Beyond \$120 there are no usable calls. How confident should you be in the fitted smile
+  out there? What would you need to quote a \$130 call?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Mid prices give $C - P = 6.00$ at the \$95 strike and $C - P = -3.88$ at the \$105 strike. Assuming parity holds exactly, what's the forward?"
+  answer={101.07}
+  tolerance={0.01}
+  prefix="\$"
+  explanation="The slope is $(-3.88 - 6.00)/10 = -0.988$, so $B = 0.988$. Then $6.00 = 0.988\,(F - 95)$ gives $F = 95 + 6.00/0.988 \approx 101.07$."
+/>
+
+<Quiz
+  client:visible
+  question="At one strike, the call and put mids imply a stock price \$2 higher than every other strike does. What's the most likely explanation?"
+  options={[
+    "An arbitrage opportunity worth \$2",
+    "Stale quotes, still priced off an old stock price",
+    "A dividend paid only at that strike",
+    "A higher volatility at that strike",
+  ]}
+  answer={1}
+  explanation="Parity doesn't depend on volatility, and a dividend affects every strike equally. A single strike off the parity line has almost certainly not been updated. It should be dropped before fitting."
+/>
+
+<Quiz
+  client:visible
+  question="Why weight each quote by one over the squared width of its volatility band?"
+  options={[
+    "To make the fit faster",
+    "So that tight, informative quotes count more than wide ones, and residuals are measured in band-widths",
+    "Because wide quotes are always wrong",
+    "So that the wings dominate the fit",
+  ]}
+  answer={1}
+  explanation="A quote whose bid and ask are a tenth of a vol point apart pins the smile down much more than one five points wide. Weighting by $1/(\sigma^a - \sigma^b)^2$ is the usual way to say so."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Each quote gives a **volatility band**, from the bid's implied volatility to the ask's; a good smile passes through
+  the trustworthy ones.
+- **Clean first:** drop zero bids, crossed quotes and **stale** strikes (outliers from the parity line).
+- **Read the forward from parity:** regress $C - P$ on $K$; the slope is $-B$ and the intercept is $BF$. With it,
+  calls and puts imply the same volatilities.
+- Fit **SVI by weighted least squares** with weights $1/(\sigma^a - \sigma^b)^2$, then check the fit stays inside the bands
+  and is free of arbitrage.
+
+**Next up:** with a surface in hand, the market maker can quote. Chapter 56 turns a theoretical value into a bid and
+an ask, in volatility points, and shows what happens when those quotes are too slow.
+
+### Further reading
+
+- J. Gatheral, *The Volatility Surface: A Practitioner's Guide*, Wiley (2006), chapters 1 and 3.
+- J. Gatheral and A. Jacquier, "Arbitrage-free SVI volatility surfaces", *Quantitative Finance* 14 (2014).
+- Cboe, *VIX White Paper*, for a published procedure that reads the forward from put–call parity and selects
+  out-of-the-money quotes.
+- S. Stoikov, "The micro-price: a high-frequency estimator of future prices", *Quantitative Finance* 18 (2018).
