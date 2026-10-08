@@ -9,6 +9,8 @@ interface Props {
 }
 const { title, description = 'An interactive, visual course on financial options — from first principles to stochastic volatility.' } = Astro.props;
 const fullTitle = title === 'Options, Explained' ? title : `${title} · Options, Explained`;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://jesusvillota.github.io').href;
+const previewImage = new URL(url('course-preview.svg'), Astro.site ?? 'https://jesusvillota.github.io').href;
 ---
 <!doctype html>
 <html lang="en" data-theme="dark">
@@ -17,6 +19,17 @@ const fullTitle = title === 'Options, Explained' ? title : `${title} · Options,
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Options, Explained" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={previewImage} />
+    <meta property="og:image:alt" content="Options, Explained: an interactive visual course in options and derivatives pricing" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
     <link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
     <script is:inline>
       try {
