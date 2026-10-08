@@ -116,6 +116,8 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $v$ | Fair (or, in Chapters 50–52, true liquidation) value of an asset |
 | $A$, $k$, $\lambda_0$ | Order-arrival intensity $A e^{-k\delta}$ at distance $\delta$ from fair value, and the rate $\lambda_0$ at the quoted half-spread (Chapters 49, 57). Here $k$ is not log-moneyness |
 | $c$ (shading) | How far a dealer shades both quotes per unit of inventory (Chapter 49) |
+| $v_L$, $v_H$, $p$, $\alpha$ | Glosten–Milgrom: low and high values, the market maker's belief $\mathbb{P}(v = v_H)$, and the share of insiders (Chapter 50). In this chapter $p$ is a probability, not a price |
+| $p^+$, $p^-$ | Beliefs after a buy and after a sell (Chapter 50) |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
 | $b^{\text{N}}$, $a^{\text{N}}$, $s^{\text{N}}$ | National best bid, best offer and their spread, across all exchanges |
