@@ -54,6 +54,13 @@ const previewImage = new URL(url('course-preview.svg'), Astro.site ?? 'https://j
       </div>
     </header>
     <slot />
+    <footer class="site-footer">
+      <span>© 2026 Jesus Villota Miranda</span>
+      <span aria-hidden="true">·</span>
+      <a rel="license" href="https://creativecommons.org/licenses/by/4.0/">Course content: CC BY 4.0</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/jesusvillota/options-explained/blob/main/LICENSE">Code: MIT</a>
+    </footer>
   </body>
 </html>
 
@@ -71,4 +78,11 @@ const previewImage = new URL(url('course-preview.svg'), Astro.site ?? 'https://j
   }
   .brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--text); text-decoration: none; font-weight: 600; font-size: 1rem; }
   .header-actions { display: flex; align-items: center; gap: 0.5rem; }
+  .site-footer {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem;
+    padding: 1.5rem 1rem; border-top: 1px solid var(--border);
+    font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-muted);
+  }
+  .site-footer a { color: inherit; }
+  .site-footer a:hover { color: var(--link); }
 </style>
