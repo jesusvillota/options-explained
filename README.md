@@ -35,7 +35,7 @@ The course contains **73 chapters in 16 progressively more advanced parts**: ten
 | **XII. Information and price formation** | [Inventory, Glosten–Milgrom, Kyle's model, informed trading and price discovery](https://jesusvillota.github.io/options-explained/chapters/49-inventory/) |
 | **XIII. The options market maker** | [Building a surface from quotes, quoting, Avellaneda–Stoikov, book risk, hedging with costs, and demand-based pricing](https://jesusvillota.github.io/options-explained/chapters/55-noisy-quotes-surface/) |
 | **XIV. Price impact and optimal execution** | [The square-root law, Almgren–Chriss, transient impact, execution algorithms, and executing option trades](https://jesusvillota.github.io/options-explained/chapters/61-price-impact/) |
-| **XV. When hedging moves the market** | Dealer gamma, pinning, zero-day options, and liquidity spirals (*coming soon*) |
+| **XV. When hedging moves the market** | [Dealer gamma, pinning, zero-day options, and liquidity spirals](https://jesusvillota.github.io/options-explained/chapters/66-dealer-gamma/) |
 | **XVI. High-frequency microstructure** | Hawkes processes, queues and the microprice, microstructure noise, and market design (*coming soon*) |
 
 [**Browse the full course →**](https://jesusvillota.github.io/options-explained/)
