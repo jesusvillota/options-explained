@@ -10,6 +10,7 @@ import {
   simulatePoisson,
   windowCounts,
 } from '../src/lib/hf/hawkes';
+import { fitThroughOrigin, imbalance, queueMicroprice, raceShare, simulateOfi, simulateRace, upProbability, upProbabilityGrid, weightedMid } from '../src/lib/hf/queues';
 
 describe('Chapter 70: Hawkes processes', () => {
   const p = { mu: 0.5, alpha: 1.6, beta: 2 };
@@ -61,5 +62,50 @@ describe('Chapter 70: Hawkes processes', () => {
     expect(f.beta).toBeGreaterThan(1.4);
     expect(f.beta).toBeLessThan(2.8);
     expect(f.logLik).toBeGreaterThanOrEqual(logLikelihood(ev, 4000, p));
+  });
+});
+
+describe('Chapter 71: queues and imbalance', () => {
+  it('boundary values, symmetry and monotonicity', () => {
+    const P = upProbabilityGrid(30, 1);
+    expect(P[0][5]).toBe(0);
+    expect(P[5][0]).toBe(1);
+    for (const [x, y] of [[3, 7], [10, 2], [1, 20]]) expect(P[x][y] + P[y][x]).toBeCloseTo(1, 6);
+    expect(P[8][8]).toBeCloseTo(0.5, 6);
+    expect(P[10][5]).toBeGreaterThan(P[9][5]);
+    expect(P[10][5]).toBeLessThan(P[10][4]);
+  });
+
+  it('the chain equation holds at interior points', () => {
+    const P = upProbabilityGrid(30, 0.8);
+    const lam = 0.8 / 1.8, mu = 1 / 1.8;
+    const rhs = (lam * P[6][4] + mu * P[4][4] + lam * P[5][5] + mu * P[5][3]) / (2 * lam + 2 * mu);
+    expect(P[5][4]).toBeCloseTo(rhs, 8);
+  });
+
+  it('simulated races agree with the solved probabilities', () => {
+    expect(Math.abs(raceShare(10, 5, 1, 4000, 1) - upProbability(10, 5, 1))).toBeLessThan(0.03);
+    expect(Math.abs(raceShare(2, 10, 0.8, 4000, 2) - upProbability(2, 10, 0.8))).toBeLessThan(0.03);
+    const r = simulateRace(3, 4, 1, 9);
+    const last = r.path[r.path.length - 1];
+    expect(Math.min(...last)).toBe(0);
+    expect(r.up).toBe(last[1] === 0);
+  });
+
+  it('imbalance, weighted mid and the expected next mid', () => {
+    expect(imbalance(30, 10)).toBe(0.75);
+    expect(weightedMid(100, 100.02, 30, 10)).toBeCloseTo(100.015, 12);
+    expect(queueMicroprice(100.005, 0.01, 0.5)).toBeCloseTo(100.005, 12);
+    expect(queueMicroprice(100.005, 0.01, 0.75)).toBeCloseTo(100.01, 12);
+  });
+
+  it('order-flow imbalance explains mid changes, with a slope that falls with depth', () => {
+    const a = simulateOfi({ intervals: 2000, eventsPerInterval: 50, ratio: 1, depth: 5, seed: 71 });
+    const b = simulateOfi({ intervals: 2000, eventsPerInterval: 50, ratio: 1, depth: 20, seed: 71 });
+    const fa = fitThroughOrigin(a.ofi, a.dmid), fb = fitThroughOrigin(b.ofi, b.dmid);
+    expect(fa.slope).toBeGreaterThan(0);
+    expect(fa.r2).toBeGreaterThan(0.2);
+    expect(fa.slope).toBeGreaterThan(2 * fb.slope);
+    expect(fitThroughOrigin([1, 2, 3], [2, 4, 6])).toEqual({ slope: 2, r2: 1 });
   });
 });
