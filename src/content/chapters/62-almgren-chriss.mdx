@@ -1,0 +1,221 @@
+---
+title: "Optimal execution: Almgren–Chriss"
+part: 14
+chapter: 62
+difficulty: 3
+prerequisites: [51, 61]
+summary: "Sell too fast and you pay for impact; sell too slowly and the price may run away from you. Almgren and Chriss find the best speed: a hyperbolic-sine trajectory, and an efficient frontier from TWAP to selling at once."
+---
+import AlmgrenChriss from '../../components/plots/AlmgrenChriss';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A million shares by the close
+
+You must sell 1 million shares of a \$100 stock before the market closes, about a tenth of the day's volume. Sell
+them all in the opening minutes and you walk deep into the book: Chapter 61 says you pay dearly for speed. Spread
+them evenly over the day and impact is small, but you hold a \$100 million position for hours, and a 2% move against
+you costs \$2 million.
+
+There is no free choice: speed costs impact, patience costs risk. In 2000, Robert Almgren and Neil Chriss turned this
+dilemma into a clean optimisation problem and solved it in closed form. Their answer, and the efficient frontier it
+traces, sits behind the *implementation shortfall* algorithms that banks and brokers have offered to clients ever
+since. It's also the problem a dealer faces when a large option trade leaves it with a big delta to hedge.
+
+## <span class="section-tag">Intuition</span>Sell fast while you hold the most risk
+
+Two forces pull in opposite directions.
+
+- **Impact** depends on how fast you trade. Selling twice as fast costs twice as much per share, so you'd like to
+  spread the sale evenly over all the time you have. That's **TWAP**: sell at a constant rate.
+- **Risk** depends on how much you still hold. Every share you haven't sold yet is exposed to the price moving. So
+  you'd like to get rid of the position quickly.
+
+The compromise is to sell **faster at the start**, when the position and its risk are largest, and slow down as the
+position shrinks. How front-loaded the schedule is depends on one number, the **urgency** $\kappa$: high when you're
+risk averse or the stock is volatile, low when impact is expensive.
+
+<AlmgrenChriss client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start at the lowest risk aversion. The strategy is TWAP, the straight
+line, with the lowest expected cost and the highest risk. Raise $\gamma$ a little: the curve bends, and on the
+frontier the point moves left much more than it moves up. A small reduction in risk is almost free. Keep going: the
+seller dumps most of the position in the first hour, and the expected cost climbs steeply. Switch the lower panel to
+<em>Simulated costs</em> to see the same trade-off as distributions: TWAP's costs are spread widely; an urgent
+seller's are narrower but centred higher.</p>
+
+<Callout type="key" title="The Almgren–Chriss trajectory">
+The position still to sell at time $t$ is $x_t = X\,\dfrac{\sinh\big(\kappa(T - t)\big)}{\sinh(\kappa T)}$, with urgency
+$\kappa = \sqrt{\gamma\Vol{\sigma}^2/\eta}$. Volatility and risk aversion make you trade faster; expensive temporary
+impact makes you trade slower. Permanent impact doesn't change the schedule at all.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Mean, variance and the calculus of variations
+
+**The model.** You hold $x_t$ shares at time $t$, starting from $x_0 = X$ and finishing at $x_T = 0$, and you sell
+at rate $v_t = -\dot x_t$. The price follows
+
+$$
+\Spot{S}_t = \Spot{S}_0 + \Vol{\sigma} W_t - \lambda\,(X - x_t),
+$$
+
+an arithmetic Brownian motion pushed down by **permanent impact** $\lambda$ for every share sold so far. Each trade
+also pays **temporary impact**: you sell at $\tilde S_t = \Spot{S}_t - \eta\,v_t$, a discount proportional to your
+speed, which doesn't persist. Both impacts are linear: Kyle's model for $\lambda$, and a book of constant depth for $\eta$.
+
+**Implementation shortfall.** The cost of the sale is what you would have received at the starting price, minus what
+you actually receive:
+
+$$
+C = X\Spot{S}_0 - \int_0^T \tilde S_t\,v_t\,dt .
+$$
+
+Substituting the prices and integrating by parts (the $W_t$ term becomes $\int_0^T x_t\,dW_t$, since $x_T = 0$ and
+$W_0 = 0$) gives three pieces:
+
+$$
+C = \tfrac12\lambda X^2 + \eta\int_0^T v_t^2\,dt - \Vol{\sigma}\int_0^T x_t\,dW_t .
+$$
+
+The first is the permanent impact: whatever the schedule, your later shares are sold at prices depressed by your
+earlier ones, and the total is always $\tfrac12\lambda X^2$. The second is the temporary impact. The third is the
+price risk. For a schedule fixed in advance, the Itô isometry (Chapter 17) gives
+
+$$
+\begin{aligned}
+\mathbb{E}[C] &= \tfrac12\lambda X^2 + \eta\int_0^T \dot x_t^2\,dt, \\
+\mathrm{Var}[C] &= \Vol{\sigma}^2\int_0^T x_t^2\,dt .
+\end{aligned}
+$$
+
+**The optimal schedule.** A trader with risk aversion $\gamma$ minimises $\mathbb{E}[C] + \gamma\,\mathrm{Var}[C]$.
+The permanent term is a constant, so the problem is to minimise
+
+$$
+\int_0^T \Big(\eta\,\dot x_t^2 + \gamma\Vol{\sigma}^2 x_t^2\Big)\,dt .
+$$
+
+The Euler–Lagrange equation of the calculus of variations, $\frac{d}{dt}\,\partial_{\dot x}L = \partial_x L$, gives
+
+$$
+2\eta\,\ddot x_t = 2\gamma\Vol{\sigma}^2\,x_t
+\quad\Longrightarrow\quad
+\ddot x_t = \kappa^2 x_t ,
+$$
+
+with $\kappa^2 = \gamma\Vol{\sigma}^2/\eta$. The solutions are combinations of $e^{\kappa t}$ and $e^{-\kappa t}$, and
+the one with $x_0 = X$ and $x_T = 0$ is
+
+$$
+x_t = X\,\frac{\sinh\big(\kappa(T - t)\big)}{\sinh(\kappa T)} .
+$$
+
+**Two limits.** As $\gamma \to 0$, $\kappa \to 0$ and $\sinh$ becomes linear: $x_t = X(1 - t/T)$, which is TWAP, with
+
+$$
+\begin{aligned}
+\mathbb{E}[C] &= \tfrac12\lambda X^2 + \frac{\eta X^2}{T}, \\
+\mathrm{Var}[C] &= \frac{\Vol{\sigma}^2 X^2 T}{3} .
+\end{aligned}
+$$
+
+When $\kappa T$ is large, $x_t \approx X e^{-\kappa t}$: the position decays exponentially, with **half-life**
+$\ln 2/\kappa$, whatever the deadline. An urgent seller barely notices $T$.
+
+**The efficient frontier.** Each $\gamma$ gives one point $(\mathrm{Var}[C], \mathbb{E}[C])$. Together they trace a
+convex curve: no schedule has both lower expected cost and lower variance than a point on it. Since the optimum
+minimises $\mathbb{E} + \gamma\,\mathrm{Var}$, the frontier's slope at that point is
+
+$$
+\frac{d\,\mathbb{E}[C]}{d\,\mathrm{Var}[C]} = -\gamma .
+$$
+
+At TWAP ($\gamma = 0$) the slope is zero: the first reduction in variance costs nothing to first order. Almgren and
+Chriss stressed this point: a risk-neutral trader should still accept a little risk aversion. In the widget's example,
+TWAP's expected cost is \$350,000 with a standard deviation of \$1.15 million. At $\gamma = 10^{-7}$ per dollar, the
+expected cost rises by 2.7% and the standard deviation falls by almost 8%.
+
+**What the model leaves out.** Impact is linear, while Chapter 61 found a square root; with power-law temporary
+impact the problem has no closed form but is easy to solve numerically, and the trajectories look similar. Impact
+here is either instantaneous or permanent; Chapter 63 adds impact that decays over time. And the schedule is fixed in
+advance: under mean–variance, letting the schedule react to prices can do slightly better, as Almgren and Lorenz
+showed in 2007, but the static solution remains the industry's reference point.
+
+## <span class="section-tag">Playground</span>Choose your urgency
+
+<AlmgrenChriss client:visible initialLogGamma={-9} initialPanel="costs" title="Playground: the cost of patience" />
+
+<div class="try-this">
+
+- **Cost against risk.** Find the risk aversion at which the expected cost is about 50% above TWAP's. How much has
+  the standard deviation fallen? Watch the two histograms.
+- **Volatile days.** Keep $\gamma$ fixed and double the volatility. What happens to the urgency $\kappa T$, and why
+  does $\kappa$ grow in proportion to $\sigma$?
+- **Bad luck.** Click *Re-simulate* a few times. On some paths, TWAP beats the optimal strategy by a lot. Does that
+  mean the optimal strategy was wrong?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="You sell 500,000 shares at a constant rate over one day, with temporary impact $\eta = 4\times 10^{-7}$ dollars per share per (share per day) and no permanent impact. What's the expected cost, in thousands of dollars?"
+  answer={100}
+  tolerance={0.5}
+  explanation="TWAP costs $\eta X^2/T = 4\times10^{-7} \times (5\times10^5)^2 / 1 = 100{,}000$ dollars: 20¢ a share."
+/>
+
+<Quiz
+  client:visible
+  question="Permanent impact $\lambda$ doubles. How does the optimal trajectory change?"
+  options={[
+    "It becomes more front-loaded",
+    "It becomes closer to TWAP",
+    "It doesn't change: permanent impact costs ½λX² whatever the schedule",
+    "The seller should wait until the end",
+  ]}
+  answer={2}
+  explanation="With linear permanent impact, every schedule pays the same $\tfrac12\lambda X^2$, so it drops out of the optimisation. Only $\eta$, $\sigma$ and $\gamma$ set $\kappa$."
+/>
+
+<Quiz
+  client:visible
+  question="Volatility doubles, with the same risk aversion and temporary impact. What happens to the urgency $\kappa$?"
+  options={["It halves", "It stays the same", "It doubles", "It quadruples"]}
+  answer={2}
+  explanation="$\kappa = \sqrt{\gamma\sigma^2/\eta}$ is proportional to $\sigma$. A riskier stock is sold faster."
+/>
+
+<NumericQuiz
+  client:visible
+  question="An urgent seller has $\kappa = 4$ per day and a deadline far away. After how many days has it sold half its position? (Two decimals.)"
+  answer={0.17}
+  tolerance={0.01}
+  explanation="For large $\kappa T$, $x_t \approx Xe^{-\kappa t}$, so the half-life is $\ln 2/\kappa = 0.693/4 \approx 0.17$ days: a little over an hour of a 6.5-hour trading day."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Trading fast costs **impact**; trading slowly costs **risk**. The **implementation shortfall** is
+  $C = \tfrac12\lambda X^2 + \eta\int v^2\,dt - \sigma\int x\,dW$.
+- Minimising $\mathbb{E}[C] + \gamma\,\mathrm{Var}[C]$ gives $\ddot x = \kappa^2 x$ and the trajectory
+  $x_t = X\sinh(\kappa(T - t))/\sinh(\kappa T)$, with $\kappa = \sqrt{\gamma\sigma^2/\eta}$.
+- $\gamma = 0$ is **TWAP**; large $\kappa T$ is exponential decay with half-life $\ln 2/\kappa$.
+- The **efficient frontier** has slope $-\gamma$, flat at TWAP: a little risk reduction is free.
+- Linear **permanent impact** doesn't change the optimal schedule.
+
+**Next up:** impact in Almgren–Chriss is either instant or permanent. Real books refill after you trade, at a finite
+speed. Chapter 63 models that resilience and finds that the best strategy trades a block at the start, steadily in
+between, and a block at the end.
+
+### Further reading
+
+- R. Almgren and N. Chriss, "Optimal execution of portfolio transactions", *Journal of Risk* 3 (2000).
+- R. Almgren, "Optimal execution with nonlinear impact functions and trading-enhanced risk", *Applied Mathematical
+  Finance* 10 (2003).
+- R. Almgren, C. Thum, E. Hauptmann and H. Li, "Direct estimation of equity market impact", *Risk* 18 (2005).
+- R. Almgren and J. Lorenz, "Adaptive arrival price", *Algorithmic Trading III* (2007).
+- Á. Cartea, S. Jaimungal and J. Penalva, *Algorithmic and High-Frequency Trading*, Cambridge University Press (2015),
+  chapter 6.
+- O. Guéant, *The Financial Mathematics of Market Liquidity*, CRC Press (2016).

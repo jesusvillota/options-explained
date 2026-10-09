@@ -1,0 +1,218 @@
+---
+title: "Speed, ticks and market design"
+part: 16
+chapter: 73
+difficulty: 3
+prerequisites: [44, 56]
+summary: "In a continuous market, public news sets off a race: fast traders snipe stale quotes, and liquidity providers widen their spreads to pay for it. Frequent batch auctions remove the race; tick sizes trade spreads against queues; options add millions of quotes that go stale at once."
+---
+import SnipingRace from '../../components/plots/SnipingRace';
+import BatchAuction from '../../components/plots/BatchAuction';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Three milliseconds for \$300 million
+
+In 2010 a company called Spread Networks finished a fibre-optic cable between Chicago and New York, dug in a line as
+straight as the terrain allowed, at a reported cost of around \$300 million. It cut the round trip between the two
+cities' exchanges by about three milliseconds. Within a few years, microwave towers had beaten it, since signals
+travel faster through air than through glass. Trading firms paid for every microsecond.
+
+Why is speed worth that much? Budish, Cramton and Shim (2015) gave an answer that is less about clever trading than
+about how markets are built. In a market where orders are processed one at a time, continuously, any public piece of
+news, such as a move in the S&P 500 futures in Chicago, sets off a race to trade on it in New York. Someone always wins
+that race, and someone always pays for it. This last chapter is about that race, how to stop it, and the rules, tick
+sizes and quoting obligations, that shape every market in this course.
+
+## <span class="section-tag">Intuition</span>The stale quote
+
+A market maker quotes a stock at \$99.99 bid, \$100.01 ask. News arrives that is public to every fast trader at the
+same instant, say the futures jump, and the stock is now worth \$100.10. The market maker wants to cancel its ask.
+Several fast traders want to buy at it. All of them send messages; the exchange processes whichever arrives first.
+
+If the market maker is one of $N + 1$ equally fast firms, it wins the race only one time in $N + 1$. The other times it
+sells at \$100.01 something worth \$100.10. It doesn't lose to better information; it loses a race to react to public
+information. To stay in business it must widen its spread, and every ordinary investor pays the difference.
+
+<SnipingRace client:visible />
+
+<p class="try-this"><strong>Try this:</strong> click <em>Race again</em> a few times: whoever's message lands first
+wins, by microseconds. With three snipers and no edge, the provider cancels in time a quarter of the time. In the lower
+panel, more snipers mean a <em>wider</em> break-even spread, not a narrower one: competition in speed doesn't compete the
+rent away, it just splits it. Give the provider a speed edge: the spread falls, which is why market makers invest in
+speed too. The dashed line shows the same market run in 100-millisecond batch auctions.</p>
+
+## <span class="section-tag">Intuition</span>Batch the clock
+
+Budish, Cramton and Shim's proposal is to stop processing orders one at a time. In a **frequent batch auction**, the
+exchange collects all orders for a short interval, say a tenth of a second, and matches them at the end in a single
+uniform-price auction (Chapter 45). An order that arrives a microsecond earlier gains nothing: within a batch, all
+messages are simultaneous. The market maker's cancel and the snipers' orders arrive in the same batch, and the cancel
+counts. A sniper only wins if the batch happens to close in the microseconds between its order and the cancel.
+
+<BatchAuction client:visible />
+
+<p class="try-this"><strong>Try this:</strong> slide the batch interval from 1 microsecond, which is continuous
+trading, to a second. Once the interval is long compared with the few microseconds that separate the racers, sniping
+almost disappears and so does the spread it required. With a 100-millisecond batch, a news event is sniped a few times
+in a hundred thousand.</p>
+
+<Callout type="key" title="The cost of the race">
+With jumps of size $J$ at rate $\lambda_J$, investors trading at rate $\lambda_I$, and a probability $\pi$ that a jump is
+sniped, the zero-profit half-spread is $h = \lambda_J\pi J/(\lambda_I + \lambda_J\pi)$. In a continuous market $\pi$ is
+large and doesn't fall with competition; in batch auctions it shrinks like the latency gap over the batch interval.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Races, batches and ticks
+
+**Zero profit.** A competitive liquidity provider earns the half-spread $h$ from each investor and loses $J - h$
+whenever a jump of size $J$ is sniped. Over a unit of time,
+
+$$
+\lambda_I\,h = \lambda_J\,\pi\,(J - h),
+$$
+
+so
+
+$$
+h = \frac{\lambda_J\,\pi\,J}{\lambda_I + \lambda_J\,\pi} .
+$$
+
+Unlike Glosten–Milgrom's spread (Chapter 50), this one compensates for no private information at all: every
+participant sees the same news. It's a pure **latency tax**.
+
+**The race.** Let every firm react to the news after a common latency plus an independent exponential delay with
+mean $j$, and let the provider be faster by an edge $e$. The fastest of $N$ snipers' delays is exponential with mean
+$j/N$, and
+
+$$
+P(\text{first}) = \begin{cases}
+1 - \tfrac{N}{N + 1}\,e^{-e/j}, & e \ge 0, \\[1ex]
+\tfrac{1}{N + 1}\,e^{N e/j}, & e < 0 ,
+\end{cases}
+$$
+
+for the probability that the provider's cancel arrives first.
+
+With no edge it's $1/(N + 1)$, so $\pi = N/(N + 1)$ grows with the number of snipers. In the widget, with three
+snipers, one jump of 10 cents a minute and two investors a minute, the half-spread is $0.75 \times 10/2.75 \approx 2.7$
+cents.
+
+**Batches.** With batch interval $\tau$, a sniper wins only if the batch closes after its order and before the
+provider's cancel. If the batch's timing is unrelated to the news, that happens with probability about
+
+$$
+\pi_{\text{batch}} \approx \frac{\mathbb{E}\big[(T_{\text{provider}} - T_{\text{sniper}})^+\big]}{\tau} ,
+$$
+
+the average head start of the fastest sniper divided by the interval: a few microseconds over a hundred milliseconds.
+Speed still matters, but only at the margin of the batch, so its value collapses. **Speed bumps**, such as IEX's
+350-microsecond delay on incoming orders, attack the same problem differently: they give the provider's price updates
+an edge over the snipers.
+
+**Ticks.** The tick size is the other big design choice. A large tick bounds the spread from below: when the natural
+spread would be smaller, the quoted spread is stuck at one tick, providers earn more than the latency tax requires, and
+long **queues** form at each price. Under price–time priority (Chapter 44), a place near the front of a long queue is
+valuable, and the race moves from sniping to queuing. A small tick narrows spreads but thins out depth at each price
+and invites stepping one tick ahead of a queue. Option exchanges compromise: pennies for low-priced options and
+nickels for others in many classes (Chapter 47).
+
+**Options make everything bigger.** One underlying may have thousands of listed series, and every one of their quotes
+depends on the underlying's price (Chapter 56). When the stock ticks, *all* of them go stale at once, and a sniper can
+pick off many series in one burst. Option markets have answers of their own:
+
+- **Mass quoting**: a market maker updates hundreds of quotes in one message, and the options data feed carries
+  billions of quote updates a day.
+- **Risk protections**: exchanges pull all of a market maker's quotes automatically after a burst of fills in a short
+  window, capping the loss from one stale moment.
+- **Obligations and privileges**: designated market makers must quote a share of series within width limits, in
+  return for allocation privileges (Chapter 44) and price-improvement auctions (Chapter 45).
+
+These rules decide who provides liquidity, at what price, and at what speed: the questions this whole part of the
+course has been asking.
+
+## <span class="section-tag">Playground</span>Design a market
+
+<SnipingRace client:visible title="Playground: snipers and speed" />
+
+<div class="try-this">
+
+- **More competition.** Raise the number of snipers from 1 to 10 with no edge. Does the break-even spread rise or fall?
+  Why doesn't more competition help investors here?
+- **A faster provider.** How large an edge, in microseconds, halves the spread with three snipers?
+- **Batches.** In the batch widget above, how long must the batch interval be to bring the spread below a tenth of a
+  cent?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A provider races 4 equally fast snipers. Jumps of 10 cents arrive once a minute and investors trade twice a minute. What's the break-even half-spread, in cents? (Two decimals.)"
+  answer={2.86}
+  tolerance={0.01}
+  explanation="$\pi = 4/5 = 0.8$, so $h = 1 \times 0.8 \times 10/(2 + 0.8) = 8/2.8 \approx 2.86$ cents."
+/>
+
+<Quiz
+  client:visible
+  question="In a continuous market, more fast traders join the race to snipe stale quotes. What happens to the spread investors pay?"
+  options={[
+    "It falls, as competition always lowers prices",
+    "It rises: the provider wins the race less often, so sniping losses grow and must be covered",
+    "It doesn't change",
+    "It becomes negative",
+  ]}
+  answer={1}
+  explanation="With $N$ snipers the provider cancels in time with probability $1/(N + 1)$, so $\pi = N/(N + 1)$ rises with $N$, and $h$ rises with $\pi$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="In a batch auction with a 50-millisecond interval (50,000 μs), the fastest sniper's average head start over the provider is 3.5 μs. About how many news events in a million get sniped?"
+  answer={70}
+  tolerance={1}
+  explanation="$\pi_{\text{batch}} \approx 3.5/50{,}000 = 0.00007$: about 70 in a million."
+/>
+
+<Quiz
+  client:visible
+  question="An exchange raises its tick size so that the spread is stuck at one tick. What tends to happen?"
+  options={[
+    "Queues at the best prices get longer, and the race shifts to getting near the front of them",
+    "Spreads narrow",
+    "Market makers quote less depth",
+    "Nothing changes",
+  ]}
+  answer={0}
+  explanation="A binding tick lets providers earn more than they need per trade, so more of them join the best price. Under price–time priority, queue position then becomes the prize."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- In a continuous market, public news sets off a **latency race**: fast traders snipe stale quotes before providers
+  can cancel.
+- Providers charge a **latency tax**: $h = \lambda_J\pi J/(\lambda_I + \lambda_J\pi)$. More snipers mean more sniping, so
+  speed competition doesn't remove it.
+- **Frequent batch auctions** treat orders in an interval as simultaneous; sniping falls to about the latency gap over the
+  interval.
+- **Tick sizes** trade narrow spreads against queue length and the race for queue position.
+- **Options** multiply the problem: thousands of quotes go stale with every tick of the underlying, handled by mass
+  quoting, risk protections and market-maker obligations.
+
+**This is the last chapter.** Parts XI to XVI took the options market apart: its order books and auctions, the
+information and inventory in its prices, the market maker's problem, large trades and their impact, hedging that moves
+the market, and the microsecond world underneath. The further reading of each chapter is the place to go next.
+
+### Further reading
+
+- E. Budish, P. Cramton and J. Shim, "The high-frequency trading arms race: frequent batch auctions as a market
+  design response", *Quarterly Journal of Economics* 130 (2015).
+- M. Baron, J. Brogaard, B. Hagströmer and A. Kirilenko, "Risk and return in high-frequency trading", *Journal of
+  Financial and Quantitative Analysis* 54 (2019).
+- C. Yao and M. Ye, "Why trading speed matters: a tale of queue rationing under price controls", *Review of Financial
+  Studies* 31 (2018).
+- M. Aquilina, E. Budish and P. O'Neill, "Quantifying the high-frequency trading 'arms race'", *Quarterly Journal of
+  Economics* 137 (2022).
+- M. Lewis, *Flash Boys*, Norton (2014), for the Spread Networks story.

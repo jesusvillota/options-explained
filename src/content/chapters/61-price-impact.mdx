@@ -1,0 +1,233 @@
+---
+title: "Price impact: what the data says"
+part: 14
+chapter: 61
+difficulty: 3
+prerequisites: [43, 51]
+summary: "Large orders move prices, but not in proportion to their size: impact grows like the square root of size, builds up while the order runs, and partly fades afterwards. A latent order book and the propagator model explain why."
+---
+import SquareRootImpact from '../../components/plots/SquareRootImpact';
+import ImpactDecay from '../../components/plots/ImpactDecay';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The order that's too big for the book
+
+A pension fund wants to buy 2 million shares of a stock that trades 50 million a day. No order book shows 2 million
+shares for sale near the price; Chapter 43's walk through the book would push the price up absurdly. So the fund splits
+the order into thousands of small **child orders** and feeds them into the market over hours or days. The whole
+operation is a **metaorder**, and the question every large trader asks is: by how much will it move the price?
+
+The same question matters for options. A dealer who sells a large block of calls hedges by buying stock: a metaorder.
+An option order itself moves the option's price, and with it the implied volatility. Part XIV is about trading large
+size well. Before we can optimise anything, we need to know what impact looks like, and this chapter starts with the
+data.
+
+## <span class="section-tag">Intuition</span>Square-root, not linear
+
+Kyle's model (Chapter 51) gave a clean answer: the price moves by $\lambda$ times the order flow, in a straight line.
+Double the order, double the impact. Empirical studies of metaorders, starting with Torre's work at BARRA in the 1990s
+and now spanning equities, futures, currencies, bitcoin and options, found something different and remarkably robust:
+
+<Callout type="key" title="The square-root law">
+A metaorder that buys a share $Q/V$ of the day's volume moves the price, on average, by about
+$Y\,\Vol{\sigma_{\text{day}}}\sqrt{Q/V}$, with $\Vol{\sigma_{\text{day}}}$ the daily volatility and $Y$ a number of order one.
+Quadruple the order, and the impact only doubles.
+</Callout>
+
+Why would impact be **concave**? A popular explanation is that the visible order book is not the real supply. Most
+liquidity is **latent**: traders who would sell if the price rose a little, but who don't show their orders until
+then. Near the current price there's little of it; the further the price moves, the more sellers wake up. If hidden
+supply grows in proportion to the distance from the price, a V-shaped book, absorbing $Q$ shares means eating
+through a triangle of area $Q$, and the triangle's width grows like $\sqrt{Q}$.
+
+<SquareRootImpact client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the top panel is the hidden book, and the shaded area is the order you
+must absorb. Move the order size and watch the price move grow ever more slowly. In the bottom panel, ten thousand
+synthetic metaorders, each buffeted by the market's own noise, line up along a slope close to ½ on the log–log plot. Now set
+the shape $\alpha$ to zero: a flat book, where liquidity is the same at every distance. Impact becomes linear, as in
+Kyle's model. Try 1,000 orders: the slope wanders, which is why the empirical studies need hundreds of thousands of
+metaorders.</p>
+
+## <span class="section-tag">Intuition</span>And then it fades
+
+Impact isn't a single number: it builds up while the metaorder runs, and part of it disappears afterwards. When the
+buying stops, the price drifts back, usually to about two-thirds of the peak. The part that stays is the **permanent**
+impact; the part that fades is **transient**.
+
+A simple way to model this is to let each child order push the price by an amount that decays over time: big right
+after the trade, smaller later, never quite zero. A metaorder's impact is the sum of all its children's decaying
+pushes.
+
+<ImpactDecay client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the decay exponent at 0.5, impact grows like the square root of
+time during the execution: halfway through, it's already about 60% of the peak. When the buying stops, it falls back.
+The dashed pink line is the average price the buyer paid. Watch where the blue curve ends relative to it. Now switch to
+<em>one metaorder</em>: the market's own noise swamps the impact completely. Impact is a statistical fact about many
+orders, not something you can see in one.</p>
+
+## <span class="section-tag">Formalisation</span>Square roots and propagators
+
+**Measuring impact.** A metaorder with sign $\varepsilon = \pm 1$ (buy or sell) trades $Q$ shares between times $0$
+and $T$. Its impact is the signed relative price change, $\mathcal{I} = \varepsilon\,(p_T - p_0)/p_0$, averaged over many metaorders
+of similar size. Single metaorders are hopelessly noisy: over the hour a metaorder runs, a stock with 2% daily
+volatility moves by about 0.8%, much more than a typical impact.
+
+**The square-root law.** With $V$ the daily volume,
+
+$$
+\mathbb{E}[\mathcal{I}\mid Q] = Y\,\Vol{\sigma_{\text{day}}}\left(\frac{Q}{V}\right)^{\delta},
+$$
+
+with $\delta \approx \tfrac12$ and $Y$ between about 0.5 and 1. Three features make it striking. The exponent $\delta$ is close to $\tfrac12$ across asset classes and decades. Impact
+is measured in units of volatility: a volatile stock has proportionally larger impact. And, to a good approximation,
+it doesn't depend on how long the execution takes, only on how much is traded. For options, Tóth, Eisler and Bouchaud
+found the same law, with impact measured in implied volatility.
+
+With $\sigma_{\text{day}}$ = 2% and $Y$ = 0.7, buying 1% of the daily volume costs about 14 basis points, and 4% about
+28. A linear law fitted at 1% would predict 56 basis points for 4%, twice too much.
+
+**A latent order book.** Suppose that hidden liquidity at distance $x$ from the price has density
+$\rho(x) = L\,x^{\alpha}$. To absorb $Q$, the price must move by $\mathcal{I}$ with
+
+$$
+\int_0^{\mathcal{I}} L\,x^{\alpha}\,dx = \frac{L\,\mathcal{I}^{\alpha + 1}}{\alpha + 1} = Q ,
+$$
+
+so
+
+$$
+\mathcal{I} = \left(\frac{(\alpha + 1)\,Q}{L}\right)^{1/(\alpha + 1)} .
+$$
+
+A flat book, $\alpha = 0$, gives linear impact: Kyle's $\lambda$ is $1/L$. A V-shaped book, $\alpha = 1$, gives
+$\mathcal{I} = \sqrt{2Q/L}$. Donier, Bonart, Mastromatteo and Bouchaud showed that a V shape is what you get near
+the price when buyers and sellers arrive, revise and cancel at random: it is the generic shape of a book in which
+latent orders diffuse. Dimensional analysis fixes the scale: $L$ is volume per unit price squared, and the natural
+quantities are $V$ and $\sigma_{\text{day}}$, so $L = c\,V/\sigma_{\text{day}}^2$ for some constant $c$ and
+
+$$
+\mathcal{I} = \Vol{\sigma_{\text{day}}}\sqrt{\frac{2}{c}\,\frac{Q}{V}} ,
+$$
+
+which is the square-root law with $Y = \sqrt{2/c}$.
+
+**The propagator model.** Bouchaud, Gefen, Potters and Wyart (2004) wrote the price as the sum of the decaying
+impacts of all past trades:
+
+$$
+p_t = p_0 + \sum_{s < t} G(t - s)\,\varepsilon_s + \text{noise},
+$$
+
+where $\varepsilon_s$ is the sign of the trade at time $s$ and $G$ is the **propagator**, or impact kernel. If $G$ were
+constant, every trade's impact would be permanent. But the signs of market orders are strongly autocorrelated,
+because metaorders are split into many child orders of the same sign, and a constant $G$ would then make prices trend
+predictably. For prices to stay close to a random walk, $G$ must decay, roughly as a power law
+$G(\tau) \propto \tau^{-\beta}$, at just the rate that offsets the memory in the signs.
+
+**Impact of a metaorder.** For a metaorder that trades at a constant rate from $0$ to $T$, the propagator gives
+
+$$
+\mathcal{I}(t) = \int_0^{\min(t,\,T)} G(t - s)\,ds .
+$$
+
+With $G(\tau) \propto \tau^{-\beta}$, during the execution $\mathcal{I}(t) \propto t^{1 - \beta}$: for $\beta = \tfrac12$,
+impact grows like $\sqrt{t}$. After the end, $\mathcal{I}(T + \tau) \propto (T + \tau)^{1 - \beta} - \tau^{1 - \beta}$, which
+decays. The widget uses $G(\tau) = G_\infty + (1 - G_\infty)(1 + \tau/\tau_0)^{-\beta}$, whose floor $G_\infty$ is
+the permanent share.
+
+**Fair pricing.** If impact grows like $\sqrt{t}$ up to a peak $\mathcal{I}_{\text{peak}}$, the average price paid
+during the execution is
+
+$$
+\frac1T\int_0^T \mathcal{I}_{\text{peak}}\sqrt{t/T}\,dt = \tfrac23\,\mathcal{I}_{\text{peak}} .
+$$
+
+Farmer, Gerig, Lillo and Waelbroeck (2013) argued that, in a competitive market, the price should eventually relax to
+exactly this level: if it ended higher, buyers would on average make money from their own impact; if lower, the
+liquidity providers would. The data agree roughly: impact decays to about two-thirds of its peak.
+
+## <span class="section-tag">Playground</span>Watch the impact decay
+
+<ImpactDecay client:visible initialPermanent={0} title="Playground: impact and fair pricing" />
+
+<div class="try-this">
+
+- **Fair pricing.** With $\beta$ = 0.5, raise the permanent share until the price two hours after the end matches
+  the average price paid. What share does that take?
+- **Kyle's world.** Set $\beta$ to zero: every trade's impact is permanent. What shape does the impact take while the
+  order runs? Compare the average price paid with the final price.
+- **Fast decay.** Set $\beta$ to 1 with no permanent share. What's left of the impact an hour after the end?
+- **Back to the first widget.** Set the book shape $\alpha$ to 2. Does the fit find the exponent $\tfrac13$, and how
+  many metaorders does it need to do so reliably?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Under the square-root law, a trader doubles the size of a metaorder. By how much does its average impact grow?"
+  options={["It doubles", "By a factor of about 1.41", "By a factor of 4", "It doesn't change"]}
+  answer={1}
+  explanation="$\mathcal{I} \propto \sqrt{Q}$, so doubling $Q$ multiplies impact by $\sqrt{2} \approx 1.41$. The cost in dollars, impact times size, grows like $Q^{3/2}$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A stock has 1.5% daily volatility, and $Y = 1$. You buy 4% of the daily volume. What's the square-root law's predicted impact, in basis points?"
+  answer={30}
+  tolerance={0.5}
+  explanation="$\mathcal{I} = 1 \times 1.5\% \times \sqrt{0.04} = 1.5\% \times 0.2 = 0.3\%$, or 30 basis points."
+/>
+
+<Quiz
+  client:visible
+  question="In a latent order book, which shape of hidden liquidity gives the square-root law?"
+  options={[
+    "The same amount of liquidity at every distance from the price",
+    "Liquidity that grows in proportion to the distance from the price (a V shape)",
+    "Liquidity that grows like the square of the distance",
+    "All the liquidity sitting at the best quotes",
+  ]}
+  answer={1}
+  explanation="With $\rho(x) = Lx$, absorbing $Q$ needs $L\mathcal{I}^2/2 = Q$, so $\mathcal{I} = \sqrt{2Q/L}$. A flat book gives linear impact, and $\rho \propto x^2$ gives a cube root."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A metaorder's impact grows like the square root of time and peaks at 45 basis points when it ends. If fair pricing holds, at what level, in basis points above the start, does the price settle?"
+  answer={30}
+  tolerance={0.5}
+  explanation="The average price paid is $\tfrac23$ of the peak, $\tfrac23 \times 45 = 30$ basis points, and fair pricing says the price relaxes to that level."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A **metaorder** is a large order split into child orders. Its **impact** is only visible on average over many
+  metaorders.
+- The **square-root law**: $\mathcal{I} \approx Y\sigma_{\text{day}}\sqrt{Q/V}$, across markets, with $Y$ of order one
+  and little dependence on how long the execution takes.
+- A **V-shaped latent order book** explains the square root: hidden liquidity grows with distance from the price. A
+  flat book gives Kyle's linear impact.
+- The **propagator** writes prices as decaying impacts of past trades. With $G \propto \tau^{-1/2}$, impact grows like
+  $\sqrt{t}$ during execution and decays after it, to about **two-thirds** of the peak (fair pricing).
+
+**Next up:** if impact is the price of trading fast and volatility the risk of trading slowly, there must be a best
+speed. Chapter 62 finds it: the Almgren–Chriss optimal execution strategy.
+
+### Further reading
+
+- J.-P. Bouchaud, J. Bonart, J. Donier and M. Gould, *Trades, Quotes and Prices: Financial Markets Under the
+  Microscope*, Cambridge University Press (2018), chapters 12 to 14.
+- B. Tóth, Y. Lempérière, C. Deremble, J. de Lataillade, J. Kockelkoren and J.-P. Bouchaud, "Anomalous price impact
+  and the critical nature of liquidity in financial markets", *Physical Review X* 1 (2011).
+- J.-P. Bouchaud, Y. Gefen, M. Potters and M. Wyart, "Fluctuations and response in financial markets: the subtle
+  nature of 'random' price changes", *Quantitative Finance* 4 (2004).
+- J. D. Farmer, A. Gerig, F. Lillo and H. Waelbroeck, "How efficiency shapes market impact", *Quantitative Finance* 13
+  (2013).
+- J. Donier, J. Bonart, I. Mastromatteo and J.-P. Bouchaud, "A fully consistent, minimal model for non-linear market
+  impact", *Quantitative Finance* 15 (2015).
+- B. Tóth, Z. Eisler and J.-P. Bouchaud, "The square-root impact law also holds for option markets", *Wilmott* (2016).

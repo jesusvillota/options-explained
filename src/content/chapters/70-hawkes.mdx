@@ -1,0 +1,190 @@
+---
+title: "Order flow as a point process: Hawkes"
+part: 16
+chapter: 70
+difficulty: 3
+prerequisites: [31, 47]
+summary: "Orders and trades arrive in bursts, not at random. The Hawkes process lets every event raise the rate of future events: its branching ratio measures how much of the market's activity is a reaction to itself."
+---
+import HawkesFlow from '../../components/plots/HawkesFlow';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Trades come in bursts
+
+Several models in this course assumed that orders arrive like raindrops: independently, at a steady average rate, as a
+**Poisson process**. Glosten–Milgrom traders (Chapter 50), the PIN model's buyers and sellers (Chapter 53) and the
+fills of Avellaneda–Stoikov (Chapter 57) all did. Look at a real tape and that's not what you see. Trades bunch
+together: a burst of activity, a lull, another burst. A trade makes the next trade more likely, because metaorders are
+split into many child orders (Chapter 61), algorithms react to each other within microseconds, and market makers
+requote after every fill.
+
+Part XVI goes down to the time scale of individual orders, and it starts with a model built for exactly this kind of
+clustering. Alan Hawkes introduced it in 1971; seismologists used it for aftershocks, where each earthquake raises the
+chance of more. In markets, each trade does the same.
+
+## <span class="section-tag">Intuition</span>Every event has children
+
+Picture order flow as two kinds of events. **Immigrants** arrive from outside at a steady rate $\mu$: news, a fund
+deciding to trade. Every event, immigrant or not, can then trigger **children**: further events in the next few
+moments, on average $n$ of them. Children have children of their own, and a single immigrant can set off a whole
+cluster.
+
+The number $n$ is the **branching ratio**. If $n = 0$, there are no reactions and the process is Poisson. As $n$
+approaches 1, nearly every event is a reaction to an earlier one, and the clusters grow huge. At $n \ge 1$, each event
+replaces itself on average, and activity explodes.
+
+<HawkesFlow client:visible />
+
+<p class="try-this"><strong>Try this:</strong> both processes average 2.5 events a second. The Poisson one below is
+spread evenly; the Hawkes one above comes in bursts, with the blue intensity jumping at every event. Set the branching
+ratio to zero: the two look alike. Push it to 0.95: long quiet spells, then dense clusters, and counts in five-second
+windows vary dozens of times more than Poisson counts would. The fitted parameters, estimated from ten minutes of
+events, land close to the true ones.</p>
+
+<Callout type="key" title="The Hawkes process">
+Intensity $\lambda(t) = \mu + \sum_{t_i < t} \alpha e^{-\beta(t - t_i)}$. Each event triggers on average $n = \alpha/\beta$
+others. The process is stationary when $n < 1$, with mean rate $\mu/(1 - n)$; a fraction $n$ of all events are
+reactions to earlier events.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Intensity, branching and likelihood
+
+**Intensity.** A point process is described by its **intensity** $\lambda(t)$: the probability of an event in
+$[t, t + dt)$, given the history, is $\lambda(t)\,dt$. A Poisson process has constant intensity. The Hawkes process
+with an exponential kernel has
+
+$$
+\lambda(t) = \mu + \sum_{t_i < t} \alpha\,e^{-\beta(t - t_i)} :
+$$
+
+each event raises the intensity by $\alpha$, and the effect decays at rate $\beta$, with a memory of about $1/\beta$.
+
+**Branching ratio and mean rate.** The expected number of children of one event is the integral of its kernel,
+
+$$
+n = \int_0^\infty \alpha\,e^{-\beta s}\,ds = \frac{\alpha}{\beta} .
+$$
+
+If the process is stationary with mean intensity $\Lambda$, taking expectations of $\lambda(t)$ gives
+$\Lambda = \mu + n\Lambda$, so
+
+$$
+\Lambda = \frac{\mu}{1 - n}, \qquad n < 1 .
+$$
+
+Each immigrant's cluster has on average $1 + n + n^2 + \cdots = 1/(1 - n)$ events, the same geometric series as
+Chapter 69's spiral multiplier.
+
+**Clustering in counts.** For a Poisson process, the number of events in a window has variance equal to its mean. A
+Hawkes process is **overdispersed**: for long windows the variance-to-mean ratio tends to $1/(1 - n)^2$. With $n$ =
+0.8 that's 25. Five-second windows don't capture whole clusters, so the widget's ratio is smaller, but still far above
+one.
+
+**Simulation by thinning.** Between events the intensity only decays, so its current value is an upper bound until
+the next event. Ogata's (1981) algorithm proposes the next time from a Poisson process at that bound, then accepts it
+with probability $\lambda(t)/\text{bound}$. Accepted proposals are events; rejected ones are just places where the
+intensity had decayed.
+
+**Maximum likelihood.** The log-likelihood of events $t_1 < \dots < t_N$ on $[0, T]$ is
+
+$$
+\log L = \sum_{i=1}^{N} \log\lambda(t_i) - \int_0^T \lambda(t)\,dt .
+$$
+
+For the exponential kernel both pieces are cheap. The sum
+$A_i = \sum_{j<i} e^{-\beta(t_i - t_j)}$ obeys the recursion $A_i = e^{-\beta(t_i - t_{i-1})}(1 + A_{i-1})$, so
+$\lambda(t_i) = \mu + \alpha A_i$, and the integral is
+$\mu T + (\alpha/\beta)\sum_i \big(1 - e^{-\beta(T - t_i)}\big)$. The widget maximises $\log L$ with Nelder–Mead, the
+optimiser of Chapter 53.
+
+**What the data say.** Fitted to the order flow of liquid futures, branching ratios are high: Filimonov and Sornette
+(2012) found the E-mini S&P 500's rising from about 0.3 in the late 1990s to around 0.7 by 2010, and Hardiman, Bercot
+and Bouchaud (2013), using kernels with long memory, found it close to 1. Most activity, in other words, is the
+market reacting to itself.
+
+**Many types of event.** A **multivariate** Hawkes process lets buys excite buys, sells excite sells, and each excite
+the other, with a matrix of kernels. The same tool links trades in an option to trades in its underlying, and
+underlies many models of the order book in Chapter 71.
+
+## <span class="section-tag">Playground</span>Reflexive markets
+
+<HawkesFlow client:visible initialBranching={0.5} title="Playground: branching and memory" />
+
+<div class="try-this">
+
+- **Near criticality.** Raise the branching ratio to 0.95. How does the dispersion of counts compare with
+  $1/(1 - n)^2$? Why is it smaller?
+- **Memory.** Keep $n$ fixed and change the decay rate $\beta$. Does the mean rate change? What changes in the
+  picture?
+- **Estimation.** Click *Re-simulate* several times at $n$ = 0.5. How much does the fitted branching ratio vary from
+  sample to sample?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A Hawkes process has $\mu = 1$ per second, $\alpha = 3$ and $\beta = 4$ per second. What's its average rate of events per second?"
+  answer={4}
+  tolerance={0.01}
+  explanation="$n = \alpha/\beta = 0.75$, so the mean rate is $\mu/(1 - n) = 1/0.25 = 4$ events a second."
+/>
+
+<NumericQuiz
+  client:visible
+  question="With a branching ratio of 0.8, how many events does one immigrant's cluster contain on average, including the immigrant?"
+  answer={5}
+  tolerance={0.01}
+  explanation="$1 + 0.8 + 0.8^2 + \cdots = 1/(1 - 0.8) = 5$."
+/>
+
+<Quiz
+  client:visible
+  question="What happens to a Hawkes process if $\alpha \ge \beta$?"
+  options={[
+    "It becomes a Poisson process",
+    "Each event triggers at least one other on average, so activity can grow without bound: the process isn't stationary",
+    "The intensity becomes negative",
+    "Nothing changes",
+  ]}
+  answer={1}
+  explanation="$n = \alpha/\beta \ge 1$ means the mean-rate equation $\Lambda = \mu + n\Lambda$ has no positive solution: clusters never die out on average."
+/>
+
+<Quiz
+  client:visible
+  question="You count events in many one-minute windows. The variance of the counts is about equal to their mean. What does that suggest?"
+  options={[
+    "Strong self-excitation",
+    "Little clustering: the flow looks like a Poisson process at this scale",
+    "The process has exploded",
+    "The data are wrong",
+  ]}
+  answer={1}
+  explanation="A variance-to-mean ratio of one is the signature of a Poisson process. Self-excitation makes counts overdispersed, with a ratio well above one."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Order flow **clusters**: a Poisson process, with independent arrivals, misses this.
+- The **Hawkes process** has intensity $\mu + \sum_{t_i<t}\alpha e^{-\beta(t - t_i)}$: every event raises the rate of future ones.
+- The **branching ratio** $n = \alpha/\beta$ is the average number of children per event; for $n < 1$ the mean rate is
+  $\mu/(1 - n)$ and clusters average $1/(1 - n)$ events.
+- Simulate by **thinning**; fit by **maximum likelihood** with a cheap recursion.
+- Estimated branching ratios in liquid markets are **close to 1**: much of the activity is reflexive.
+
+**Next up:** Chapter 71 looks inside the best bid and ask: queues that deplete and refill, and how their sizes predict
+the next price move.
+
+### Further reading
+
+- A. G. Hawkes, "Spectra of some self-exciting and mutually exciting point processes", *Biometrika* 58 (1971).
+- Y. Ogata, "On Lewis' simulation method for point processes", *IEEE Transactions on Information Theory* 27 (1981).
+- E. Bacry, I. Mastromatteo and J.-F. Muzy, "Hawkes processes in finance", *Market Microstructure and Liquidity* 1
+  (2015).
+- V. Filimonov and D. Sornette, "Quantifying reflexivity in financial markets: toward a prediction of flash crashes",
+  *Physical Review E* 85 (2012).
+- S. J. Hardiman, N. Bercot and J.-P. Bouchaud, "Critical reflexivity in financial markets: a Hawkes process
+  analysis", *European Physical Journal B* 86 (2013).

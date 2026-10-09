@@ -1,0 +1,226 @@
+---
+title: "Adverse selection: Glosten–Milgrom"
+part: 12
+chapter: 50
+difficulty: 2
+prerequisites: [12, 47]
+summary: "A market maker with no inventory worries at all still needs a spread, because some of the people it trades with know more than it does. Prices learn from trades."
+---
+import GlostenMilgrom from '../../components/plots/GlostenMilgrom';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>The winner's curse of market making
+
+Tomorrow morning the company reports earnings. Some traders have done the work and have a good idea whether the
+news is good or bad. You haven't, and you're the market maker: you must post a bid and an ask for the call tonight,
+and you must trade with whoever shows up.
+
+Think about who hits your ask. If the news is going to be good, everyone who knows it wants to buy. If it's going to
+be bad, the informed traders all sell, and only the uninformed buy. So **a buy order is evidence that the news is
+good**, and selling at a price that ignores that evidence means losing money to the people who know. You're
+cursed in the same way as the winner of an auction who overpaid: getting filled is itself bad news.
+
+Lawrence Glosten and Paul Milgrom turned this into a model in 1985. Their market maker is risk-neutral and has no
+inventory problem at all, which removes the reason for a spread from Chapter 49. It still has to quote a spread, and
+the spread does something remarkable: it lets prices **learn** the information that insiders have, one trade at a
+time.
+
+## <span class="section-tag">Intuition</span>Each trade is a clue
+
+Here's the simplest version. The call will turn out to be worth either 2.20 or 2.80, equally likely as far as the
+market maker knows. Each trader who arrives is, with probability $\alpha$, an **insider** who knows the value: they
+buy if it's 2.80 and sell if it's 2.20. Otherwise they're **uninformed** and buy or sell at random, for their own
+reasons (hedging, rebalancing, needing cash). The market maker can't tell them apart.
+
+What should the ask be? The market maker sells at the ask only when someone buys, so the right ask is the value of
+the call **given that someone is buying**. Buyers are more likely when the value is high, so this conditional value
+is above 2.50. Likewise the bid is the value given that someone is selling, which is below 2.50. The spread
+between them is the cost of trading with people who might know more.
+
+<GlostenMilgrom client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with 30% insiders the first quote is 2.41 / 2.59: an 18-cent spread,
+exactly 30% of the 60-cent range of possible values. Watch the quotes as trades arrive. Buys push both quotes up, sells
+push them down, and because insiders always trade the same way, the quotes drift towards the truth and the spread
+closes. Set insiders to 5%: the spread is tiny, but the market takes many more trades to learn. Set them to 80%:
+the spread is huge, and prices learn almost at once.</p>
+
+Look at the bottom panel. The market maker's profit hovers around zero: it loses to insiders and wins it back from
+uninformed traders. In effect, **the uninformed pay for the insiders' profits**, through the spread. That's the
+adverse-selection component of the spread that Chapter 47 measured as price impact: each trade moves the price
+because it carries information.
+
+Now drag the last slider down. Uninformed traders pay the spread only because they need to trade, and there's a
+limit to what that's worth to them. If insiders are so common that the spread exceeds it, the uninformed leave. Then
+only insiders would trade, and no price could protect the market maker: the market **breaks down**. That is what
+happens, in a milder form, before big announcements: market makers widen their quotes, and some trading simply
+stops until the news is out.
+
+<Callout type="key" title="Prices learn from trades">
+In Glosten–Milgrom the bid and ask are conditional expectations: $a = \mathbb{E}[v \mid \text{buy}]$ and
+$b = \mathbb{E}[v \mid \text{sell}]$. The spread exists even with a risk-neutral, unconstrained market maker, and it's
+wider when more traders are informed. Every trade updates the price, and the price is a martingale that converges
+to the true value.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Bayes, quotes and martingales
+
+Let the value be $v_H$ or $v_L$, and let the market maker's belief be $p = \mathbb{P}(v = v_H)$. A trader is an
+insider with probability $\alpha$. The probabilities of a buy in each state are
+
+$$
+\mathbb{P}(\text{buy} \mid v_H) = \alpha + \tfrac12(1 - \alpha) = \tfrac12(1 + \alpha),
+$$
+
+$$
+\mathbb{P}(\text{buy} \mid v_L) = \tfrac12(1 - \alpha) .
+$$
+
+**The update.** By Bayes' rule, the belief after a buy is
+
+$$
+\begin{aligned}
+p^+ &= \frac{p \cdot \tfrac12(1 + \alpha)}{p \cdot \tfrac12(1 + \alpha) + (1 - p)\cdot\tfrac12(1 - \alpha)} \\[4pt]
+&= \frac{p\,(1 + \alpha)}{1 + \alpha(2p - 1)},
+\end{aligned}
+$$
+
+and after a sell, in the same way,
+
+$$
+p^- = \frac{p\,(1 - \alpha)}{1 - \alpha(2p - 1)} .
+$$
+
+**The quotes.** A competitive, risk-neutral market maker makes zero expected profit on each trade, so it sells at
+the expected value given a buy and buys at the expected value given a sell:
+
+$$
+a = v_L + p^+(v_H - v_L),
+$$
+
+$$
+b = v_L + p^-(v_H - v_L) .
+$$
+
+At $p = \tfrac12$, $p^\pm = \tfrac12(1 \pm \alpha)$, so the spread is
+
+$$
+a - b = \alpha\,(v_H - v_L) .
+$$
+
+It's proportional to the share of insiders and to how much they know. With $\alpha = 0.3$ and values 2.20 and 2.80,
+the spread is $0.3 \times 0.60 = 0.18$.
+
+**Zero profit, decomposed.** Against an insider the market maker loses $|v - \text{price}|$; against an uninformed
+trader it wins on average. Its expected profit per trade is zero by construction, so over many trades the insiders'
+gains equal the uninformed traders' losses. Spread costs are a transfer from the uninformed to the informed.
+
+**Prices are martingales.** Given what the market maker knows, the next trade is a buy with probability
+$\pi = p\,\tfrac12(1 + \alpha) + (1 - p)\,\tfrac12(1 - \alpha)$, and
+
+$$
+\mathbb{E}[p_{t+1} \mid p_t = p] = \pi\,p^+ + (1 - \pi)\,p^- = p ,
+$$
+
+because $\pi p^+$ and $(1 - \pi)p^-$ are just the numerators of Bayes' rule, $p\,\tfrac12(1 + \alpha)$ and
+$p\,\tfrac12(1 - \alpha)$. So the market maker's estimate $v_L + p_t(v_H - v_L)$, and the transaction prices, are
+martingales with respect to public information, exactly the property that Chapter 40 built pricing on. Market
+efficiency here is a *consequence* of competition among market makers, not an assumption.
+
+**How fast prices learn.** Track the log-odds $\ell = \ln\frac{p}{1 - p}$. A buy adds $\ln\frac{1 + \alpha}{1 - \alpha}$
+and a sell subtracts the same amount. If the value is high, buys outnumber sells by $\alpha$ per trade on average,
+so
+
+$$
+\mathbb{E}[\Delta\ell] = \alpha\,\ln\frac{1 + \alpha}{1 - \alpha} \approx 2\alpha^2 .
+$$
+
+Learning takes on the order of $1/\alpha^2$ trades: halving the share of insiders halves the spread but makes
+price discovery four times slower.
+
+**Breakdown.** Suppose uninformed traders trade only if the half-spread is at most $\delta_u$, the most they'll pay
+for immediacy. At $p = \tfrac12$ that requires $\tfrac12\alpha(v_H - v_L) \le \delta_u$. If insiders are too many or
+know too much, uninformed traders leave; with only insiders, no bid below $v_H$ or ask above $v_L$ can break even, and
+the market shuts.
+
+## <span class="section-tag">Playground</span>Market making before the news
+
+<GlostenMilgrom client:visible initialAlpha={0.6} title="Playground: the night before earnings" />
+
+<div class="try-this">
+
+- **Speed of learning.** Count how many trades it takes for the quotes to come within 5 cents of the truth with
+  10%, 30% and 60% insiders. Does it scale like $1/\alpha^2$?
+- **Who pays?** At 60% insiders, compare the uninformed traders' average loss with the insiders' gain over 40
+  trades. Then try 10%. Where do the uninformed lose the most per trade, and where in total?
+- **Shut down.** Find the share of insiders at which uninformed traders willing to pay at most 12 cents a share would
+  stop trading.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="The value is 2.20 or 2.80, equally likely, and 20% of traders are insiders. What's the Glosten–Milgrom ask?"
+  answer={2.56}
+  tolerance={0.0005}
+  prefix="\$"
+  explanation="After a buy, $p^+ = \tfrac12(1 + 0.2) = 0.6$, so $a = 2.20 + 0.6 \times 0.60 = 2.56$. The spread is $0.2 \times 0.60 = 0.12$, and the bid is 2.44."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Starting from $p = 0.5$ with half the traders informed ($\alpha = 0.5$), what's the market maker's belief in the high value after one buy?"
+  answer={0.75}
+  tolerance={0.0005}
+  explanation="$p^+ = p(1 + \alpha)/(1 + \alpha(2p - 1)) = 0.5 \times 1.5 / 1 = 0.75$."
+/>
+
+<Quiz
+  client:visible
+  question="The market maker in Glosten–Milgrom is risk-neutral and holds no inventory. Why does it still quote a spread?"
+  options={[
+    "To cover exchange fees",
+    "Because a buy order is evidence that the value is high (and a sell that it's low), so quotes must be conditional on the trade",
+    "Because it needs to earn a profit on every trade",
+    "Because uninformed traders insist on a spread",
+  ]}
+  answer={1}
+  explanation="Trades are informative: buyers are disproportionately insiders when the value is high. The zero-profit ask is $\mathbb{E}[v \mid \text{buy}]$ and the bid is $\mathbb{E}[v \mid \text{sell}]$, which differ whenever $\alpha > 0$."
+/>
+
+<Quiz
+  client:visible
+  question="Option market makers often widen their quotes just before a company announces earnings. In Glosten–Milgrom terms, why?"
+  options={[
+    "Because volatility is lower before announcements",
+    "Because the share of informed traders, and how much they know, is highest just then",
+    "Because the clearing house requires it",
+    "Because uninformed traders prefer wide spreads",
+  ]}
+  answer={1}
+  explanation="The spread at $p = \tfrac12$ is $\alpha(v_H - v_L)$: both the share of informed traders and the size of what they know peak before news. Chapter 53 shows why options are a favourite place for informed traders."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Some traders know more than the market maker, so being filled is bad news. The zero-profit quotes are
+  $a = \mathbb{E}[v \mid \text{buy}]$ and $b = \mathbb{E}[v \mid \text{sell}]$.
+- With values $v_L$, $v_H$ and a share $\alpha$ of insiders, the spread at $p = \tfrac12$ is $\alpha(v_H - v_L)$.
+- Beliefs update by **Bayes' rule** after every trade; prices are **martingales** and converge to the true value,
+  at a rate of about $2\alpha^2$ per trade in log-odds.
+- The uninformed pay for the insiders' profits. If the spread grows too large, they leave and the market can
+  **break down**.
+
+**Next up:** Glosten–Milgrom's insiders trade one unit at a time and can't choose how much. In Chapter 51, Kyle gives
+the insider a choice of quantity, and finds the trading strategy that best hides information among noise.
+
+### Further reading
+
+- L. R. Glosten and P. R. Milgrom, "Bid, ask and transaction prices in a specialist market with heterogeneously
+  informed traders", *Journal of Financial Economics* 14 (1985).
+- M. O'Hara, *Market Microstructure Theory*, Blackwell (1995), chapter 3.
+- T. Foucault, M. Pagano and A. Röell, *Market Liquidity: Theory, Evidence, and Policy*, Oxford University Press
+  (2013), chapter 3.

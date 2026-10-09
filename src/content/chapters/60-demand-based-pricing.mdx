@@ -1,0 +1,173 @@
+---
+title: "Demand-based option pricing"
+part: 13
+chapter: 60
+difficulty: 3
+prerequisites: [26, 58]
+summary: "Dealers who can't hedge perfectly must be paid to absorb end users' demand. That payment shapes the smile: buying pressure on puts can steepen the skew even when the hedgeable value is flat."
+---
+import DemandSmile from '../../components/plots/DemandSmile';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Why are index puts so expensive?
+
+Index puts have been expensive since 1987: their implied volatilities sit well above the volatility the index later
+realises (Chapter 28's variance risk premium), and well above the implied volatilities of out-of-the-money calls (the
+skew of Chapter 26). Part VII offered explanations from the dynamics of the underlying: jumps, stochastic volatility,
+leverage effects. Those are part of the story.
+
+Here is another, from the market maker's side of the trade. Pension funds and insurers buy index puts to protect their
+portfolios, year after year. Somebody has to sell them, and that somebody is mostly a dealer. If the dealer could hedge
+the puts perfectly, it would sell them at fair value. It can't: a crash or a jump in volatility leaves losses that
+delta hedging doesn't cover. So it charges for that risk, and the more puts it has to absorb, the more it charges. That
+is the idea of **demand-based option pricing**, made precise by Gârleanu, Pedersen and Poteshman in 2009.
+
+## <span class="section-tag">Intuition</span>Prices that depend on who wants what
+
+In Black–Scholes, an option's price doesn't depend on how many people want to buy it: anyone can manufacture it by
+hedging. With **unhedgeable risk**, that breaks. A dealer holding a book of short puts carries crash risk it can't
+offload; selling one more put adds to that risk, and selling a call that also loses in a crash adds a little too.
+Buying back a put, or selling a crash-sensitive option *to* the dealer, reduces it.
+
+So each option's price gets a premium equal to the dealer's risk aversion times the extra unhedgeable risk it adds to
+the dealer's book. Two consequences follow.
+
+- Demand for an option raises **its own price**, by more than enough to compensate for the risk of that option alone.
+- It also raises the price of every option whose unhedgeable risk is **correlated** with it. Buying puts makes calls a
+  little more expensive too, because both carry volatility and crash risk.
+
+<DemandSmile client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with no net demand the smile is flat at 20%: the hedgeable value. Choose
+<em>Index: buy puts, sell calls</em>, the typical pattern in index options: the whole smile rises and tilts, with the
+\$85 put about three points above the \$115 call, from demand alone. Now pick <em>Single stock: sell calls</em>, the
+typical pattern in single-stock options, where investors write covered calls: the whole smile drops below 20%, the
+puts most of all, because they share the calls' crash risk. Gârleanu, Pedersen and Poteshman found this contrast in
+the data: index options are expensive and steeply skewed; single-stock options are much cheaper.</p>
+
+<Callout type="key" title="Demand moves prices when risk can't be hedged">
+With perfect hedging, option prices are pinned by replication and demand is irrelevant. With unhedgeable risk, the
+dealers who absorb end users' demand charge $\gamma\,\mathrm{Cov}(\text{unhedgeable P\&L})$ times that demand. Net buying
+makes options expensive, net selling makes them cheap, and correlated options move together.
+</Callout>
+
+Bollen and Whaley (2004) found an early piece of evidence: daily changes in an option's implied volatility are related
+to the net buying pressure on it, and for index options the pressure from put buyers dominates. Demand-based pricing
+also helps explain why the variance risk premium is so large in index options: part of what investors pay for puts is
+the price of insurance, collected by the dealers who bear the risk.
+
+## <span class="section-tag">Formalisation</span>The dealer's problem
+
+**Setup.** End users have net demand $d = (d_1, \dots, d_n)$ for $n$ options: positive means they buy. Competitive dealers
+take the other side, so they hold $-d$. Each option's payoff, after the dealer's best delta hedge, leaves an
+**unhedgeable** component $\varepsilon_i$ with $\mathbb{E}[\varepsilon_i] = 0$ and covariance matrix $\Sigma$. Its price is its
+hedgeable value $p_i^0$ plus a premium.
+
+**The dealers' optimum.** A representative dealer with risk aversion $\gamma$ sells $d$ at prices $p$, so its wealth from
+the trades is $\sum_i d_i(p_i - p_i^0) - \sum_i d_i\varepsilon_i$, with certainty equivalent
+
+$$
+\mathrm{CE} = d^\top(p - p^0) - \tfrac12\gamma\,d^\top\Sigma\,d .
+$$
+
+Dealers supply exactly $d$ when the marginal benefit equals the marginal risk, $\partial\mathrm{CE}/\partial d = 0$:
+
+$$
+p = p^0 + \gamma\,\Sigma\,d , \qquad\qquad \frac{\partial p_i}{\partial d_j} = \gamma\,\Sigma_{ij} .
+$$
+
+Demand for option $j$ moves the price of option $i$ by the covariance of their unhedgeable risks. Since $\Sigma$ is
+positive semi-definite, end users as a group always pay at least $\gamma\,d^\top\Sigma d \ge 0$ more than the hedgeable value.
+
+**Where $\Sigma$ comes from in the widget.** Each option's unhedgeable P&L has two sources: a change $\delta\sigma$ in
+implied volatility (standard deviation 1.5 points over the horizon), which it carries through its vega $\mathcal{V}_i$,
+and a crash of 15% with probability 5%, through its delta-hedged crash loss $c_i = V_i\big(0.85\,\Spot{S}\big) - V_i(\Spot{S}) + 0.15\,\Delta_i\Spot{S}$.
+So
+
+$$
+\Sigma_{ij} = s_\sigma^2\,\mathcal{V}_i\mathcal{V}_j + \pi(1 - \pi)\,c_i\,c_j ,
+$$
+
+with $s_\sigma = 1.5$ and $\pi = 0.05$. The volatility term moves all options' implied volatilities by about the same
+amount. The crash term is large relative to vega for out-of-the-money puts, so it moves their implied volatilities
+most: that's where the skew comes from.
+
+**Converting to volatility.** The premium $\gamma(\Sigma d)_i$ is in dollars; dividing by vega turns it into volatility
+points, $\delta\sigma_i \approx \gamma(\Sigma d)_i/\mathcal{V}_i$. Options with small vega and large crash exposure, the
+out-of-the-money puts, have the largest volatility premium.
+
+**Limits.** The model is linear in demand, so very large net selling can push some modelled prices below what
+arbitrage allows; real dealers' risk aversion and capital also change over time. GPP's empirical tests use the model's
+qualitative predictions: that demand pressure, measured by end users' net positions, predicts how expensive options are
+across strikes, maturities and underlyings.
+
+## <span class="section-tag">Playground</span>Who wants what
+
+<DemandSmile client:visible initialPreset="straddles" title="Playground: shape the smile with demand" />
+
+<div class="try-this">
+
+- **Volatility buyers.** With end users buying at-the-money options, which options rise most in implied volatility,
+  and why isn't it the at-the-money ones themselves?
+- **Risk-tolerant dealers.** Set $\gamma$ to zero. What's left of the smile? What does that say about markets where
+  dealers are well capitalised?
+- **Double the demand.** Is the skew twice as steep? Check the formula: the premium is linear in $d$.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<Quiz
+  client:visible
+  question="Dealers can hedge every risk of an option perfectly. What does end users' net demand do to its price?"
+  options={[
+    "Raises it in proportion to the demand",
+    "Nothing: with $\\Sigma = 0$ the premium $\\gamma\\Sigma d$ vanishes and replication pins the price",
+    "Lowers it",
+    "Makes it undefined",
+  ]}
+  answer={1}
+  explanation="Demand moves prices only through unhedgeable risk. If $\varepsilon_i = 0$ for every option, $\Sigma = 0$ and $p = p^0$, the Black–Scholes logic."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Two options have unhedgeable-risk covariance $\Sigma_{12} = 0.5$ (in dollars² per share², per share of demand), and dealers' risk aversion is $\gamma = 0.002$. End users buy 1,000 shares' worth of option 2. By how much does option 1's price rise, in dollars per share?"
+  answer={1}
+  tolerance={0.001}
+  explanation="$\partial p_1/\partial d_2 = \gamma\Sigma_{12} = 0.002 \times 0.5 = 0.001$ per share of demand, so 1,000 shares raise option 1's price by \$1.00 a share."
+/>
+
+<Quiz
+  client:visible
+  question="Index options are typically expensive and steeply skewed; single-stock options cheaper and flatter. What does demand-based pricing attribute this to?"
+  options={[
+    "Different volatility dynamics only",
+    "End users being net buyers of index puts but net sellers of single-stock options (covered calls), with dealers charging for the unhedgeable risk",
+    "Exchange fees",
+    "Higher interest rates on indices",
+  ]}
+  answer={1}
+  explanation="Gârleanu, Pedersen and Poteshman found end users net long index options (mostly puts) and net short single-stock options; the sign and shape of demand line up with the expensiveness and skew."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- With **unhedgeable risk**, dealers charge for absorbing demand: $p = p^0 + \gamma\,\Sigma\,d$.
+- Demand for one option raises the prices of all options **correlated** with it, by $\gamma\Sigma_{ij}$ per unit.
+- Net buying of index puts can produce a **skew** and a **variance risk premium** even when the hedgeable value is flat;
+  net selling of single-stock calls cheapens their options.
+- The effects grow with dealers' **risk aversion** and with how much risk can't be hedged (crashes, volatility moves).
+
+**Next up:** Part XIV turns from the market maker to the large trader. Chapter 61 asks how much a big order moves the
+price, and finds a law that holds across markets: impact grows like the square root of size.
+
+### Further reading
+
+- N. Gârleanu, L. H. Pedersen and A. M. Poteshman, "Demand-based option pricing", *Review of Financial Studies* 22
+  (2009).
+- N. P. B. Bollen and R. E. Whaley, "Does net buying pressure affect the shape of implied volatility functions?",
+  *Journal of Finance* 59 (2004).
+- G. Bakshi, N. Kapadia and D. Madan, "Stock return characteristics, skew laws, and the differential pricing of
+  individual equity options", *Review of Financial Studies* 16 (2003).

@@ -1,0 +1,195 @@
+---
+title: "Executing option trades"
+part: 14
+chapter: 65
+difficulty: 2
+prerequisites: [56, 62]
+summary: "Option markets are wide and thin, so execution can eat a volatility trader's edge. Measure costs in vol points, work orders from the mid, tie them to the stock, spread size across strikes, and know when to ask a dealer for a block."
+---
+import VolTradeExecution from '../../components/plots/VolTradeExecution';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>An edge of a point and a half
+
+A volatility fund thinks the stock's three-month implied volatility, about 20.6%, is too low: it expects the stock to
+realise 1.5 points more. It wants to buy \$50,000 of vega, an option position that gains \$50,000 for every point
+implied volatility rises, and then delta-hedge it so that it profits if realised volatility beats implied.
+
+On the screen, the at-the-money call is quoted about a vol point and a half wide. Paying the offer costs half of that
+going in and half again coming out, and the size the fund wants is many times what's displayed. Before the trade has
+a chance to be right, execution may have eaten the whole edge. This chapter applies Part XIV's tools to options,
+where markets are wider, thinner and spread across dozens of strikes.
+
+## <span class="section-tag">Intuition</span>Think in vol points
+
+An option trader doesn't care that a spread is 30 cents wide. They care what it is in volatility: 30 cents on an
+option with 20 cents of vega per point is a vol point and a half. Measured that way, costs can be compared across
+strikes and expiries, and against the edge, which is also in vol points.
+
+Three habits keep those costs down.
+
+- **Work the order.** Post at the mid, wait, and step towards the offer a little at a time. Someone may sell to you
+  before you reach the far side.
+- **Tie it to the stock.** An option's fair value moves with the stock. A resting bid at a fixed price becomes stale
+  the moment the stock drops, and fast traders pick it off (Chapter 56). A **stock-tied** order's price moves by delta
+  times the stock's move, and it trades the hedge at the same time.
+- **Spread the size.** Square-root impact (Chapter 61) means that buying a little at each of several strikes moves
+  prices less than buying everything at one.
+
+For big size, there's a fourth: **ask a dealer**. A request for quote gets a price for the whole package at once,
+with nothing shown on the screen. But the dealer must hold the risk, and charges for it.
+
+<VolTradeExecution client:visible />
+
+<p class="try-this"><strong>Try this:</strong> buying \$50,000 of vega at the money by lifting offers costs about one
+vol point to get in. Add the same to get out, and daily hedging, and the fund needs realised volatility about 2.3
+points above implied just to break even: its 1.5-point edge loses money. Spread the vega <em>by liquidity</em> and
+<em>work the order</em>: the breakeven falls to about 1.3 points. Now shrink the size: at \$10,000, requesting a
+quote is cheapest. At \$100,000, the dealer's warehousing charge makes it the expensive choice.</p>
+
+<Callout type="key" title="Execution costs come out of the edge">
+A long-volatility trade earns roughly vega times realised minus implied volatility, less its costs. Measured in vol
+points, the breakeven is the round-trip execution cost plus the drag from delta hedging. With option spreads of a
+vol point or more, execution is often the difference between a good idea and a profitable trade.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Costs, ties, ladders and blocks
+
+**Costs in vol points.** A cost of $c$ dollars per share on an option with vega $\mathcal{V}$ per vol point is
+$c/\mathcal{V}$ vol points. For a position with total vega $Q$ (dollars per vol point), a cost of $C$ dollars is $C/Q$
+vol points. In the widget's chain, the at-the-money call is quoted 4.60 bid, 4.90 ask with vega 0.197: a half-spread of
+15 cents, or 0.76 vol points.
+
+**Stock-tied orders.** Write the order's limit as a function of the stock:
+
+$$
+p(\Spot{S}) = V + \Delta\,\big(\Spot{S} - \Spot{S}_{\text{ref}}\big),
+$$
+
+where $V$ is the limit at the reference stock price $\Spot{S}_{\text{ref}}$. When the order fills, the trader also
+trades $\Delta$ shares of stock per option at the same moment, often as a single package (Chapter 45). The option's
+price and the hedge move together, so the order never goes stale when the stock moves, and the trade is
+delta-neutral from the first second.
+
+**Working the order.** Start at the mid and step towards the ask in $n$ equal steps: at step $k$ the bid is a fraction
+$\theta_k = k/(n - 1)$ of the half-spread above the mid. If the order fills in an interval with probability $p_k$, the
+expected fraction of the half-spread paid is
+
+$$
+\bar\theta = \sum_{k} \Big(\prod_{j < k} (1 - p_j)\Big)\,p_k\,\theta_k .
+$$
+
+In the widget, five steps with $p_k = 0.15 + 0.85\,\theta_k^2$ give $\bar\theta \approx 0.53$: working saves almost half of
+the half-spread, at the cost of time, during which implied volatility can move, and of showing your hand to anyone
+watching the book.
+
+**Impact across strikes.** Suppose each strike obeys a square-root law in vol points,
+$I_i = Y\sigma_{\text{vol}}\sqrt{Q_i/L_i}$, with $L_i$ the strike's daily traded vega and $\sigma_{\text{vol}}$ the
+daily volatility of implied volatility. The total impact cost $\sum_i Q_i I_i \propto \sum_i Q_i^{3/2} L_i^{-1/2}$,
+minimised subject to $\sum_i Q_i = Q$, gives
+
+$$
+\tfrac32\,Y\sigma_{\text{vol}}\sqrt{Q_i/L_i} = \text{constant},
+$$
+
+so $Q_i \propto L_i$: buy in proportion to each strike's liquidity, and every strike suffers the same impact. Spreading across strikes
+changes the trade, though: vega bought in the wings adds exposure to the skew (Chapter 26) and to the strikes'
+different gammas.
+
+**Blocks and requests for quote.** A dealer asked for a price on the whole package quotes around the mid, plus a
+charge for the risk it must warehouse until it can hedge or offload it. Chapter 60's demand-based pricing says this
+charge grows with size: the widget uses a fixed 0.004 vol points per \$1,000 of vega. Exchanges offer the same idea
+through price-improvement auctions for large orders (Chapter 45). An RFQ is attractive at moderate size, and it leaks
+no information to the screen; for very large size, the dealer's charge can exceed the screen's square-root impact.
+
+**Breakeven.** A delta-hedged long option earns roughly $\mathcal{V}\,(\sigma_{\text{realised}} - \sigma_{\text{implied}})$
+in dollars per vol point of vega. Delta hedging with proportional stock costs $\epsilon$ makes a long hedger realise
+only $\Vol{\sigma}\sqrt{1 - \text{Le}}$ (Chapter 59), a drag of about $\Vol{\sigma}\,\text{Le}/2$. So the trade
+breaks even when
+
+$$
+\begin{aligned}
+&\sigma_{\text{realised}} - \sigma_{\text{implied}} \\
+&\qquad = 2c + \Vol{\sigma}\big(1 - \sqrt{1 - \text{Le}}\big),
+\end{aligned}
+$$
+
+with $c$ the one-way execution cost in vol points. With daily hedging at 2 basis points a trade, the hedging drag is
+about a quarter of a vol point.
+
+## <span class="section-tag">Playground</span>Protect the edge
+
+<VolTradeExecution client:visible initialMethod="work" title="Playground: execution against edge" />
+
+<div class="try-this">
+
+- **Size limits.** With a 1.5-point edge, working the order and spreading by liquidity, how large can the trade get
+  before the expected profit starts to shrink? Why does the profit stop growing in proportion to size?
+- **When to call a dealer.** At which size does requesting a quote stop beating working the order?
+- **All at the money.** Compare the cost split (spread against impact) at the money and spread by liquidity. Which
+  component falls when you spread the order?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="An option is quoted with a half-spread of 10 cents and has a vega of 0.25 dollars per vol point. How many vol points does crossing the half-spread cost?"
+  answer={0.4}
+  tolerance={0.005}
+  explanation="$0.10 / 0.25 = 0.4$ vol points."
+/>
+
+<NumericQuiz
+  client:visible
+  question="You bid \$3.00 for a call, tied to the stock at a reference price of \$100 with delta 0.6. The order fills when the stock trades at \$98.50. What price do you pay for the call?"
+  answer={2.1}
+  tolerance={0.005}
+  explanation="$p = 3.00 + 0.6 \times (98.50 - 100) = 3.00 - 0.90 = 2.10$. At the same moment you sell 0.6 shares per option, 60 per contract, at \$98.50: the hedge for a long call."
+/>
+
+<Quiz
+  client:visible
+  question="Why does a resting option bid at a fixed price lose money on average when the stock is moving?"
+  options={[
+    "Exchange fees rise when the stock moves",
+    "When the stock falls, the bid is suddenly above fair value, and fast traders sell to it before you can cancel",
+    "Option prices don't depend on the stock",
+    "The order is always filled at the ask",
+  ]}
+  answer={1}
+  explanation="A fixed-price bid becomes stale as soon as the stock moves. It's filled when that's bad for you, the pick-off risk of Chapter 56. Tying the order to the stock removes it."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Entering a long-volatility trade costs 0.5 vol points, exiting costs the same, and delta hedging costs 0.25 vol points of drag. How many points must realised volatility beat implied by for the trade to break even?"
+  answer={1.25}
+  tolerance={0.005}
+  explanation="Round trip $2 \times 0.5 = 1$, plus 0.25 of hedging drag: 1.25 vol points."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Measure option execution costs in **vol points**: dollars divided by vega.
+- **Stock-tied** orders, $V + \Delta(S - S_{\text{ref}})$, keep option orders fresh as the stock moves and trade the hedge at
+  the same time.
+- **Working** an order from the mid saves part of the half-spread, at the cost of time and information.
+- With square-root impact, spreading vega **in proportion to liquidity** minimises impact, but changes the trade's
+  exposure to the skew.
+- A **request for quote** prices the whole block at once; the dealer's warehousing charge grows with size.
+- A long-volatility trade breaks even when realised minus implied volatility covers the **round trip** plus the
+  **hedging drag**.
+
+**Next up:** Part XV turns the question around. When dealers hedge, they trade the underlying, and their hedging can
+move the market itself. Chapter 66 starts with dealer gamma and the feedback it creates.
+
+### Further reading
+
+- E. Sinclair, *Option Trading: Pricing and Volatility Strategies and Techniques*, Wiley (2010), chapters on trade
+  execution and trading volatility.
+- B. Tóth, Z. Eisler and J.-P. Bouchaud, "The square-root impact law also holds for option markets", *Wilmott* (2016).
+- J. Muravyev and N. D. Pearson, "Options trading costs are lower than you think", *Review of Financial Studies* 33
+  (2020).

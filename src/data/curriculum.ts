@@ -103,6 +103,67 @@ export const parts: PartInfo[] = [
       { number: 42, title: 'Options everywhere' },
     ],
   },
+  {
+    number: 11, roman: 'XI', title: 'Inside the options market', difficulty: '●–●●',
+    chapters: [
+      { number: 43, title: 'The limit order book' },
+      { number: 44, title: 'Matching rules and fragmented markets' },
+      { number: 45, title: 'Complex orders and auctions' },
+      { number: 46, title: 'Clearing, margin and assignment' },
+      { number: 47, title: 'Measuring liquidity' },
+      { number: 48, title: 'No-arbitrage with frictions' },
+    ],
+  },
+  {
+    number: 12, roman: 'XII', title: 'Information and price formation', difficulty: '●●–●●●',
+    chapters: [
+      { number: 49, title: 'Inventory: why dealers charge to hold risk' },
+      { number: 50, title: 'Adverse selection: Glosten–Milgrom' },
+      { number: 51, title: "Kyle's model" },
+      { number: 52, title: 'Kyle in continuous time' },
+      { number: 53, title: 'Informed trading in options' },
+      { number: 54, title: 'Price discovery across stock and options' },
+    ],
+  },
+  {
+    number: 13, roman: 'XIII', title: 'The options market maker', difficulty: '●●–●●●',
+    chapters: [
+      { number: 55, title: 'From noisy quotes to a clean surface' },
+      { number: 56, title: 'Quoting around a theoretical value' },
+      { number: 57, title: 'Optimal market making: Avellaneda–Stoikov' },
+      { number: 58, title: 'Making markets in many options' },
+      { number: 59, title: 'Hedging with transaction costs' },
+      { number: 60, title: 'Demand-based option pricing' },
+    ],
+  },
+  {
+    number: 14, roman: 'XIV', title: 'Price impact and optimal execution', difficulty: '●●–●●●',
+    chapters: [
+      { number: 61, title: 'Price impact: what the data says' },
+      { number: 62, title: 'Optimal execution: Almgren–Chriss' },
+      { number: 63, title: 'Transient impact and resilient books' },
+      { number: 64, title: 'Execution algorithms in practice' },
+      { number: 65, title: 'Executing option trades' },
+    ],
+  },
+  {
+    number: 15, roman: 'XV', title: 'When hedging moves the market', difficulty: '●●',
+    chapters: [
+      { number: 66, title: 'Dealer gamma and feedback' },
+      { number: 67, title: 'Pinning at expiry' },
+      { number: 68, title: 'Zero-days-to-expiry options and intraday dynamics' },
+      { number: 69, title: 'Liquidity spirals and volatility crashes' },
+    ],
+  },
+  {
+    number: 16, roman: 'XVI', title: 'High-frequency microstructure', difficulty: '●●●',
+    chapters: [
+      { number: 70, title: 'Order flow as a point process: Hawkes' },
+      { number: 71, title: 'Queues, imbalance and the microprice' },
+      { number: 72, title: 'Microstructure noise and realised volatility' },
+      { number: 73, title: 'Speed, ticks and market design' },
+    ],
+  },
 ];
 
 /** Join a path onto the site's base URL (GitHub Pages serves under /options-explained/). */

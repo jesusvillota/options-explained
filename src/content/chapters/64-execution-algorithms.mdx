@@ -1,0 +1,222 @@
+---
+title: "Execution algorithms in practice"
+part: 14
+chapter: 64
+difficulty: 2
+prerequisites: [62]
+summary: "Real execution desks trade against benchmarks: VWAP, TWAP, arrival price, the close. Following the day's volume curve tracks VWAP; participating in volume tracks it better but may not finish; a limit order saves the spread if you can afford to wait."
+---
+import VWAPTracker from '../../components/plots/VWAPTracker';
+import LimitVsMarket from '../../components/plots/LimitVsMarket';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>"Buy 500,000, benchmark VWAP"
+
+A portfolio manager sends the trading desk an order: buy 500,000 shares today, and judge the execution against the
+day's **VWAP**, the volume-weighted average price of all the stock's trades. The trader doesn't solve Chapter 62's
+optimisation by hand. They pick an **algorithm** from the broker's menu: VWAP, TWAP, POV, implementation shortfall, or
+market-on-close. Each one is built to do well against a particular **benchmark**.
+
+This chapter opens that menu. It shows how the algorithms follow the day's volume, why they miss their benchmarks,
+how to choose between a limit order and a market order for each slice, and how the desk measures, after the fact,
+what the whole thing cost.
+
+## <span class="section-tag">Intuition</span>Follow the volume
+
+Trading volume isn't spread evenly over the day. It's heavy after the open, thin at lunch, and heaviest into the
+close, when index funds and the closing auction trade. If you want to pay the day's average price, you have to trade
+when everyone else trades: buy a lot in the busy minutes and little in the quiet ones.
+
+- **TWAP** buys the same amount every five minutes. Easy, but it overweights the lunchtime lull.
+- **VWAP** follows the *historical* volume curve: the shape of an average day. It tracks VWAP well when today looks
+  like an average day.
+- **POV** (percentage of volume) buys a fixed share of whatever actually trades. It follows today's volume exactly,
+  but it doesn't know how much will trade, so it can't promise to finish.
+
+<VWAPTracker client:visible />
+
+<p class="try-this"><strong>Try this:</strong> click <em>New day</em> a few times with each algorithm. The grey bars
+are one day's volume; the black curve is the historical average. In the bottom panel, the blue line is how much of your
+order is done, and the dashed one how much of the day's volume has traded. VWAP tracks the dashed line closely; TWAP
+falls behind in the morning and ahead in the afternoon. POV follows it exactly, until a quiet day leaves it far from
+finished and it must buy the rest in the last five minutes.</p>
+
+## <span class="section-tag">Intuition</span>Pay the spread, or wait?
+
+Every slice has a second decision. A **market order** fills now but pays half the spread. A **limit order** at the
+bid pays nothing extra if it fills, but it may not fill, and while you wait the price may move away. If it does, you
+end up chasing it and paying the spread anyway, at a worse price.
+
+<LimitVsMarket client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with no drift, the cost of the limit order keeps falling as you wait
+longer: patience is free on average. Raise the drift, the expected rise in the price while you wait, which stands for
+urgency or for trading against better-informed flow. Now the cost is U-shaped: wait a little to catch the fills that
+come quickly, then give up. Widen the spread, and the limit order becomes more attractive; push the drift to 3 bp a
+minute with a 20 bp spread, and the market order wins.</p>
+
+<Callout type="key" title="Benchmarks drive algorithms">
+VWAP algorithms trade in proportion to expected volume, and their tracking error is the gap between their cumulative
+schedule and the market's. Participation algorithms follow realised volume but risk not finishing. A limit order is
+worth posting while the spread it saves, times the chance of a fill, exceeds the drift you suffer while waiting.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Schedules, slippage and fills
+
+**Benchmarks.** For a buy order of $X$ shares, the common benchmarks are:
+
+- the **arrival price**, the mid when the order reached the desk. The shortfall against it is the true cost of the
+  trade, as in Chapter 62;
+- **VWAP**, $\sum_k p_k u_k / \sum_k u_k$ over the day's trades, with $u_k$ the market volume at price $p_k$;
+- **TWAP**, the time-average price;
+- the **close**, for funds that value their portfolios at the closing price.
+
+A benchmark that the trader's own trading moves, such as VWAP, is easier to beat than the arrival price, which is
+fixed before the trader starts. That's one reason VWAP is popular, and one reason it's criticised.
+
+**The VWAP schedule.** With $u_t$ the rate of market volume, a VWAP algorithm holds
+
+$$
+x_t = X\left(1 - \frac{\int_0^t u_s\,ds}{\int_0^T u_s\,ds}\right)
+$$
+
+shares still to buy at time $t$, using the *expected* volume curve, since today's isn't known in advance.
+
+**Tracking error.** Over $n$ bins, write your weights $a_k = n_k/X$ and the market's $b_k = u_k/\sum_j u_j$. Your
+slippage against VWAP is $\sum_k p_k(a_k - b_k)$. Summing by parts, with cumulative weights $A_k$ and $B_k$, it equals
+
+$$
+-\sum_{k} \big(A_k - B_k\big)\big(p_{k+1} - p_k\big) .
+$$
+
+If the weights don't depend on the price moves, which have variance $\sigma_{\text{bin}}^2$ per bin, the tracking
+error's variance is $\sigma_{\text{bin}}^2\sum_k (A_k - B_k)^2$: the squared gap between the two cumulative curves
+in the widget's lower panel. With the default volume noise, TWAP's tracking error is about 10 basis points and VWAP's
+about 4.5.
+
+**Participation.** POV buys $n_k = \nu\,u_k$ with participation rate $\nu$, chosen so that $\nu$ times the
+expected daily volume equals $X$. Its weights match the market's exactly, so it has no tracking error while it runs.
+But it buys $\nu\sum_k u_k$ in total, which is less than $X$ on a quiet day. Then the rest has to be bought at the
+close, a large catch-up trade that undoes the tracking; on a busy day it finishes early and misses the rest of the
+day's prices. In the widget, about half the days need a catch-up.
+
+**Limit or market.** Model the mid as $X_t = \mu t + \sigma W_t$, with drift $\mu$ against the buyer. A buy limit
+order $\delta$ below the arrival mid fills when the mid first touches $-\delta$, at time $\tau$; if that hasn't
+happened by $h$, the buyer pays the ask, $X_h + s/2$. The fill probability is a first-passage probability,
+
+$$
+\begin{aligned}
+\pi &= \Phi\!\Big(\frac{-\delta - \mu h}{\sigma\sqrt h}\Big) \\
+&\quad + e^{-2\mu\delta/\sigma^2}\,\Phi\!\Big(\frac{-\delta + \mu h}{\sigma\sqrt h}\Big),
+\end{aligned}
+$$
+
+which is $2\Phi\big(-\delta/(\sigma\sqrt h)\big)$ without drift, by the reflection principle. The expected cost
+against the arrival mid is $-\pi\delta + \mathbb{E}[X_h;\,\text{no fill}] + (1 - \pi)\tfrac{s}{2}$. Since
+$X_t - \mu t$ is a martingale, optional stopping gives $\mathbb{E}[X_{\tau\wedge h}] = \mu\,\mathbb{E}[\tau\wedge h]$,
+and the expression simplifies to
+
+$$
+\mathbb{E}[\text{cost}] = (1 - \pi)\,\frac{s}{2} + \mu\,\mathbb{E}[\tau \wedge h] .
+$$
+
+The market order costs $s/2$. So the limit order is better exactly when
+
+$$
+\mu\,\mathbb{E}[\tau \wedge h] < \pi\,\frac{s}{2} :
+$$
+
+the drift you suffer while waiting must be less than the half-spread you save, weighted by the chance of a fill.
+Without drift, the gain from buying at the bid when the price falls exactly offsets the loss from chasing when it
+rises; the limit order wins by the half-spread on the fills. The drift term is where **adverse selection** enters:
+limit orders tend to fill just before the price falls further, and to miss just before it rises.
+
+**Measuring the cost.** After the trade, Perold's (1988) **implementation shortfall** compares the trade with a paper
+portfolio that bought all $X$ at the decision price $p_d$. It splits into three parts:
+
+$$
+\begin{aligned}
+\text{delay} &= Q\,(p_a - p_d), \\
+\text{execution} &= \textstyle\sum_i q_i\,(p_i - p_a), \\
+\text{opportunity} &= (X - Q)\,(p_{\text{close}} - p_d),
+\end{aligned}
+$$
+
+with $p_a$ the arrival price, fills $q_i$ at prices $p_i$, and $Q = \sum_i q_i$. Delay is the cost of hesitating,
+execution the cost of impact and spreads, and opportunity the cost of what was never bought.
+
+## <span class="section-tag">Playground</span>Benchmarks and patience
+
+<VWAPTracker client:visible initialAlgo="pov" title="Playground: participation and its risks" />
+
+<div class="try-this">
+
+- **Quiet days.** Click *New day* until you get a day with volume well below average. What does POV do at 15:55,
+  and what happens to its slippage?
+- **Noise.** Set the volume noise to zero. Which algorithm now tracks VWAP perfectly, and why does TWAP still miss?
+- **Back to the limit order.** In the previous widget, with a 10 bp spread and 1 bp a minute of drift, how long
+  should you wait at the bid, and what fraction of the time does the order fill?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A stock trades 2,000 shares at \$50.00, 6,000 at \$50.10 and 2,000 at \$50.30. What's its VWAP, in dollars?"
+  answer={50.12}
+  tolerance={0.001}
+  explanation="$(2{,}000 \times 50.00 + 6{,}000 \times 50.10 + 2{,}000 \times 50.30)/10{,}000 = 501{,}200/10{,}000 = 50.12$."
+/>
+
+<Quiz
+  client:visible
+  question="A POV algorithm set to 10% of volume is asked to buy 10% of the expected daily volume. Today is a quiet day, with 70% of the usual volume. What happens?"
+  options={[
+    "It finishes exactly at the close",
+    "It finishes early",
+    "By the close it has bought only 70% of the order, and must buy the rest in a catch-up trade or leave it unfilled",
+    "It automatically switches to TWAP",
+  ]}
+  answer={2}
+  explanation="POV buys 10% of what trades: 10% of 70% of the usual volume is 70% of the order. The remaining 30% must be caught up at the close, at a cost, or left as opportunity cost."
+/>
+
+<NumericQuiz
+  client:visible
+  question="The spread is 8 basis points, the price has no drift, and your limit order at the bid fills 75% of the time before you give up and buy at the ask. What's its expected cost against the arrival mid, in basis points?"
+  answer={1}
+  tolerance={0.01}
+  explanation="With no drift, $\mathbb{E}[\text{cost}] = (1 - \pi)\,s/2 = 0.25 \times 4 = 1$ basis point, against 4 for a market order."
+/>
+
+<NumericQuiz
+  client:visible
+  question="You decide to buy 10,000 shares at \$50.00. By the time the order reaches the market the price is \$50.10. You buy 4,000 at \$50.20 and 4,000 at \$50.30, and the stock closes at \$50.60 with 2,000 shares unbought. What's the total implementation shortfall, in dollars?"
+  answer={3200}
+  tolerance={0.5}
+  explanation="Delay: $8{,}000 \times 0.10 = 800$. Execution: $4{,}000 \times 0.10 + 4{,}000 \times 0.20 = 1{,}200$. Opportunity: $2{,}000 \times 0.60 = 1{,}200$. Total: \$3,200."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Execution is judged against **benchmarks**: arrival price, VWAP, TWAP, the close. Each has its algorithm.
+- **VWAP** algorithms follow the expected volume curve; their tracking error is the gap between their cumulative
+  schedule and the market's. **POV** follows realised volume but risks not finishing.
+- A **limit order** at the bid costs $(1 - \pi)\,s/2 + \mu\,\mathbb{E}[\tau\wedge h]$ in expectation: better than a market
+  order while the drift you suffer is less than the spread you save.
+- **Implementation shortfall** splits into delay, execution and opportunity costs.
+
+**Next up:** options trade in wider, thinner markets than stocks, and every option trade comes with a delta to hedge.
+Chapter 65 adapts these tools to executing option orders.
+
+### Further reading
+
+- A. F. Perold, "The implementation shortfall: paper versus reality", *Journal of Portfolio Management* 14 (1988).
+- R. Kissell, *The Science of Algorithmic Trading and Portfolio Management*, Academic Press (2013).
+- C.-A. Lehalle and S. Laruelle (eds.), *Market Microstructure in Practice*, World Scientific (2nd ed., 2018).
+- Á. Cartea, S. Jaimungal and J. Penalva, *Algorithmic and High-Frequency Trading*, Cambridge University Press (2015),
+  chapters 8 and 9.
+- J. Bialkowski, S. Darolles and G. Le Fol, "Improving VWAP strategies: a dynamic volume approach", *Journal of
+  Banking & Finance* 32 (2008).

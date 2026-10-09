@@ -120,10 +120,10 @@
 @media (min-width: 900px) { .chain-detail { grid-template-columns: 1.3fr 1fr; align-items: start; } }
 
 /* Select */
-.ctl-select { display: flex; flex-direction: column; gap: 0.15rem; }
+.ctl-select { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; max-width: 100%; }
 .ctl-select select {
   min-height: 40px; padding: 0 2rem 0 0.8rem; border-radius: 8px; font: inherit; cursor: pointer;
-  border: 1px solid var(--border); background: var(--bg-inset); color: var(--text);
+  border: 1px solid var(--border); background: var(--bg-inset); color: var(--text); max-width: 100%;
 }
 
 /* Strategy builder (Chapter 5) */
@@ -144,3 +144,7 @@
 .iter-table th, .iter-table td { padding: 0.15rem 0.9rem 0.15rem 0; text-align: right; white-space: nowrap; }
 .iter-table th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; }
 .iter-table + p { margin: 0.4rem 0 0; }
+.widget-readout { overflow-x: auto; }
+@media (max-width: 560px) {
+  .iter-table th, .iter-table td { padding-right: 0.55rem; }
+}

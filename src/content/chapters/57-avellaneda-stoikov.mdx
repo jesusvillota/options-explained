@@ -1,0 +1,220 @@
+---
+title: "Optimal market making: Avellaneda–Stoikov"
+part: 13
+chapter: 57
+difficulty: 3
+prerequisites: [19, 49]
+summary: "Market making as stochastic control: a reservation price that leans against inventory, an optimal spread with two parts, and a closed form that desks still use."
+---
+import AvellanedaStoikov from '../../components/plots/AvellanedaStoikov';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>From rules of thumb to an optimum
+
+Chapter 49 shaded quotes against inventory with a constant chosen by hand. Chapter 56 chose an edge by trying a few.
+Both were rules of thumb. Can we instead *derive* where a market maker should quote, given how much risk it's willing
+to take, how volatile the asset is, and how order flow responds to its prices?
+
+Marco Avellaneda and Sasha Stoikov did exactly that in 2008, in a short paper that became the standard model of
+algorithmic market making. They set it up as a stochastic control problem, solved it approximately, and got two
+formulas that fit on a napkin: a **reservation price** that leans against inventory, and an **optimal spread** made of
+two clearly interpretable parts.
+
+## <span class="section-tag">Intuition</span>Two decisions: where to centre, how wide
+
+The market maker quotes a bid and an ask around the mid-price. That's two decisions.
+
+**Where to centre.** A market maker with no inventory centres on the mid. One that's long would rather sell than buy,
+so it centres lower; one that's short centres higher. The centre is the **reservation price**: what the asset is worth
+*to this dealer, given its position*. How far it leans depends on risk aversion, on the asset's volatility, and on how
+long the position must still be carried. Near the end of the trading day, inventory will soon be marked out anyway,
+so the lean shrinks.
+
+**How wide.** A wider quote earns more per trade but trades less often, because order flow thins out quickly away
+from the mid. That trade-off alone gives a spread. On top of it, a risk-averse dealer adds a premium for the risk of
+the inventory each trade creates.
+
+<AvellanedaStoikov client:visible />
+
+<p class="try-this"><strong>Try this:</strong> in the top panel, the yellow reservation price peels away from the
+blue mid whenever inventory builds up, and the quotes follow it. In the middle panel, the solid inventory hugs zero
+while the symmetric strategy's dashed inventory wanders. The table shows the payoff: a slightly lower average P&L,
+but less than half the risk. Raise the risk aversion to 1: the spread widens and inventory is kept on a very short
+leash. Lower it to 0.01: the strategy becomes nearly symmetric, with a spread close to $2/k$.</p>
+
+<Callout type="key" title="Lean, then add a spread with two parts">
+The optimal quotes are centred on the reservation price $r = S - q\gamma\sigma^2(T - t)$. The total spread is
+$\gamma\sigma^2(T - t)$, a premium for inventory risk, plus $\tfrac{2}{\gamma}\ln(1 + \gamma/k)$, the price of trading off
+fill rate against margin.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The control problem and its solution
+
+**Setup.** The mid-price is a Brownian motion, $S_t = s + \Vol{\sigma} W_t$ (arithmetic, so $\Vol{\sigma}$ is in dollars per
+$\sqrt{\text{time}}$). The market maker quotes $S_t - \delta^b_t$ and $S_t + \delta^a_t$. Market orders arrive as Poisson
+processes whose intensities fall exponentially with distance from the mid,
+
+$$
+\lambda^b(\delta^b) = A\,e^{-k\delta^b}, \qquad \lambda^a(\delta^a) = A\,e^{-k\delta^a} .
+$$
+
+Cash $X_t$ and inventory $q_t$ change when quotes are hit: a hit on the bid adds one unit and pays $S - \delta^b$; a hit
+on the ask removes one and receives $S + \delta^a$. The market maker maximises expected exponential utility of terminal
+wealth,
+
+$$
+u(x, s, q, t) = \max_{\delta^a, \delta^b}\ \mathbb{E}\big[-e^{-\gamma(X_T + q_T S_T)}\big] .
+$$
+
+**Step 1: a passive dealer's value.** If the dealer stops quoting and just holds $q$ until $T$, its wealth is
+$x + q S_T$ with $S_T \sim N(s, \Vol{\sigma}^2(T - t))$. Using the normal moment generating function,
+
+$$
+v(x, s, q, t) = -e^{-\gamma x}\,e^{-\gamma q s}\,e^{\gamma^2 q^2 \Vol{\sigma}^2 (T - t)/2} .
+$$
+
+**Step 2: reservation prices.** The reservation bid $r^b$ is the price at which buying one more unit leaves the dealer
+indifferent: $v(x - r^b, s, q + 1, t) = v(x, s, q, t)$. Taking logarithms and writing $\tau = T - t$,
+
+$$
+\gamma r^b - \gamma s + \tfrac12\gamma^2\Vol{\sigma}^2\tau\big((q + 1)^2 - q^2\big) = 0,
+$$
+
+so that
+
+$$
+r^b = s - \tfrac12(2q + 1)\gamma\Vol{\sigma}^2\tau .
+$$
+
+Likewise the reservation ask is $r^a = s - \tfrac12(2q - 1)\gamma\Vol{\sigma}^2\tau$. Their average is the **reservation
+price**
+
+$$
+r(s, q, t) = s - q\,\gamma\Vol{\sigma}^2(T - t),
+$$
+
+the continuous-time version of Chapter 49's Ho–Stoll result, with $\tau = T - t$ as the holding period.
+
+**Step 3: the HJB equation.** The value function of the active dealer satisfies
+
+$$
+\begin{aligned}
+0 = {} & u_t + \tfrac12\Vol{\sigma}^2 u_{ss} \\
+& + \max_{\delta^b}\,\lambda^b(\delta^b)\big[u(x - s + \delta^b, q + 1) - u\big] \\
+& + \max_{\delta^a}\,\lambda^a(\delta^a)\big[u(x + s + \delta^a, q - 1) - u\big],
+\end{aligned}
+$$
+
+writing only the arguments that change, with $u(x, s, q, T) = -e^{-\gamma(x + qs)}$. The first line is the mid's diffusion; each other line is a jump when a quote
+is hit, chosen optimally.
+
+**Step 4: the first-order condition.** Try $u = -e^{-\gamma x}e^{-\gamma\theta(s, q, t)}$. Then
+$u(x - s + \delta^b, s, q + 1, t) = u \cdot e^{-\gamma(\delta^b - (s - r^b))}$, where now
+$r^b = \theta(s, q + 1, t) - \theta(s, q, t)$ is the exact reservation bid. The bid term to maximise is
+
+$$
+A e^{-k\delta^b}\big(1 - e^{-\gamma(\delta^b - (s - r^b))}\big)\cdot(-u) .
+$$
+
+Differentiating in $\delta^b$ and setting to zero gives $k = (k + \gamma)\,e^{-\gamma(\delta^b - (s - r^b))}$, so
+
+$$
+\delta^b = (s - r^b) + \frac1\gamma\ln\Big(1 + \frac\gamma k\Big),
+$$
+
+and symmetrically $\delta^a = (r^a - s) + \tfrac1\gamma\ln(1 + \gamma/k)$. Each quote sits a fixed distance
+$\tfrac1\gamma\ln(1 + \gamma/k)$ beyond the corresponding reservation price.
+
+**Step 5: the approximate solution.** Avellaneda and Stoikov approximate $\theta$ by its passive value from Step 1 (an
+expansion valid when inventory is small relative to the trading intensity), which gives the reservation prices of Step 2.
+Adding the two distances,
+
+$$
+\delta^a + \delta^b = \gamma\Vol{\sigma}^2(T - t) + \frac2\gamma\ln\Big(1 + \frac\gamma k\Big),
+$$
+
+with quotes centred on $r(s, q, t)$. As $\gamma \to 0$ the second term tends to $2/k$: a risk-neutral dealer facing
+exponential demand sets each half-spread to $1/k$, the same trade-off between margin and fill rate that Chapter 56's
+customers created. The first term is the inventory-risk premium, which vanishes at the horizon.
+
+**Step 6: a stationary closed form.** Guéant, Lehalle and Fernandez-Tapia (2013) solved the problem with inventory limits
+and found that, far from the horizon, the quotes become independent of time:
+
+$$
+\delta^b(q) \approx \frac1\gamma\ln\Big(1 + \frac\gamma k\Big) + \frac{2q + 1}{2}\,\omega,
+$$
+
+$$
+\delta^a(q) \approx \frac1\gamma\ln\Big(1 + \frac\gamma k\Big) - \frac{2q - 1}{2}\,\omega,
+$$
+
+with $\omega = \sqrt{\dfrac{\Vol{\sigma}^2\gamma}{2kA}\Big(1 + \dfrac\gamma k\Big)^{1 + k/\gamma}}$. The quotes skew linearly in
+inventory, by $\omega$ per unit, and the half-spread at zero inventory is $\tfrac1\gamma\ln(1 + \gamma/k) + \tfrac12\omega$.
+This version, with no artificial end time, is the one most often used in practice.
+
+## <span class="section-tag">Playground</span>Your risk appetite, optimised
+
+<AvellanedaStoikov client:visible title="Playground: Avellaneda–Stoikov" />
+
+<div class="try-this">
+
+- **The efficient frontier.** Step the risk aversion from 0.01 to 1 and note the mean and standard deviation of P&L
+  each time. Plot them in your head: each $\gamma$ is a point on a risk–return frontier, and the symmetric strategy is
+  inside it.
+- **Volatility.** Double $\sigma$. Which part of the spread grows, and by how much at the start of the day?
+- **Thinner order flow.** Lower $k$, so that orders keep coming even to wide quotes. Why does the optimal spread widen?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="With $S = 100$, $q = 5$, $\gamma = 0.1$, $\sigma = 2$ and half the period left ($T - t = 0.5$), what's the reservation price?"
+  answer={99}
+  tolerance={0.001}
+  explanation="$r = S - q\gamma\sigma^2(T - t) = 100 - 5 \times 0.1 \times 4 \times 0.5 = 99$."
+/>
+
+<NumericQuiz
+  client:visible
+  question="As risk aversion goes to zero, what does the optimal total spread tend to when $k = 1.5$?"
+  answer={1.3333}
+  tolerance={0.001}
+  explanation="$\gamma\sigma^2(T - t) \to 0$ and $\tfrac2\gamma\ln(1 + \gamma/k) \to 2/k = 1.333$: the risk-neutral trade-off between margin and fill rate."
+/>
+
+<Quiz
+  client:visible
+  question="A market maker using Avellaneda–Stoikov becomes more risk-averse. What happens?"
+  options={[
+    "Only the spread widens",
+    "Its quotes lean harder against inventory and its spread widens, so inventory is kept closer to zero",
+    "Its quotes become symmetric around the mid",
+    "Nothing, because the spread is set by $k$ alone",
+  ]}
+  answer={1}
+  explanation="$\gamma$ multiplies the inventory lean $q\gamma\sigma^2(T - t)$ and the risk premium in the spread. The second spread term, $\tfrac2\gamma\ln(1 + \gamma/k)$, actually falls a little with $\gamma$, but the total widens."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Avellaneda–Stoikov: mid $dS = \sigma\,dW$, fills at rates $A e^{-k\delta}$, exponential utility with risk aversion $\gamma$.
+- Quote around the **reservation price** $r = S - q\gamma\sigma^2(T - t)$, with total spread
+  $\gamma\sigma^2(T - t) + \tfrac2\gamma\ln(1 + \gamma/k)$.
+- The spread has an **inventory-risk** part and a **margin-versus-fill** part, which tends to $2/k$ for a risk-neutral
+  dealer.
+- The **Guéant–Lehalle–Fernandez-Tapia** closed form gives stationary quotes that skew linearly in inventory.
+
+**Next up:** an options market maker's inventory isn't a number of shares but a vector of Greeks across hundreds of
+options. Chapter 58 extends the reservation price to a whole book.
+
+### Further reading
+
+- M. Avellaneda and S. Stoikov, "High-frequency trading in a limit order book", *Quantitative Finance* 8 (2008).
+- O. Guéant, C.-A. Lehalle and J. Fernandez-Tapia, "Dealing with the inventory risk: a solution to the market making
+  problem", *Mathematics and Financial Economics* 7 (2013).
+- O. Guéant, *The Financial Mathematics of Market Liquidity*, CRC Press (2016).
+- Á. Cartea, S. Jaimungal and J. Penalva, *Algorithmic and High-Frequency Trading*, Cambridge University Press (2015),
+  chapter 10.

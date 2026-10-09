@@ -1,0 +1,248 @@
+---
+title: "Clearing, margin and assignment"
+part: 11
+chapter: 46
+difficulty: 2
+prerequisites: [20, 44]
+summary: "What happens after the trade: the clearing house that stands behind every option, the collateral writers must post, and who gets assigned when an option is exercised."
+---
+import MarginScenarios from '../../components/plots/MarginScenarios';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A margin call on a quiet day
+
+You write one three-month put, strike \$95, with the stock at \$100 and implied volatility at 20%. You collect about
+\$153, and your broker sets aside about \$508 of your cash as **margin** against it. Two weeks later the stock has
+slipped only 3%, to \$97. But the market is nervous, and implied volatility has jumped to 35%. Your phone buzzes:
+**margin call, please deposit about \$930.**
+
+Nothing dramatic has happened to the stock. Why does somebody suddenly want almost twice your premium in cash, and
+who is that somebody? The answer lies in the machinery that runs *after* every trade: the **clearing house**, the
+**margin** it collects, and the process that decides who delivers when an option is **exercised**.
+
+## <span class="section-tag">Intuition</span>The counterparty to everyone
+
+When you buy an option from another trader, you don't end up exposed to that trader. Once the trade is matched, a
+**central counterparty** (CCP, or clearing house) steps into the middle. For US listed options it's the Options
+Clearing Corporation. The single trade becomes two contracts: the clearing house is the **seller to every buyer and
+the buyer to every seller**. This step is called **novation**.
+
+That has three big consequences.
+
+1. **You never worry about who you traded with.** Your option is a claim on the clearing house, which is built
+   to survive the failure of any one participant.
+2. **Positions net.** If you buy 10 contracts of a series on Monday and sell 10 on Tuesday, possibly to different
+   people on different exchanges, your position is simply zero. This is what makes it possible to close a
+   position by trading in the market (Chapter 4), and it's why the many exchanges of Chapter 44 can all trade the
+   same contract.
+3. **Someone must cover the risk of default.** The clearing house has promised to pay holders whatever happens. If
+   a writer can't deliver, the clearing house pays anyway, so it needs a cushion against that writer.
+
+Ordinary investors don't deal with the clearing house directly. Their broker does, as a **clearing member**, and
+the broker guarantees its own customers' positions. If a member defaults, losses are absorbed in a fixed order,
+the **default waterfall**: first the defaulter's own margin, then its contribution to a shared default fund, then a
+slice of the clearing house's own capital, and only then the default-fund contributions of the other members.
+
+## <span class="section-tag">Intuition</span>Margin: collateral for promises
+
+A **buyer** of an option pays the premium in full, and that's the end of their obligation: they can lose no more.
+A **writer** has made a promise whose cost can grow, so they must post **margin**, collateral that covers what
+they might owe. There are two ways to set it.
+
+- **Strategy-based margin** uses fixed rules for each type of position. A typical US rule for a naked written equity
+  option is the premium plus 20% of the stock price, less any amount by which the option is out of the money, with
+  a floor of 10%. A credit spread is charged its maximum possible loss. The rules are simple and conservative, and
+  they don't see how positions offset each other unless a rule says so.
+- **Risk-based margin** (*portfolio margin*) revalues the whole account under a grid of scenarios: the stock up
+  and down by various amounts, volatility up and down. The margin is the **worst loss** over the grid. Clearing
+  houses use risk models of this kind for their members, and many brokers offer it to large accounts.
+
+Here is a risk array for the hook's put. Each cell is what the position would gain or lose if the stock and its
+volatility jumped by that much right now.
+
+<MarginScenarios client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the worst cell is in the corner where the stock falls and volatility
+rises, because a short put loses in both. Now recreate the hook: set the stock to \$97 and volatility to 35%. The
+grid stretches, every loss grows, and the margin doubles. Then switch to the put spread: the bought \$90 put caps the
+losses, and the margin falls to a fraction of the naked put's.</p>
+
+The grid widens with volatility because it's meant to cover a move that's large but plausible, and what counts as
+plausible depends on how volatile the market is right now. That makes margin **procyclical**: it rises exactly
+when markets are stressed and positions are already losing money. Margin calls then force traders to post cash or
+cut positions at the worst moment, and forced selling can feed the very move that caused it. Chapter 69 follows
+that loop all the way to a crash.
+
+<Callout type="key" title="Margin is a scenario loss">
+Risk-based margin asks one question: what's the worst this position could lose in a large but plausible move,
+before it could be closed out? It sees hedges that fixed rules miss, and it charges more when the market gets more
+volatile. That second property protects the clearing house, but it pushes margin calls onto everyone at once.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Exercise and assignment
+
+When a holder exercises an option, someone who wrote it must deliver. Who? The holder tells their broker, the
+broker tells the clearing house, and the clearing house **assigns** the exercise to a clearing member with a short
+position in that series, chosen **at random**. The member then passes the assignment on to one of its customers who
+is short, by a random draw or first-in-first-out, as disclosed to its customers in advance. Writers never know in
+advance whether they'll be the one.
+
+At expiry, options that finish in the money by at least a cent are normally exercised automatically. Before
+expiry, assignment is rare, with one important exception: **dividends**. Chapter 9 showed that exercising an
+American call early can only pay just before the stock goes ex-dividend. If you're short such a call, you may wake
+up on the ex-dividend date short 100 shares and owing the dividend.
+
+A last risk lives at expiry. If the stock closes right at your strike, you can't know whether holders will
+exercise. You might be assigned, or not, and find out only after the market has closed, holding a stock position
+you didn't expect. Traders call this **pin risk**, and Chapter 67 shows why stocks tend to finish near big strikes
+more often than chance would suggest.
+
+## <span class="section-tag">Formalisation</span>Rules, scenarios and random draws
+
+**Strategy-based rules.** For one naked written option with premium $V$ on a stock at $\Spot{S}$, with
+out-of-the-money amount $\text{OTM}$, the classic requirement per share is
+
+$$
+V + \max\big(0.20\,\Spot{S} - \text{OTM},\ 0.10\,X\big),
+$$
+
+where the floor uses $X = \Spot{S}$ for a call and $X = \Strike{K}$ for a put.
+
+For the hook's put: $V = 1.53$, $\text{OTM} = 100 - 95 = 5$, so the requirement is
+$1.53 + \max(20 - 5,\ 9.50) = 16.53$ per share, or \$1,653 per contract. A credit spread that sells the \$95 put and
+buys the \$90 put can never lose more than $95 - 90 = 5$ per share (less the credit received), so it's charged
+\$500.
+
+**Risk-based margin.** Let $V(\Spot{S}, \Vol{\sigma})$ be the position's value. Choose price moves $x_i$ and
+volatility shifts $y_j$. The **risk array** is
+
+$$
+L_{ij} = V\big(\Spot{S}(1 + x_i),\ \Vol{\sigma} + y_j\big) - V(\Spot{S}, \Vol{\sigma}),
+$$
+
+and the margin is the worst loss, $\max\big(0,\ -\min_{i,j} L_{ij}\big)$. The widget scales the grid to the current
+volatility, as a clearing house's model would, so that it covers a two-week move at 99% confidence:
+
+$$
+|x_i| \le 2.33\,\Vol{\sigma}\sqrt{10/252}, \qquad |y_j| \le \Vol{\sigma}/3 .
+$$
+
+At $\Vol{\sigma} = 20\%$ the price moves reach $\pm 9.3\%$; at 35%, $\pm 16.2\%$. Expanding $L_{ij}$ with the Greeks of
+Chapter 23 shows what the array measures:
+
+$$
+L_{ij} \approx \Delta\,\Spot{S}x_i + \tfrac12\Gamma\,\Spot{S}^2x_i^2 + \mathcal{V}\,y_j .
+$$
+
+Delta charges for direction, gamma for size of move and vega for volatility. A short put has positive delta (it
+loses when the stock falls), negative gamma and negative vega, so all three terms are negative in the
+"stock down, volatility up" corner. Since $x_{\max}$ is proportional to $\Vol{\sigma}$, the delta part of the margin
+grows roughly in proportion to volatility, and the gamma part like its square. In the hook, the margin goes from
+\$508 to \$1,073, and the put's value from −\$153 to −\$518. The account must now cover the higher margin
+*and* the \$365 loss: about \$930 of new cash.
+
+**Random assignment.** Suppose $N$ contracts of a series are short across the market, $n$ of them yours, and
+$k$ are exercised and assigned at random, each short contract equally likely. The number assigned to you follows a
+hypergeometric distribution, with mean $k\,n/N$, and
+
+$$
+\begin{aligned}
+\mathbb{P}(\text{none of yours}) &= \frac{\binom{N - n}{k}}{\binom{N}{k}} \\
+&= \prod_{i=0}^{k-1}\frac{N - n - i}{N - i} .
+\end{aligned}
+$$
+
+With $N = 1{,}000$, $n = 10$ and $k = 100$, you expect one assignment, and the chance of escaping entirely is about
+35%.
+
+**When calls get exercised early.** Just before the ex-dividend date, a holder of an in-the-money American call
+compares exercising, worth $\Spot{S} - \Strike{K}$, with holding on. After the dividend $D$ is paid the stock drops
+to about $\Spot{S} - D$, and by put–call parity (Chapter 8) the call is then worth about
+$\Spot{S} - D - \Strike{K}e^{-\Rate{r}\Time{\tau}} + \Put{P}$, where $\Put{P}$ is the put with the same strike and
+expiry. Exercise wins when
+
+$$
+D > \Strike{K}\big(1 - e^{-\Rate{r}\Time{\tau}}\big) + \Put{P} ,
+$$
+
+that is, when the dividend is bigger than the interest saved by paying the strike later, plus the insurance the
+call still provides. Deep in-the-money calls with little time left, whose put is nearly worthless, are the ones
+that get exercised, so they're the ones whose writers get assigned.
+
+## <span class="section-tag">Playground</span>Stress your positions
+
+<MarginScenarios client:visible initialPosition="shortStraddle" title="Playground: margin under stress" />
+
+<div class="try-this">
+
+- **Rules against risk.** For the short straddle, compare strategy-based and risk-based margin. Why are the fixed
+  rules so much more expensive? (They charge one side as if naked and the other side's premium, without noticing
+  that the stock can't be far up and far down at the same time.)
+- **Where it hurts.** Move the stock from \$85 to \$115 with the straddle. Which corner of the grid is worst, and
+  why does it switch sides?
+- **Procyclicality.** For the short strangle, find the volatility at which the risk-based margin is twice its calm
+  value. How much did the position lose on the way?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Under the classic rule, what's the margin per share for a naked written call, strike 110, worth \$0.80, with the stock at \$100?"
+  answer={10.8}
+  tolerance={0.001}
+  prefix="\$"
+  explanation="The call is \$10 out of the money, so $0.20 \times 100 - 10 = 10$, which equals the floor of $0.10 \times 100 = 10$. The requirement is $0.80 + 10 = 10.80$ per share, \$1,080 per contract."
+/>
+
+<Quiz
+  client:visible
+  question="Why does risk-based margin usually rise when implied volatility rises, even if the stock hasn't moved?"
+  options={[
+    "Because the clearing house charges a fee per volatility point",
+    "Because the scenario grid scales with volatility, and short-option positions lose more in each scenario",
+    "Because higher volatility lowers option prices",
+    "It doesn't: margin depends only on the stock price",
+  ]}
+  answer={1}
+  explanation="A plausible move is larger in a volatile market, so the grid widens; and a short option also loses directly from the higher volatility. Both push the worst-case loss up. That's what makes margin procyclical."
+/>
+
+<Quiz
+  client:visible
+  question="You're short an in-the-money American call. The stock goes ex-dividend tomorrow, the dividend is large, and the call has little time left. What's the main risk?"
+  options={[
+    "None: American calls are never exercised early",
+    "Early assignment tonight, leaving you short the stock and owing the dividend",
+    "The clearing house will cancel the call",
+    "The call's strike will be lowered by the dividend",
+  ]}
+  answer={1}
+  explanation="Holders exercise just before the ex-date when the dividend exceeds $\Strike{K}(1 - e^{-\Rate{r}\Time{\tau}})$ plus the put's value. If you're assigned you deliver shares you may not own, so you end up short the stock across the ex-date and owe the dividend."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- A **clearing house** becomes the buyer to every seller and the seller to every buyer (**novation**), so positions
+  net and nobody bears the risk of the trader on the other side.
+- **Writers post margin.** Strategy-based rules are simple and conservative; risk-based margin is the worst loss
+  over a grid of price and volatility scenarios, $\max(0, -\min_{ij} L_{ij})$.
+- Because the grid scales with volatility, margin is **procyclical**: it rises in stressed markets, just when
+  positions are losing.
+- Exercises are **assigned at random** among writers. Early assignment clusters before **ex-dividend dates**,
+  when $D > \Strike{K}(1 - e^{-\Rate{r}\Time{\tau}}) + \Put{P}$, and **pin risk** appears when the stock closes near
+  the strike.
+
+**Next up:** we've seen that the spread is a cost, and that it varies a lot from option to option. In Chapter 47
+we'll learn to measure trading costs properly, and split the spread into what market makers keep and what they lose
+to better-informed traders.
+
+### Further reading
+
+- J. C. Hull, *Options, Futures, and Other Derivatives*, chapter 10 (margin and the clearing house).
+- D. Duffie and H. Zhu, "Does a central clearing counterparty reduce counterparty risk?", *Review of Asset Pricing
+  Studies* 1 (2011).
+- R. Cont, "Central clearing and risk transformation", *Financial Stability Review* 21, Banque de France (2017).
+- The Options Clearing Corporation's and Cboe's published guides to exercise, assignment and margin.

@@ -1,0 +1,198 @@
+---
+title: "Queues, imbalance and the microprice"
+part: 16
+chapter: 71
+difficulty: 3
+prerequisites: [43, 70]
+summary: "The next tick is a race between the best bid and ask queues: the thinner queue tends to empty first. Queue imbalance predicts the next move, the microprice turns it into a fair price, and order-flow imbalance explains short-term price changes."
+---
+import QueueRace from '../../components/plots/QueueRace';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Fifty lots against three
+
+A stock is quoted \$100.00 bid, \$100.01 ask. Behind the bid wait 50 lots; behind the ask, 3. Where will the price
+go next? Every high-frequency trader would bet on *up*: three lots can be taken out by a single order, while fifty
+lots take a while to eat. The mid-price, \$100.005, treats both sides as equal. It shouldn't.
+
+This matters well beyond stock trading. An options market maker quotes off the underlying's price (Chapter 56); if it
+uses the mid while the stock is about to tick up, its calls are stale and fast traders pick them off. Better fair
+prices for the underlying make better option quotes. This chapter models the queues at the top of the book, measures
+how well their sizes predict the next move, and builds a fair price that uses them.
+
+## <span class="section-tag">Intuition</span>A race to empty
+
+In a market with a one-tick spread, the mid only moves when one of the best queues runs out. If the ask queue empties,
+the ask moves up a tick and so does the mid; if the bid queue empties, the mid ticks down. Both queues are constantly
+growing, as new limit orders join, and shrinking, as market orders and cancellations hit them. The next move is
+a race: which queue empties first?
+
+A small queue has less distance to run. So the probability of an up-move rises with the bid's size and falls with the
+ask's: the **queue imbalance** is a signal.
+
+<QueueRace client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the top panel is the plane of queue sizes. Every race starts at the
+blue dot and wanders until it hits an axis: the bottom axis means the ask emptied (up), the left axis the bid (down).
+The curves mark equal chances of an up-move. With 10 lots bid and 5 offered, the next move is up about 70% of the time;
+run 1,000 races to check. In the lower panel, the chance of an up-move is plotted against the imbalance: it's steeper
+than the weighted mid's diagonal, so imbalance carries even more information than the weighted mid assumes. Lower
+the refill rate and queues empty faster, and the race becomes more one-sided.</p>
+
+<Callout type="key" title="Queue imbalance predicts the next tick">
+With independent, balanced order flow at the best quotes, the next mid move is up with probability close to
+$\tfrac{2}{\pi}\arctan(V_b/V_a)$, where $V_b$ and $V_a$ are the queue sizes. Imbalance $\iota = V_b/(V_b + V_a)$ is a strong
+short-term signal, and a fair price should lean towards the side with less depth.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Queues as a Markov chain
+
+**The model.** Following Cont and de Larrard (2013), let $x$ and $y$ be the lots at the best bid and ask. Each queue
+gains a lot at rate $\lambda$ (a new limit order) and loses one at rate $\mu$ (a market order or a cancellation), all four
+kinds of event independent. The state $(x, y)$ is a continuous-time Markov chain on the positive quadrant, absorbed
+when either queue reaches zero.
+
+**The up-probability.** Let $P(x, y)$ be the probability that the ask empties first. Conditioning on the next event,
+
+$$
+\begin{aligned}
+&(2\lambda + 2\mu)\,P(x, y) \\
+&\quad = \lambda P(x + 1, y) + \mu P(x - 1, y) \\
+&\quad\quad + \lambda P(x, y + 1) + \mu P(x, y - 1),
+\end{aligned}
+$$
+
+with $P(0, y) = 0$ and $P(x, 0) = 1$. This is a discrete Laplace-type equation: the widget solves it numerically.
+When $\lambda = \mu$ and queues are large, $x$ and $y$ behave like two independent Brownian motions, and $P$ becomes the
+harmonic function on the quadrant that is 1 on one axis and 0 on the other:
+
+$$
+P(x, y) \approx \frac{2}{\pi}\arctan\frac{x}{y} .
+$$
+
+With 10 lots bid and 5 offered, that's $\tfrac{2}{\pi}\arctan 2 \approx 0.705$; the exact chain gives 0.704. When
+$\lambda < \mu$, queues drift towards zero, races end sooner and the outcome depends more strongly on the starting sizes.
+
+**Imbalance and the weighted mid.** Writing $\iota = V_b/(V_b + V_a)$, a common fair-price estimate is the **weighted
+mid**
+
+$$
+\text{bid} + \iota\,(\text{ask} - \text{bid}) ,
+$$
+
+which leans towards the ask when the bid queue is larger. It implicitly treats the up-probability as equal to $\iota$.
+The model says the true dependence is steeper near the middle: at $\iota = 0.75$, $\tfrac{2}{\pi}\arctan 3 \approx 0.80$.
+
+**The microprice.** Stoikov (2018) defined the **microprice** as the limit of expected future mid-prices, given today's
+imbalance and spread, estimated from data. If each move shifts the mid by one tick $\delta$ and the book resets
+symmetrically after a move, the expected mid after the next move is
+
+$$
+\text{mid} + (2P_{\text{up}} - 1)\,\delta .
+$$
+
+That's the widget's "expected next mid". Unlike the mid, it's close to a martingale, so quoting around it leaves
+less to be picked off.
+
+**Order-flow imbalance.** Cont, Kukanov and Stoikov (2014) summarised all the events at the best quotes over an interval
+in one number. For each event, with best prices $b, a$ and sizes $q_b, q_a$ after it, and $b_-, a_-, q_{b-}, q_{a-}$ before,
+
+$$
+\begin{aligned}
+e &= \mathbf{1}_{b \ge b_-}\,q_b - \mathbf{1}_{b \le b_-}\,q_{b-} \\
+&\quad - \mathbf{1}_{a \le a_-}\,q_a + \mathbf{1}_{a \ge a_-}\,q_{a-} ,
+\end{aligned}
+$$
+
+and the **order-flow imbalance** (OFI) of an interval is the sum of $e$ over its events: buying pressure at the bid
+minus selling pressure at the ask. They found that mid-price changes over short intervals follow
+
+$$
+\delta M \approx \beta\,\text{OFI}, \qquad \beta \propto \frac{1}{\text{depth}} ,
+$$
+
+with a high $R^2$: thin books move more per unit of imbalance. Running the widget's queue model for 2,000 intervals of
+50 events, the fitted slope falls from 0.036 ticks per lot with queues of 5 lots to 0.012 with 20, and OFI explains about
+a third of the mid's changes.
+
+## <span class="section-tag">Playground</span>Read the book
+
+<QueueRace client:visible title="Playground: queue sizes and refill" />
+
+<div class="try-this">
+
+- **One lot left.** Put 1 lot at the ask and 20 at the bid. What's the chance of an up-move? How does it compare with
+  the imbalance?
+- **Equal queues.** With equal queues, is the race always 50–50? Does the refill rate matter?
+- **The arctan rule.** At 20 lots bid and 5 offered, compare the widget's probability with $\tfrac{2}{\pi}\arctan 4$.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="Order flow at the best quotes is balanced. There are 30 lots at the bid and 10 at the ask. Using the arctan approximation, what's the probability, in percent, that the next mid move is up?"
+  answer={79.5}
+  tolerance={0.5}
+  explanation="$\tfrac{2}{\pi}\arctan(30/10) = \tfrac{2}{\pi} \times 1.249 \approx 0.795$, or 79.5%. The imbalance is only 75%."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A stock is quoted \$50.00 bid with 300 shares, \$50.02 ask with 100 shares. What's the weighted mid, in dollars?"
+  answer={50.015}
+  tolerance={0.0005}
+  explanation="$\iota = 300/400 = 0.75$, so the weighted mid is $50.00 + 0.75 \times 0.02 = 50.015$."
+/>
+
+<Quiz
+  client:visible
+  question="An options market maker prices its calls off the underlying's mid-price. The underlying's ask queue is nearly empty and its bid queue is large. What's the risk?"
+  options={[
+    "None: the mid is the fair price",
+    "The stock is likely to tick up, so the calls are priced too low and fast traders can buy them before the quotes update",
+    "The calls are priced too high",
+    "The options exchange will halt trading",
+  ]}
+  answer={1}
+  explanation="Queue imbalance says the next move is probably up. Calls priced off the mid are stale in the direction fast traders can predict; pricing off a microprice reduces the pick-off risk."
+/>
+
+<Quiz
+  client:visible
+  question="Two stocks have the same order-flow imbalance over a minute, but one has ten times the depth at the best quotes. Which moves more?"
+  options={[
+    "The deeper one",
+    "The thinner one: the price impact of order-flow imbalance falls with depth",
+    "They move the same",
+    "Neither moves",
+  ]}
+  answer={1}
+  explanation="Cont, Kukanov and Stoikov found $\delta M \approx \beta\,\text{OFI}$ with $\beta$ inversely proportional to depth: the same pressure moves a thin book further."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- With a one-tick spread, the mid moves when a best queue **empties**: the next tick is a **race** between the queues.
+- In the Cont–de Larrard model, $P(\text{up} \mid x, y)$ solves a discrete Laplace equation; for balanced flow,
+  $P \approx \tfrac{2}{\pi}\arctan(x/y)$.
+- **Queue imbalance** $\iota = V_b/(V_b + V_a)$ predicts the next move, more steeply than the **weighted mid** assumes.
+- The **microprice** is the expected future mid given the book; it makes better fair prices, for the stock and for the
+  options quoted off it.
+- **Order-flow imbalance** explains short-term price changes, with impact inversely proportional to **depth**.
+
+**Next up:** at these time scales, observed prices bounce between bid and ask. Chapter 72 shows what that noise does to
+volatility estimates, and how to remove it.
+
+### Further reading
+
+- R. Cont and A. de Larrard, "Price dynamics in a Markovian limit order market", *SIAM Journal on Financial
+  Mathematics* 4 (2013).
+- R. Cont, A. Kukanov and S. Stoikov, "The price impact of order book events", *Journal of Financial Econometrics* 12
+  (2014).
+- S. Stoikov, "The micro-price: a high-frequency estimator of future prices", *Quantitative Finance* 18 (2018).
+- R. Cont, S. Stoikov and R. Talreja, "A stochastic model for order book dynamics", *Operations Research* 58 (2010).
+- M. D. Gould and J. Bonart, "Queue imbalance as a one-tick-ahead price predictor in a limit order book", *Market
+  Microstructure and Liquidity* 2 (2016).

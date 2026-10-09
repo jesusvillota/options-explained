@@ -12,6 +12,8 @@ export const katexMacros: Record<string, string> = {
   '\\Vol': '\\htmlClass{c-vol}{#1}',
   '\\Rate': '\\htmlClass{c-rate}{#1}',
   '\\Prob': '\\htmlClass{c-prob}{#1}',
+  '\\Bid': '\\htmlClass{c-bid}{#1}',
+  '\\Ask': '\\htmlClass{c-ask}{#1}',
 };
 
 export const katexOptions = {

@@ -1,0 +1,280 @@
+---
+title: "Measuring liquidity"
+part: 11
+chapter: 47
+difficulty: 2
+prerequisites: [23, 43]
+summary: "Quoted, effective and realised spreads, price impact, Roll's estimator, and why options traders measure spreads in volatility points."
+---
+import SpreadDecomposition from '../../components/plots/SpreadDecomposition';
+import ChainLiquidity from '../../components/plots/ChainLiquidity';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Two puzzles about cost
+
+**Puzzle one.** A market maker quotes the three-month \$105 call at 2.40 / 2.55 and sells you 10 contracts at 2.55.
+The mid is 2.475, so it seems to have earned 7.5 cents a share. A minute later the quote is 2.55 / 2.70. Did the
+market maker earn 7.5 cents, or did it just sell too cheap to someone who knew the price was about to rise?
+
+**Puzzle two.** On the same chain, the at-the-money put is quoted 3.30 / 3.60: a spread of 30 cents, 9% of its
+price. A far out-of-the-money call is quoted 0.00 / 0.05: a spread of 5 cents, but 200% of its price. Which one
+is more expensive to trade?
+
+Both puzzles have the same root. "The spread" is not one number: what a trader pays, what a market maker keeps,
+and what an option's spread means compared with its price all differ. This chapter introduces the standard ways of
+measuring liquidity, which the rest of Parts XI–XVI rely on.
+
+## <span class="section-tag">Intuition</span>Quoted, effective, realised
+
+There are three spreads to keep apart.
+
+- The **quoted spread** is the gap between the best ask and the best bid, $a - b$: what's on the screen.
+- The **effective spread** measures what a trade *actually* cost, against the mid at the moment it happened. A
+  buy at 2.52 when the quote is 2.40 / 2.55 paid 4.5 cents over the mid, not 7.5: it was filled inside the quote
+  (*price improvement*, Chapter 44).
+- The **realised spread** measures what the liquidity provider *kept*, against the mid a little *later*. If the mid
+  has moved up after a buy, the seller has given some of the spread back.
+
+The difference between the effective and the realised spread is the **price impact**: how far the mid moved in the
+trade's direction afterwards. It's what the liquidity provider lost to traders who knew where the price was going.
+Here are trades from a simple model in which each trade moves the price by $\lambda$, a fraction of the half-spread.
+
+<SpreadDecomposition client:visible />
+
+<p class="try-this"><strong>Try this:</strong> set the information per trade to 0%. Prices bounce between bid and
+ask around a mid that only drifts with news, and the market maker keeps the whole 7.5 cents. Raise it to 60%:
+the mid now follows the trades, impact eats 4.5 cents, and the maker keeps only 3. At 100% the maker keeps nothing.
+More news between trades makes the picture noisier, but over thousands of trades the averages stay put.</p>
+
+This is how researchers and regulators measure market quality from trade records. A market where the realised
+spread is a large part of the effective spread is one where liquidity providers earn their spread from ordinary
+traders. One where impact dominates is one where the spread mostly pays for **adverse selection**: the risk of
+trading with someone better informed. Chapter 50 builds a whole theory of spreads from that risk alone.
+
+The bottom panel also shows **Roll's estimator**, a clever trick from 1984 for estimating the spread when you only
+have trade prices, without quotes or trade signs. Because trades alternate at random between the bid and the ask,
+prices *bounce*: a trade at the ask tends to be followed by a lower price, and a trade at the bid by a higher one.
+That bounce shows up as negative correlation between consecutive price changes, and its size reveals the spread.
+Notice that Roll's estimate shrinks as trades carry more information: it only sees the part of the spread that
+bounces back.
+
+## <span class="section-tag">Intuition</span>Dollars, percent or volatility points?
+
+Now puzzle two. Here's a whole chain of out-of-the-money options, on a smile like the ones in Chapter 26, with the
+spreads a risk-pricing market maker would quote:
+
+<ChainLiquidity client:visible />
+
+<p class="try-this"><strong>Try this:</strong> in dollars, the at-the-money options have the widest spreads. Switch
+to percent and the picture flips: the wings look absurdly expensive, up to 200% where nobody bids at all. Now switch
+to volatility points: the spread is about one and a half points near the money, and rises in the far wings only
+where the tick floor bites.
+Finally, change to penny ticks: the wings tighten dramatically, because their spreads were set by the tick, not by
+risk.</p>
+
+Which unit is right depends on what you're doing.
+
+- **Dollars** are what you pay per share, and they're what to use when you're adding up a bill.
+- **Percent of the price** is natural for a stock, but misleading for options. A cheap option can't have a spread
+  narrower than one tick, so its percentage spread is mechanically huge, even if no one would call it hard to
+  trade.
+- **Volatility points** are how option traders compare. An option is a bet on volatility, so they ask: how much
+  implied volatility do I give up by crossing the spread? That's the spread divided by vega (Chapter 23). A 30-cent
+  spread on an option with 0.196 of vega per point costs about 1.5 points; a 5-cent spread on an option with
+  0.008 of vega costs more than 6.
+
+<Callout type="key" title="Measure cost in the units you trade in">
+An options trader who buys at the ask is paying for volatility. With a 1.5-point spread, buying at the ask means
+paying an implied volatility about 0.75 points above the mid, and a round trip (buy, then sell at the bid) gives up
+the full 1.5 points. Spreads in volatility points
+make options with very different prices comparable, and they're what market makers quote in (Chapter 56).
+</Callout>
+
+There are other measures of liquidity too. **Depth** is the size available at the best quotes (Chapter 43).
+**Volume** and **open interest** (Chapter 4) say how active a contract is. The **Amihud ratio**, the average
+absolute return divided by dollar volume, measures how much prices move per dollar traded, and it's easy to compute
+from daily data. Each measures a different side of the same question: how much does it cost to trade, and how much
+does trading move the price?
+
+## <span class="section-tag">Formalisation</span>Spread measures and the structural model
+
+Let $d_t = +1$ for a trade initiated by a buyer and $-1$ for one initiated by a seller, $p_t$ its price, and $M_t$
+the mid just before it. Measuring the later mid $k$ trades (or a fixed time) afterwards:
+
+- the **effective half-spread** is $e_t = d_t\,(p_t - M_t)$;
+- the **realised half-spread** is $\rho_t = d_t\,(p_t - M_{t+k})$;
+- the **price impact** is $\iota_t = d_t\,(M_{t+k} - M_t)$;
+
+and by construction $e_t = \rho_t + \iota_t$. Studies usually report averages over many trades, and double them to
+quote full spreads.
+
+**A structural model.** The simplest model that produces both bounce and impact (Glosten and Harris; Huang and
+Stoll) says the efficient price $m_t$ moves with public news $u_t$ and with the information in each trade, and trades
+happen half a spread away from it:
+
+$$
+m_{t+1} = m_t + \lambda\,d_t + u_{t+1},
+$$
+
+$$
+p_t = m_t + h\,d_t ,
+$$
+
+where the signs $d_t$ are independent and equally likely to be $\pm 1$, and the news $u_t$ is independent with
+mean zero. Take the mid to be the efficient price, $M_t = m_t$. Then $e_t = h$ exactly. Over the next $k$ trades,
+
+$$
+M_{t+k} - M_t = \lambda \sum_{j=0}^{k-1} d_{t+j} + \sum_{j=1}^{k} u_{t+j} .
+$$
+
+Multiply by $d_t$ and take expectations. Only the $j = 0$ term survives, because $d_t^2 = 1$ while
+$\mathbb{E}[d_t d_{t+j}] = 0$ for $j \ge 1$ and $\mathbb{E}[d_t u_{t+j}] = 0$. So
+
+$$
+\mathbb{E}[\iota_t] = \lambda, \qquad\qquad \mathbb{E}[\rho_t] = h - \lambda .
+$$
+
+The liquidity provider keeps $h - \lambda$ per trade. If $\lambda > h$ it loses money on average, and it would have to
+widen its spread or stop quoting: Chapter 50 makes that precise.
+
+**Roll's estimator.** Price changes, $\Delta p_t = p_t - p_{t-1}$, are
+
+$$
+\begin{aligned}
+\Delta p_t &= (m_t - m_{t-1}) + h(d_t - d_{t-1}) \\
+&= \lambda\,d_{t-1} + u_t + h\,d_t - h\,d_{t-1} .
+\end{aligned}
+$$
+
+The only random term that appears in both $\Delta p_t$ and $\Delta p_{t-1}$ is $d_{t-1}$: it enters $\Delta p_t$ with
+coefficient $\lambda - h$ and $\Delta p_{t-1}$ with coefficient $h$. Hence
+
+$$
+\begin{aligned}
+\mathrm{Cov}(\Delta p_t, \Delta p_{t-1}) &= (\lambda - h)\,h \\
+&= -h\,(h - \lambda) .
+\end{aligned}
+$$
+
+<details>
+<summary>The covariance, term by term</summary>
+
+$\Delta p_{t-1} = \lambda d_{t-2} + u_{t-1} + h d_{t-1} - h d_{t-2}$. Every term of $\Delta p_t$ ($d_{t-1}$, $u_t$, $d_t$)
+is independent of every term of $\Delta p_{t-1}$ except $d_{t-1}$, and all have mean zero, so the covariance is the
+expectation of the product of the $d_{t-1}$ terms: $\mathbb{E}\big[(\lambda - h)d_{t-1}\cdot h\,d_{t-1}\big] = (\lambda - h)h$,
+using $d_{t-1}^2 = 1$.
+
+</details>
+
+With no information in trades ($\lambda = 0$) this is $-h^2$, and Roll's estimator recovers the spread exactly:
+
+$$
+s = 2h = 2\sqrt{-\mathrm{Cov}(\Delta p_t, \Delta p_{t-1})} .
+$$
+
+With $\lambda > 0$ it returns $2\sqrt{h(h - \lambda)}$, less than the true spread: the bounce comes only from the
+part of the spread that reverses.
+
+**Spreads in other units.** With mid $M$ and vega $\mathcal{V}$ per volatility point,
+
+$$
+s_{\%} = \frac{a - b}{M}, \qquad\qquad s_{\sigma} = \frac{a - b}{\mathcal{V}} .
+$$
+
+The widget's market maker charges a half-spread $h = c_0 + e_\sigma\,\mathcal{V} + s_{\text{stock}}\,|\Delta|$: a fixed
+handling charge, a risk charge of $e_\sigma = 0.4$ volatility points, and the cost of hedging delta in a stock with
+half-spread $s_{\text{stock}}$. Before rounding, the volatility spread is
+
+$$
+s_\sigma = \frac{2h}{\mathcal{V}} = 2e_\sigma + \frac{2\,(c_0 + s_{\text{stock}}|\Delta|)}{\mathcal{V}},
+$$
+
+a constant plus a term that grows only as vega shrinks. Rounding to the tick grid adds a floor, $a - b \ge \text{tick}$,
+so $s_\sigma \ge \text{tick}/\mathcal{V}$ and $s_{\%} \ge \text{tick}/M$. Far out of the money both $\mathcal{V}$
+and $M$ go to zero, which is why the wings look so expensive in both units, and why a finer tick helps them most.
+
+## <span class="section-tag">Playground</span>Measure it yourself
+
+<ChainLiquidity client:visible initialUnit="vol" initialExpiry="1m" title="Playground: one-month spreads" />
+
+<div class="try-this">
+
+- **Time to expiry.** Compare one month with three months in volatility points. Why are short-dated wings so much
+  worse? (Look at their vega.)
+- **The skew.** At the same distance from the money, are put spreads or call spreads cheaper in volatility points?
+  What does the smile do to the puts' vega?
+- **Back to the decomposition.** With 40% information per trade, how many trades later must you measure the mid
+  before the realised spread settles? Why doesn't it keep falling as $k$ grows?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="The quote is 2.40 / 2.55 and you buy at 2.52. What's your effective half-spread, in cents?"
+  answer={4.5}
+  tolerance={0.05}
+  explanation="The mid is $\tfrac12(2.40 + 2.55) = 2.475$, and $d_t(p_t - M_t) = +1 \times (2.52 - 2.475) = 0.045$: 4.5 cents."
+/>
+
+<Quiz
+  client:visible
+  question="Five minutes after that buy at 2.52, the mid is 2.53. What does this say about the market maker who sold to you?"
+  options={[
+    "It earned 4.5 cents a share",
+    "Its realised half-spread was −1 cent: the price moved through its sale price, so it lost money on the trade",
+    "Nothing: realised spreads only apply to stocks",
+    "It earned the full quoted half-spread of 7.5 cents",
+  ]}
+  answer={1}
+  explanation="The realised half-spread is $d_t(p_t - M_{t+k}) = 2.52 - 2.53 = -0.01$. The price impact, $2.53 - 2.475 = 5.5$ cents, was bigger than the effective half-spread of 4.5 cents: your trade predicted the move."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Consecutive trade-price changes of an option have an autocovariance of −0.0016. What's Roll's estimate of the spread, in dollars?"
+  answer={0.08}
+  tolerance={0.0005}
+  prefix="\$"
+  explanation="$s = 2\sqrt{-\mathrm{Cov}} = 2\sqrt{0.0016} = 2 \times 0.04 = 0.08$. Remember it's a lower bound if trades carry information."
+/>
+
+<Quiz
+  client:visible
+  question="Option A is quoted 3.30 / 3.60 with vega 0.20 per vol point. Option B is quoted 0.40 / 0.50 with vega 0.05 per point. Which costs more to cross, in volatility terms?"
+  options={[
+    "A, because its spread is 30 cents against 10",
+    "B: 0.10/0.05 = 2 points, against 0.30/0.20 = 1.5 points for A",
+    "B, because its percentage spread is about 22% against 9%",
+    "They cost the same",
+  ]}
+  answer={1}
+  explanation="In volatility points, A costs $0.30/0.20 = 1.5$ and B costs $0.10/0.05 = 2$. Option C's conclusion is right but its reason isn't: percentage spreads of cheap options are inflated by the tick floor and can mislead."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The **quoted** spread is on the screen; the **effective** half-spread $d_t(p_t - M_t)$ is what a trade paid; the
+  **realised** half-spread $d_t(p_t - M_{t+k})$ is what the liquidity provider kept.
+- **Effective = realised + impact.** Price impact measures adverse selection: how much trades predict the next move.
+- In the structural model $m_{t+1} = m_t + \lambda d_t + u_{t+1}$, $p_t = m_t + h d_t$, the maker keeps $h - \lambda$
+  per trade, and **Roll's estimator** $2\sqrt{-\mathrm{Cov}(\Delta p_t, \Delta p_{t-1})}$ sees only $2\sqrt{h(h - \lambda)}$.
+- For options, measure spreads in **volatility points**, $(a - b)/\mathcal{V}$. Percentage spreads of cheap options
+  are dominated by the **tick floor**.
+
+**Next up:** with spreads and fees, the tidy no-arbitrage bounds of Part II turn into bands. In Chapter 48 we'll see
+how wide they are, and what a box spread tells you about interest rates.
+
+### Further reading
+
+- R. Roll, "A simple implicit measure of the effective bid-ask spread in an efficient market", *Journal of
+  Finance* 39 (1984).
+- L. R. Glosten and L. E. Harris, "Estimating the components of the bid/ask spread", *Journal of Financial
+  Economics* 21 (1988).
+- R. D. Huang and H. R. Stoll, "The components of the bid-ask spread: a general approach", *Review of Financial
+  Studies* 10 (1997).
+- Y. Amihud, "Illiquidity and stock returns: cross-section and time-series effects", *Journal of Financial
+  Markets* 5 (2002).
+- J. Hasbrouck, *Empirical Market Microstructure*, Oxford University Press (2007), chapters 2–5.

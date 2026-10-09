@@ -1,0 +1,285 @@
+---
+title: "The limit order book"
+part: 11
+chapter: 43
+difficulty: 1
+prerequisites: [4]
+summary: "Behind every bid and ask is a queue of orders. How the book works, who waits, and what a big order really pays."
+---
+import OrderBook from '../../components/plots/OrderBook';
+import WalkTheBook from '../../components/plots/WalkTheBook';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Twenty by fifteen
+
+In Chapter 4 the three-month \$105 call was quoted **2.40 bid, 2.55 ask**. A trader's screen shows one more
+thing next to that quote: **20 × 15**. That's the *size*: 20 contracts are bid at 2.40, and only 15 are offered at
+2.55.
+
+Now suppose you want to buy 100 contracts. The ask says 2.55, but only 15 contracts are for sale at that price. What
+do you pay for the other 85?
+
+Every chapter so far has quietly assumed that an option has *a* price and that you can trade any amount at it.
+That assumption made the theory clean, and it got us from payoff diagrams to the volatility surface. From here on
+we drop it. This Part, and the five after it, are about **market microstructure**: how prices are actually formed
+by orders, who sets the bid and the ask, what trading really costs, and how trading itself moves the price. We start
+with the machine at the centre of almost every modern exchange: the **limit order book**.
+
+## <span class="section-tag">Intuition</span>Two kinds of order
+
+There are two basic ways to ask for a trade.
+
+- A **limit order** names a price and a size: *"I'll buy 10 contracts, but at no more than 2.45."* If nobody
+  is willing to trade at that price right now, the order waits in the book until someone is, or until you
+  cancel it.
+- A **market order** names only a size: *"Buy 10 contracts now, at whatever price it takes."* It trades
+  immediately against orders that are already waiting.
+
+The **book** is the list of every limit order that is waiting. Buy orders are **bids** and sell orders are
+**offers** (or **asks**). The quote you saw in Chapter 4 is just the top of the book: the **best bid** is the
+highest price any buyer is waiting at, and the **best ask** is the lowest price any seller is waiting at.
+
+So there are two roles in every trade. The trader whose order was waiting in the book *provided* liquidity and is
+called the **maker**. The trader who arrived and traded against it *took* liquidity and is called the **taker**. A
+market order is always a taker. A limit order is a maker while it waits.
+
+Here's the book for our call. Bids are on the left in <span class="c-bid">blue</span>, offers on the right in
+<span class="c-ask">pink</span>, and each bar is one order.
+
+<OrderBook client:visible />
+
+<p class="try-this"><strong>Try this:</strong> send a <em>limit</em> buy for 10 contracts at \$2.45. Nothing
+trades, but your order becomes the new best bid and the spread shrinks from 0.15 to 0.10. Now switch to a
+<em>market</em> buy of 50 and send it: watch it eat the whole 2.55 and 2.60 levels and part of 2.65.</p>
+
+Notice that the quote moved after the market order. The best ask jumped from 2.55 to 2.65, because the cheaper
+offers no longer exist. A trade doesn't just happen *at* the price; a big enough trade *changes* the price.
+
+## <span class="section-tag">Intuition</span>Queues: first come, first served
+
+Prices in the book can't be anything you like. They sit on a grid of **ticks**: for this option, multiples of
+\$0.05. (Many busy options trade on finer grids, such as a cent below \$3. The idea is the same.) Because many
+traders want to buy at the same few prices, orders pile up at each price, and they need a rule for who goes
+first.
+
+The most common rule is **price–time priority**:
+
+1. **Better price first.** A bid at 2.40 trades before a bid at 2.35.
+2. **Then earlier first.** Among bids at 2.40, the one that arrived first trades first.
+
+In the picture, each price level is a queue. The order nearest the centre line arrived first and fills first;
+new orders join at the outside end. When you placed your bid, it went to the back of its queue.
+
+That gives a trader a real choice when buying:
+
+- **Join the queue** at the best bid. You might get a good price, but only once the orders ahead of you have
+  traded, and maybe never if the price moves away.
+- **Improve the price** by bidding one tick higher. You're at the front of a new queue, so you're first in
+  line, but you've offered more.
+- **Cross the spread** with a market order. You trade for certain and right now, but you pay the ask.
+
+<Callout type="note">
+Most limit orders never trade. On modern electronic markets, the large majority are cancelled or changed before
+they fill, often within a fraction of a second. A displayed order is a standing offer that its owner can withdraw
+at any moment. Use the <em>Let the market trade</em> button to see cancellations alongside new orders and trades.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Walking the book
+
+Back to the hook. You send a market order to buy 100 contracts. The first 15 fill at 2.55, which uses up the best
+ask. The next 25 fill at 2.60, the next 30 at 2.65, and the last 30 at 2.70. Your order **walks the book**, and
+each contract costs at least as much as the one before.
+
+<WalkTheBook client:visible />
+
+<p class="try-this"><strong>Try this:</strong> start at 100 contracts and read the average: 2.6375, almost 9
+cents above the quoted ask. Slide down to 15 and the average is exactly the ask. Now make the book thin, then
+deep, and watch the same order become much more or much less expensive. In the thin book, try 300 contracts:
+there aren't that many offered at all.</p>
+
+The staircase is the book's **depth** turned on its side: how far up the price you must go to find $Q$ contracts.
+The dashed curve is the **average** price you pay, which climbs more slowly because it averages the cheap
+contracts at the start with the expensive ones at the end.
+
+<Callout type="key" title="A quote is a price for small size">
+The bid and ask tell you what a <em>small</em> order pays. A large order pays more per contract on the way in
+and gets less on the way out, because it uses up the best prices. This extra cost is the simplest form of
+<strong>price impact</strong>. It grows with the order's size and shrinks with the book's depth, and much of
+Part XIV is about trading large orders so as to keep it small.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The arithmetic of the book
+
+Write the offers, best first, as prices $a_1 < a_2 < \dots$ with sizes $A_1, A_2, \dots$, and the bids as
+$b_1 > b_2 > \dots$ with sizes $B_1, B_2, \dots$. The quote is $(b_1, a_1)$, the **mid** is
+$M = \tfrac12(b_1 + a_1)$ and the **quoted spread** is $s = a_1 - b_1$.
+
+**Depth.** The cumulative depth on the offer side counts everything offered at a price of $p$ or better:
+
+$$
+D_a(p) = \sum_{i:\, a_i \le p} A_i .
+$$
+
+**A market buy of size $Q$** takes $q_i$ contracts at level $i$: as much as the level holds, until the order is
+done,
+
+$$
+q_i = \min\Big(A_i,\ \big(Q - \textstyle\sum_{j<i} A_j\big)^+\Big),
+$$
+
+where $(x)^+ = \max(x, 0)$ as in Chapter 2. Its **average price** and **marginal price** (the price of the last
+contract) are
+
+$$
+\bar p(Q) = \frac{1}{Q}\sum_i a_i\, q_i ,
+$$
+
+$$
+p_{\text{last}}(Q) = \min\{p : D_a(p) \ge Q\} .
+$$
+
+**Cost against the mid.** Compared with an imaginary trade of everything at the mid, the order costs
+
+$$
+\begin{aligned}
+Q\big(\bar p(Q) - M\big) &= \underbrace{\tfrac12 s\cdot Q}_{\text{half-spread}} \\
+&\quad + \underbrace{\sum_i q_i\,(a_i - a_1)}_{\text{walking the book}} ,
+\end{aligned}
+$$
+
+per share, which you multiply by $m = 100$ for dollars. The first term is paid by every market order, however
+small. The second appears only when the order is bigger than the best level.
+
+For our 100 contracts:
+
+| Level | Price | Contracts filled | Price × contracts |
+|---|---|---|---|
+| 1 | 2.55 | 15 | 38.25 |
+| 2 | 2.60 | 25 | 65.00 |
+| 3 | 2.65 | 30 | 79.50 |
+| 4 | 2.70 | 30 | 81.00 |
+| | | **100** | **263.75** |
+
+So $\bar p = 263.75/100 = 2.6375$, and the trade costs $100 \times 263.75 = $ \$26,375. The mid is 2.475, so the
+cost against the mid is $100 \times 100 \times (2.6375 - 2.475) = $ \$1,625: \$750 of half-spread and \$875 of
+walking the book.
+
+**The average is an average of the staircase.** Adding up the marginal prices of each contract gives the total
+cost, so
+
+$$
+Q\,\bar p(Q) = \int_0^Q p_{\text{last}}(x)\,dx .
+$$
+
+That's why the shaded area in the widget is the cost against the mid. A useful special case is a book with the
+same number of contracts, $\rho$, at every tick. Then the marginal price rises by one tick every $\rho$
+contracts, and the average rises half as fast:
+
+$$
+p_{\text{last}}(Q) \approx a_1 + \frac{Q}{\rho}\,\text{tick},
+$$
+
+$$
+\bar p(Q) \approx a_1 + \frac{Q}{2\rho}\,\text{tick}.
+$$
+
+Price impact is then **linear** in size, with a slope that falls as the book gets deeper. Hold on to that
+picture. A linear impact coefficient comes back as Kyle's $\lambda$ in Chapter 51, where it comes from
+information rather than from a book, and as the temporary impact of Almgren and Chriss in Chapter 62. Real books
+aren't uniform, and Chapter 61 shows that a large order worked over hours moves the price more like $\sqrt{Q}$
+than $Q$.
+
+**Your place in the queue.** Under price–time priority, a resting bid at price $p$ fills only after everything
+ahead of it has traded:
+
+$$
+\begin{aligned}
+N_{\text{ahead}} = {} & \sum_{i:\, b_i > p} B_i \\
+& + \big(\text{earlier orders at } p\big) .
+\end{aligned}
+$$
+
+If sell market orders arrive at an average rate of $\Lambda$ contracts per minute and nobody ahead of you cancels,
+you wait about $N_{\text{ahead}}/\Lambda$ minutes before your first fill. Cancellations ahead of you shorten the wait;
+a move in the price can make it infinite.
+
+**Marketable limit orders.** A limit buy at a price $L \ge a_1$ trades straight away against every offer priced at
+$L$ or less, then rests whatever is left as a bid at $L$. It's a market order with a safety catch: it can't walk
+the book past $L$. Many brokers and exchanges protect market orders in a similar way, with a price collar
+beyond which they won't trade.
+
+## <span class="section-tag">Playground</span>Trade the book
+
+<OrderBook client:visible seed={7} title="Playground: trade the book" />
+
+<div class="try-this">
+
+- **Earn the spread.** Post a bid for 10 at 2.40 and an offer for 10 at 2.55, then let the market trade. If both
+  fill, you've bought at 2.40 and sold at 2.55: \$150 on 10 contracts, without any view on the option. Often only
+  one side fills. What position are you left holding, and what's the risk? (That's the market maker's problem,
+  Chapter 49.)
+- **The safety catch.** Send a limit buy for 60 at 2.60. How many trade at once, at what prices, and what rests?
+- **Patience.** Market-buy 150 contracts and note the average. Reset, then buy 50, let the market trade, buy 50,
+  let it trade, buy 50. Does waiting help? How much depends on how quickly the book refills, its *resilience*
+  (Chapter 63).
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="The offers are 15 at 2.55, 25 at 2.60 and 30 at 2.65. What average price per share does a market buy of 50 contracts pay?"
+  answer={2.595}
+  tolerance={0.0005}
+  explanation="It takes 15 at 2.55, 25 at 2.60 and the last 10 at 2.65: $(38.25 + 65 + 26.5)/50 = 129.75/50 = 2.595$."
+/>
+
+<Quiz
+  client:visible
+  question="The book is 2.40 bid, 2.55 ask. You send a limit order to buy 10 at 2.45. What happens?"
+  options={[
+    "It trades at once at 2.55",
+    "It rests in the book as the new best bid, and the spread narrows to 0.10",
+    "It joins the queue behind the 20 contracts bid at 2.40",
+    "It's rejected, because there's no level at 2.45",
+  ]}
+  answer={1}
+  explanation="A limit buy only trades against offers at or below its price, and the cheapest offer is 2.55, so nothing trades. The order rests at 2.45, above every other bid, so it's the new best bid and the quote becomes 2.45 / 2.55."
+/>
+
+<Quiz
+  client:visible
+  question="Under price–time priority you have 10 contracts bid at 2.40, behind 20 contracts that arrived earlier at the same price. A market order to sell 25 arrives. How many of yours fill?"
+  options={["None", "5", "8", "All 10"]}
+  answer={1}
+  explanation="The 20 contracts ahead of you fill first, then the remaining 5 come to you. Under a pro-rata rule (Chapter 44) the answer would be different: the 25 would be shared in proportion to size, and you'd get about 8."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- The **limit order book** holds every waiting limit order. The quote is just its top: the best bid and the best
+  ask, each with a **size**.
+- A **limit order** names a price and waits (a maker); a **market order** trades now at whatever price it takes (a
+  taker).
+- Prices sit on a **tick** grid, so orders form **queues**, served by **price–time priority**: better price first,
+  then earlier first.
+- A large market order **walks the book**. Its cost against the mid is the half-spread on every contract plus
+  the cost of walking: $Q(\bar p - M) = \tfrac12 sQ + \sum_i q_i(a_i - a_1)$.
+- The average price is the running average of the depth staircase. In a uniform book, impact is linear in size.
+
+**Next up:** price–time priority is a rule someone chose, and it isn't the only one. In Chapter 44 we'll compare
+matching rules, and see that the same option trades on many exchanges at once.
+
+### Further reading
+
+- L. Harris, *Trading and Exchanges: Market Microstructure for Practitioners*, Oxford University Press (2003),
+  chapters 4–6 (orders and order books).
+- J.-P. Bouchaud, J. Bonart, J. Donier and M. Gould, *Trades, Quotes and Prices: Financial Markets Under the
+  Microscope*, Cambridge University Press (2018), part III.
+- M. D. Gould, M. A. Porter, S. Williams, M. McDonald, D. J. Fenn and S. D. Howison, "Limit order books",
+  *Quantitative Finance* 13 (2013).
+- E. Smith, J. D. Farmer, L. Gillemot and S. Krishnamurthy, "Statistical theory of the continuous double
+  auction", *Quantitative Finance* 3 (2003): the "zero-intelligence" order flow behind the widget's *Let the
+  market trade* button.

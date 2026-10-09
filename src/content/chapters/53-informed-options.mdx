@@ -1,0 +1,203 @@
+---
+title: "Informed trading in options"
+part: 12
+chapter: 53
+difficulty: 2
+prerequisites: [50, 51]
+summary: "Options offer leverage but charge wide spreads. Where informed traders go depends on what they know, and their footprints can be measured: option flow predicts stock moves, and PIN estimates how much trading is informed."
+---
+import VenueChoice from '../../components/plots/VenueChoice';
+import PINEstimator from '../../components/plots/PINEstimator';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Calls before the takeover
+
+When a company is about to be bought, its share price usually jumps on the announcement. Researchers who looked
+at trading in the days *before* takeover announcements found something striking: unusually heavy buying of
+short-dated, out-of-the-money calls on the target. Regulators have noticed too, and many insider-trading cases are
+built on exactly such option trades.
+
+Why options? Chapters 50–52 treated "the market" as one asset. A stock with listed options gives informed traders a
+choice of where to trade, and each choice leaves a different footprint. This chapter asks where an informed trader
+should go, what the evidence says about where they actually go, and how to estimate, from order flow alone, how much
+of the trading is informed.
+
+## <span class="section-tag">Intuition</span>Leverage against spreads
+
+Suppose you know the stock will jump overnight. Buying the stock earns the jump, about one for one. A call earns
+much more per dollar, because its price is a small fraction of the stock's: an option's **elasticity**, the percentage
+change in its price per percentage change in the stock, is often 10 or 20. But options charge wide spreads, and the
+cheapest, most leveraged ones charge the widest (Chapter 47). Which effect wins depends on how big your news is.
+
+<VenueChoice client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with news of +3%, the stock returns 3% and the \$105 call over 100%.
+Shrink the news to +1%: the far out-of-the-money calls now *lose* money, because crossing a spread worth half their
+price costs more than the move adds. Push the news to +8%: the wings become spectacular. Then try bad news, and the
+same story plays out in puts. Longer expiries have more value to spend, so they're less leveraged.</p>
+
+Easley, O'Hara and Srinivas formalised this in 1998. When options offer enough leverage relative to their spreads,
+informed traders use **both** markets (a *pooling* equilibrium). Option market makers know this, so they protect
+themselves with wider spreads, just as in Glosten–Milgrom; and **option order flow then carries information about the
+stock**. When options are too illiquid, informed traders stay in the stock (a *separating* equilibrium), and option
+volume tells you little.
+
+## <span class="section-tag">Intuition</span>What the data show
+
+The empirical evidence is broadly consistent with the pooling story.
+
+- **Option flow predicts stock returns.** Pan and Poteshman (2006) found that stocks whose new option positions
+  are tilted towards puts underperform over the following week, and those tilted towards calls outperform, a
+  pattern consistent with informed traders opening positions in options.
+- **Option prices predict stock returns.** Cremers and Weinbaum (2010) found that when calls are expensive relative
+  to puts of the same strike (a deviation from frictionless parity, Chapter 48), the stock tends to rise, and vice
+  versa.
+- **Volatility information lives only in options.** Someone who expects a big move but doesn't know its direction
+  can't trade it in the stock. Ni, Pan and Poteshman (2008) found that demand for options' volatility predicts the
+  stock's future realised volatility.
+
+<Callout type="key" title="Two kinds of private information">
+Directional information (the stock will go up) can be traded in the stock or in options; options win when the news
+is big enough to pay for their spreads. Volatility information (the stock will move a lot) can *only* be traded in
+options. Either way, option markets are where a good part of the informed trading happens, and option market makers
+price that risk into their spreads.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Counting informed traders
+
+Can we measure how much trading is informed? Easley, Kiefer, O'Hara and Paperman (1996) proposed a model that turns
+daily counts of buyer- and seller-initiated trades into an estimate. On days without news, buys and sells arrive at
+the same random rate. On days with news, informed traders pile in on one side, so one count jumps. Looking at many
+days, the model asks: how often are there news days, and how many extra orders do they bring? The resulting
+**probability of informed trading** (PIN) is the share of all orders that come from informed traders.
+
+<PINEstimator client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the grey cloud on the diagonal is no-news days; the green and red
+clouds are good- and bad-news days, pushed off the diagonal. The estimator never sees the colours, only the counts,
+yet it gets close to the truth. Shrink the informed orders to 10 a day: the clouds overlap and the estimates get
+much noisier. More days of data help.</p>
+
+## <span class="section-tag">Formalisation</span>Elasticity, venue choice and PIN
+
+**Elasticity.** An option worth $V$ with delta $\Delta$ has elasticity
+
+$$
+\Omega = \frac{\partial V/V}{\partial \Spot{S}/\Spot{S}} = \frac{\Delta\,\Spot{S}}{V} .
+$$
+
+For a small move $J$ overnight, buying at the ask $a$ and marking at fair value the next day returns about
+
+$$
+\frac{V_{\text{after}} - a}{a} \approx \Omega\,J - \frac{a - V}{a} + \frac{\Theta\,\delta t}{a},
+$$
+
+leverage on the move, minus the half-spread as a fraction of the price, plus one day of theta (negative for a
+bought option). The stock returns about $J$ less its tiny half-spread. Far out of the money, $\Omega$ is large but so
+is $(a - V)/a$, since a cheap option's spread is bounded below by the tick. For small $J$ the spread wins; for large
+$J$ the leverage, and the convexity the first-order formula leaves out, win. That's why the best strike in the widget
+moves outwards as the news gets bigger.
+
+**The PIN model.** Each day, with probability $\alpha$ there's news, bad with probability $\delta$ and good otherwise.
+Uninformed buys and sells each arrive as Poisson processes with rate $\varepsilon$ per day. On a good-news day,
+informed buys arrive at an extra rate $\mu$; on a bad-news day, informed sells. The likelihood of a day with $B$ buys
+and $S$ sells is a mixture of three Poisson products, with $\mathrm{Po}(k; \lambda) = e^{-\lambda}\lambda^k/k!$:
+
+$$
+\begin{aligned}
+L(B, S) = {} & (1 - \alpha)\,\mathrm{Po}(B; \varepsilon) \\
+& \quad\times \mathrm{Po}(S; \varepsilon) \\
+& + \alpha\delta\,\mathrm{Po}(B; \varepsilon)\,\mathrm{Po}(S; \varepsilon + \mu) \\
+& + \alpha(1 - \delta)\,\mathrm{Po}(B; \varepsilon + \mu)\,\mathrm{Po}(S; \varepsilon) .
+\end{aligned}
+$$
+
+The parameters are estimated by maximising $\sum_{\text{days}} \ln L(B_d, S_d)$. The widget does it with the Nelder–Mead
+method of Chapter 32, from several starting points, because mixture likelihoods can have more than one peak. On
+average there are $2\varepsilon + \alpha\mu$ orders a day, $\alpha\mu$ of them informed, so
+
+$$
+\text{PIN} = \frac{\alpha\mu}{\alpha\mu + 2\varepsilon} .
+$$
+
+With $\alpha = 0.4$, $\mu = 40$ and $\varepsilon = 50$: $\text{PIN} = 16/116 \approx 0.14$.
+
+**A caution.** PIN is a model-based estimate, and later work (for example Duarte and Young, 2009) showed that it also
+picks up things that aren't information, such as how liquid a stock is, and that the order counts in real data are
+more dispersed than Poisson. It's best read as one measure of the information content of order flow among several,
+alongside the price impact measures of Chapter 47 and the information shares of Chapter 54.
+
+## <span class="section-tag">Playground</span>Small news, big news
+
+<VenueChoice client:visible title="Playground: choose your weapon" />
+
+<div class="try-this">
+
+- **The break-even news.** With one-month options, find the smallest move at which the \$110 call beats the stock.
+  What does it say about who buys far out-of-the-money calls?
+- **Short-dated.** Switch to one-week options. Why does the best strike move closer to the money for the same news?
+- **Bad news.** With a −5% move, compare the best put's return with shorting the stock. Shorting also needs a stock
+  borrow (Chapter 48): one more reason an informed seller might prefer puts.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A call worth \$1.00 has a delta of 0.25 and the stock is at \$100. What's its elasticity $\Omega$?"
+  answer={25}
+  tolerance={0.01}
+  explanation="$\Omega = \Delta S/V = 0.25 \times 100/1.00 = 25$. A 2% move in the stock moves the call by about 50%, before spreads and theta."
+/>
+
+<NumericQuiz
+  client:visible
+  question="In the PIN model, news arrives on 30% of days, informed traders send 40 orders on news days, and uninformed traders send 50 buys and 50 sells a day. What's the PIN?"
+  answer={0.107}
+  tolerance={0.001}
+  explanation="$\text{PIN} = \alpha\mu/(\alpha\mu + 2\varepsilon) = 12/(12 + 100) \approx 0.107$."
+/>
+
+<Quiz
+  client:visible
+  question="A trader is sure a stock will move sharply after a court ruling, but not in which direction. Where can they trade on that?"
+  options={[
+    "Only in the stock",
+    "Only in options, for example by buying straddles",
+    "Equally in either",
+    "Nowhere: information without direction is worthless",
+  ]}
+  answer={1}
+  explanation="A position in the stock profits only from direction. A straddle profits from the size of the move whichever way it goes, so volatility information can only be traded in options."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Options offer **leverage** (elasticity $\Omega = \Delta S/V$) but charge **wide spreads**. Informed traders prefer
+  options when their news is big enough to pay for the spread.
+- When informed traders use both markets, **option order flow predicts stock returns**, and option market makers
+  widen spreads to protect themselves.
+- **Volatility information** can only be traded in options.
+- The **PIN** model estimates the informed share of trading, $\alpha\mu/(\alpha\mu + 2\varepsilon)$, from daily buy and
+  sell counts by maximum likelihood.
+
+**Next up:** if information flows into both the stock and its options, which market finds the price first? Chapter
+54 measures price discovery across markets.
+
+### Further reading
+
+- D. Easley, M. O'Hara and P. S. Srinivas, "Option volume and stock prices: evidence on where informed traders
+  trade", *Journal of Finance* 53 (1998).
+- D. Easley, N. M. Kiefer, M. O'Hara and J. B. Paperman, "Liquidity, information, and infrequently traded stocks",
+  *Journal of Finance* 51 (1996).
+- J. Pan and A. M. Poteshman, "The information in option volume for future stock prices", *Review of Financial
+  Studies* 19 (2006).
+- M. Cremers and D. Weinbaum, "Deviations from put-call parity and stock return predictability", *Journal of
+  Financial and Quantitative Analysis* 45 (2010).
+- S. X. Ni, J. Pan and A. M. Poteshman, "Volatility information trading in the option market", *Journal of
+  Finance* 63 (2008).
+- P. Augustin, M. Brenner and M. G. Subrahmanyam, "Informed options trading prior to takeover announcements:
+  insider trading?", *Management Science* 65 (2019).
+- J. Duarte and L. Young, "Why is PIN priced?", *Journal of Financial Economics* 91 (2009).
