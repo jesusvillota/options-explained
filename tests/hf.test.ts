@@ -10,6 +10,7 @@ import {
   simulatePoisson,
   windowCounts,
 } from '../src/lib/hf/hawkes';
+import { annualise, expectedRV, noiseVariance, optimalSamples, realizedVariance, simulateNoisyDay, twoScaleRV } from '../src/lib/hf/realizedNoise';
 import { fitThroughOrigin, imbalance, queueMicroprice, raceShare, simulateOfi, simulateRace, upProbability, upProbabilityGrid, weightedMid } from '../src/lib/hf/queues';
 
 describe('Chapter 70: Hawkes processes', () => {
@@ -107,5 +108,39 @@ describe('Chapter 71: queues and imbalance', () => {
     expect(fa.r2).toBeGreaterThan(0.2);
     expect(fa.slope).toBeGreaterThan(2 * fb.slope);
     expect(fitThroughOrigin([1, 2, 3], [2, 4, 6])).toEqual({ slope: 2, r2: 1 });
+  });
+});
+
+describe('Chapter 72: microstructure noise', () => {
+  const sd = 0.2 / Math.sqrt(252);
+
+  it('realised variance of a known path, with subsampling', () => {
+    const y = [0, 1, 3, 2, 2];
+    expect(realizedVariance(y)).toBe(1 + 4 + 1 + 0);
+    expect(realizedVariance(y, 2)).toBe(9 + 1);
+    expect(realizedVariance(y, 2, 1)).toBe(1);
+  });
+
+  it('without noise, RV estimates σ²; with noise, RV ≈ σ² + 2nω² at high frequency', () => {
+    const clean = simulateNoisyDay({ sigmaDaily: sd, omega: 0, seed: 1 });
+    expect(annualise(realizedVariance(clean.observed))).toBeCloseTo(0.2, 2);
+    const noisy = simulateNoisyDay({ sigmaDaily: sd, omega: 0.0005, seed: 1 });
+    const rv = realizedVariance(noisy.observed);
+    expect(rv / expectedRV(sd, 0.0005, 23400)).toBeCloseTo(1, 1);
+    expect(Math.sqrt(noiseVariance(noisy.observed))).toBeCloseTo(0.0005, 4);
+  });
+
+  it('two-scale realised variance removes the noise bias', () => {
+    let sum = 0;
+    for (let s = 0; s < 10; s++) sum += annualise(twoScaleRV(simulateNoisyDay({ sigmaDaily: sd, omega: 0.0005, seed: 400 + s }).observed));
+    expect(sum / 10).toBeCloseTo(0.2, 1);
+    expect(Math.abs(sum / 10 - 0.2)).toBeLessThan(0.015);
+  });
+
+  it('Bandi–Russell optimal number of returns', () => {
+    expect(optimalSamples(sd, 0.0005)).toBeCloseTo((sd ** 2 / (2 * 0.0005 ** 2)) ** (2 / 3), 9);
+    // Less noise: sample more often.
+    expect(optimalSamples(sd, 0.0002)).toBeGreaterThan(optimalSamples(sd, 0.0005));
+    expect(annualise(0.04 / 252)).toBeCloseTo(0.2, 12);
   });
 });

@@ -1,0 +1,185 @@
+---
+title: "Microstructure noise and realised volatility"
+part: 16
+chapter: 72
+difficulty: 3
+prerequisites: [25, 47]
+summary: "Sampling prices more often should measure volatility more precisely, yet tick-by-tick realised volatility comes out far too high. Observed prices are the efficient price plus noise; the signature plot, the best sampling interval, and the two-scale estimator that removes the noise."
+---
+import SignaturePlot from '../../components/plots/SignaturePlot';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>More data, worse answer
+
+Chapter 25 estimated volatility from daily closing prices: about 250 returns a year. Intraday data offer far more: a
+liquid stock trades many times a second. Chapter 15 promised that summing squared returns over ever finer intervals
+converges to the true variance, the quadratic variation. So the realised variance of one day's second-by-second
+returns should pin down that day's volatility almost exactly.
+
+Try it on real data and you get nonsense: a stock whose volatility is about 20% shows a realised volatility of 100% or
+more from one-second returns. The finer you sample, the worse it gets. The problem isn't the theory; it's that the
+prices you observe aren't the prices the theory is about.
+
+## <span class="section-tag">Intuition</span>Noise doesn't add up, but it does get counted
+
+A trade prints at the bid or at the ask, not at the "true" price in between: that's Chapter 47's bid–ask bounce.
+Quotes move in ticks. So each observed price is the efficient price plus a small error, a few basis points, which
+doesn't persist: the next price has its own error.
+
+The efficient price's variance over a day is fixed, however finely you slice the day. But every return you compute
+contains two fresh noise errors. Sum a thousand squared returns and you've added a thousand lots of noise variance. At
+low frequencies the true moves dominate; at high frequencies the noise does.
+
+<SignaturePlot client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with 5 basis points of noise, the realised volatility from one-second
+returns is several times the true 20%. Move right along the curve: sampling every few minutes brings it close to the
+truth, at the cost of fewer returns and a noisier estimate. The dashed vertical line marks the interval that best
+balances the two. The green line, the two-scale estimator, uses every observation and still lands near 20%. Set the
+noise to zero: the curve goes flat, and sampling every second is best.</p>
+
+<Callout type="key" title="Noise biases realised variance">
+If observed log prices are $Y = X + \varepsilon$, with independent noise of variance $\omega^2$, realised variance from
+$n$ returns has $\mathbb{E}[\mathrm{RV}_n] = \sigma^2 T + 2n\,\omega^2$. The bias grows with $n$. Sample less often, or
+estimate the noise and subtract it.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>The signature plot and two scales
+
+**The model.** Let the efficient log price $X_t$ be a Brownian motion with volatility $\Vol{\sigma}$, and observe
+$Y_i = X_{t_i} + \varepsilon_i$ at $n + 1$ equally spaced times over $[0, T]$, with $\varepsilon_i$ independent, mean zero,
+variance $\omega^2$, and independent of $X$. Each observed return is
+
+$$
+Y_i - Y_{i-1} = (X_{t_i} - X_{t_{i-1}}) + (\varepsilon_i - \varepsilon_{i-1}) .
+$$
+
+**The bias.** Squaring and taking expectations, the efficient part contributes $\Vol{\sigma}^2 T/n$ and the noise part
+$2\omega^2$, with no cross term. Summing $n$ returns,
+
+$$
+\mathbb{E}[\mathrm{RV}_n] = \Vol{\sigma}^2 T + 2n\,\omega^2 .
+$$
+
+Plotting realised volatility against the sampling interval gives the **volatility signature plot**: flat when there's no
+noise, rising sharply at short intervals when there is. Andersen, Bollerslev, Diebold and Labys (2000) introduced it.
+The noise also makes consecutive returns negatively correlated, with covariance $-\omega^2$: Roll's estimator of
+Chapter 47 reads the spread from exactly this.
+
+**Estimating the noise.** At the highest frequency the bias dominates, so $\hat\omega^2 = \mathrm{RV}_{\text{all}}/(2n)$.
+In the widget, it recovers the noise level almost exactly.
+
+**The best sampling interval.** Sparse sampling cuts the bias but adds sampling error: with $n$ returns, realised
+variance of the efficient price has variance about $2\Vol{\sigma}^4T^2/n$. The mean squared error is roughly
+
+$$
+(2n\omega^2)^2 + \frac{2\Vol{\sigma}^4T^2}{n},
+$$
+
+minimised, as Bandi and Russell (2008) showed, at
+
+$$
+n^* \approx \left(\frac{\Vol{\sigma}^2 T}{2\omega^2}\right)^{2/3} .
+$$
+
+For a day of a stock with 20% annual volatility and 5 basis points of noise, $n^* \approx 47$: one return every eight
+minutes or so. That's why practitioners long used five-minute returns.
+
+**Two scales.** Zhang, Mykland and Aït-Sahalia (2005) found a way to use all the data. Split the observations into $K$
+sparse subgrids, each sampled every $K$ ticks with a different starting point, and average their realised variances:
+
+$$
+\mathrm{RV}_{\text{avg}} = \frac{1}{K}\sum_{k=1}^{K} \mathrm{RV}^{(k)} .
+$$
+
+Each has about $\bar n = (n - K + 1)/K$ returns and so a bias of $2\bar n\omega^2$; the full grid's
+$\mathrm{RV}_{\text{all}}$ estimates $2n\omega^2$. Subtracting the right multiple removes the bias:
+
+$$
+\mathrm{TSRV} = \mathrm{RV}_{\text{avg}} - \frac{\bar n}{n}\,\mathrm{RV}_{\text{all}} .
+$$
+
+With $K$ of order $n^{2/3}$, TSRV converges to the true integrated variance as $n \to \infty$. Realised kernels and
+pre-averaging estimators refine the idea further.
+
+**Why options traders care.** Realised volatility is the other half of every volatility trade: the gamma P&L of a
+hedged option (Chapter 22), the floating leg of a variance swap (Chapter 28), the breakeven of Chapter 65. Variance
+swaps settle on daily closes, where noise is tiny compared with a day's move. But marking a volatility position
+during the day, or judging a zero-day option (Chapter 68), needs intraday estimates, and those need to handle noise.
+
+## <span class="section-tag">Playground</span>Sample wisely
+
+<SignaturePlot client:visible initialNoise={2} title="Playground: noise, volatility and sampling" />
+
+<div class="try-this">
+
+- **Quiet stocks.** Lower the true volatility to 10% with 2 bp of noise. Where is the best sampling interval now? Why
+  does it move?
+- **Day to day.** Click *New day* several times. How much does the five-minute estimate vary? And the two-scale one?
+- **The bias formula.** With 5 bp of noise, check the one-second value against $\sqrt{\sigma^2 + 2n\omega^2}$ annualised,
+  with $n$ = 23,400.
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A stock's daily volatility is 1% (so $\sigma^2T = 0.0001$ for one day), and its noise is $\omega$ = 4 basis points. What annualised volatility, in percent, would you expect from realised variance with 23,400 one-second returns? (Use 252 days.)"
+  answer={138}
+  tolerance={1}
+  explanation="$\mathbb{E}[\mathrm{RV}] = 0.0001 + 2 \times 23{,}400 \times 0.0004^2 = 0.0001 + 0.00749 = 0.00759$. Annualised: $\sqrt{0.00759 \times 252} \approx 1.38$, or 138%, against a true 15.9%."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Realised variance from 23,400 one-second returns is 0.0094. Assuming the noise dominates at this frequency, what's the noise standard deviation $\omega$, in basis points? (Two decimals.)"
+  answer={4.48}
+  tolerance={0.02}
+  explanation="$\hat\omega^2 = 0.0094/(2 \times 23{,}400) \approx 2.01\times10^{-7}$, so $\hat\omega \approx 0.000448$, or 4.48 basis points."
+/>
+
+<Quiz
+  client:visible
+  question="Why does realised volatility rise as the sampling interval shrinks?"
+  options={[
+    "Because true volatility is higher at short horizons",
+    "Because every return carries two independent noise errors, and more returns add more noise variance, while the true variance over the day is fixed",
+    "Because of rounding errors in the computer",
+    "Because markets are closed at night",
+  ]}
+  answer={1}
+  explanation="$\mathbb{E}[\mathrm{RV}_n] = \sigma^2T + 2n\omega^2$: the first term doesn't depend on $n$, the second grows with it."
+/>
+
+<Quiz
+  client:visible
+  question="With noise, what's the covariance between consecutive tick returns?"
+  options={["Zero", "$+\\omega^2$", "$-\\omega^2$", "$\\sigma^2$"]}
+  answer={2}
+  explanation="Consecutive returns share one noise term with opposite signs: $\varepsilon_i$ enters the first as $+\varepsilon_i$ and the second as $-\varepsilon_i$, so their covariance is $-\omega^2$. That's the bid–ask bounce Roll's estimator uses."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- Observed prices are the **efficient price plus noise**: bid–ask bounce, ticks.
+- With noise of variance $\omega^2$, $\mathbb{E}[\mathrm{RV}_n] = \sigma^2T + 2n\omega^2$: the **signature plot** rises at high
+  frequency.
+- The noise variance can be estimated by $\mathrm{RV}_{\text{all}}/(2n)$; consecutive returns have covariance $-\omega^2$.
+- The best number of returns is about $(\sigma^2T/2\omega^2)^{2/3}$: often a few minutes apart.
+- **Two-scale realised variance** averages sparse subgrids and subtracts the noise bias, using all the data.
+
+**Next up:** the last chapter asks how the race for speed and the rules of the market shape all of this: latency
+arbitrage, batch auctions and tick sizes.
+
+### Further reading
+
+- L. Zhang, P. A. Mykland and Y. Aït-Sahalia, "A tale of two time scales: determining integrated volatility with noisy
+  high-frequency data", *Journal of the American Statistical Association* 100 (2005).
+- F. M. Bandi and J. R. Russell, "Microstructure noise, realized variance, and optimal sampling", *Review of Economic
+  Studies* 75 (2008).
+- T. G. Andersen, T. Bollerslev, F. X. Diebold and P. Labys, "Great realizations", *Risk* 13 (2000).
+- O. E. Barndorff-Nielsen, P. R. Hansen, A. Lunde and N. Shephard, "Designing realized kernels to measure the ex post
+  variation of equity prices in the presence of noise", *Econometrica* 76 (2008).
+- Y. Aït-Sahalia and J. Jacod, *High-Frequency Financial Econometrics*, Princeton University Press (2014).
