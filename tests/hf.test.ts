@@ -11,6 +11,7 @@ import {
   windowCounts,
 } from '../src/lib/hf/hawkes';
 import { annualise, expectedRV, noiseVariance, optimalSamples, realizedVariance, simulateNoisyDay, twoScaleRV } from '../src/lib/hf/realizedNoise';
+import { equilibriumHalfSpread, expectedLead, providerWinProb, raceOnce, simulateWinShare, snipeProb } from '../src/lib/hf/marketDesign';
 import { fitThroughOrigin, imbalance, queueMicroprice, raceShare, simulateOfi, simulateRace, upProbability, upProbabilityGrid, weightedMid } from '../src/lib/hf/queues';
 
 describe('Chapter 70: Hawkes processes', () => {
@@ -142,5 +143,43 @@ describe('Chapter 72: microstructure noise', () => {
     // Less noise: sample more often.
     expect(optimalSamples(sd, 0.0002)).toBeGreaterThan(optimalSamples(sd, 0.0005));
     expect(annualise(0.04 / 252)).toBeCloseTo(0.2, 12);
+  });
+});
+
+describe('Chapter 73: speed and market design', () => {
+  it('with no edge, the provider wins one race in N + 1', () => {
+    for (const N of [1, 3, 9]) expect(providerWinProb({ snipers: N, edge: 0, jitter: 5 })).toBeCloseTo(1 / (N + 1), 12);
+    expect(providerWinProb({ snipers: 3, edge: 100, jitter: 5 })).toBeCloseTo(1, 6);
+    expect(providerWinProb({ snipers: 3, edge: -100, jitter: 5 })).toBeCloseTo(0, 6);
+  });
+
+  it('closed forms match simulated races', () => {
+    for (const edge of [-4, 0, 6]) {
+      const p = { snipers: 3, edge, jitter: 5 };
+      expect(Math.abs(simulateWinShare(p, 20000, 1) - providerWinProb(p))).toBeLessThan(0.015);
+      let lead = 0;
+      for (let i = 0; i < 20000; i++) {
+        const r = raceOnce(p, 50 + i * 13);
+        lead += Math.max(r.provider - Math.min(...r.snipers), 0);
+      }
+      expect(lead / 20000).toBeCloseTo(expectedLead(p), 0);
+    }
+    const r = raceOnce({ snipers: 4, edge: 0, jitter: 5 }, 3);
+    expect(r.snipers).toHaveLength(4);
+  });
+
+  it('break-even half-spread: λ_I h = λ_J π (J − h)', () => {
+    const h = equilibriumHalfSpread(0.75, { jumpRate: 1, jump: 10, investorRate: 2 });
+    expect(h).toBeCloseTo(7.5 / 2.75, 12);
+    expect(2 * h).toBeCloseTo(1 * 0.75 * (10 - h), 12);
+    expect(equilibriumHalfSpread(0)).toBe(0);
+  });
+
+  it('batch auctions make sniping rare once the interval dwarfs the latency gaps', () => {
+    const p = { snipers: 3, edge: 0, jitter: 5 };
+    expect(snipeProb(p)).toBeCloseTo(0.75, 12);
+    expect(snipeProb(p, 1e5)).toBeCloseTo(expectedLead(p) / 1e5, 12);
+    expect(snipeProb(p, 1e5)).toBeLessThan(1e-3);
+    expect(snipeProb(p, 1)).toBeCloseTo(0.75, 12); // a 1 μs batch is continuous trading
   });
 });

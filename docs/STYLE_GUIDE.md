@@ -142,6 +142,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\lambda(t)$, $\mu$, $\alpha$, $\beta$, $n$, $\Lambda$ (Hawkes) | Intensity, immigrant rate, jump and decay of the excitation, branching ratio $\alpha/\beta$, and mean rate (Chapter 70). Here $\lambda$ is an intensity, not price impact |
 | $V_b$, $V_a$, $\iota$, $P_{\text{up}}$, $\text{OFI}$, $e$, $\delta$ (tick) | Lots at the best bid and ask, queue imbalance, the chance the next mid move is up, order-flow imbalance and its per-event contribution, and the tick size (Chapter 71) |
 | $Y_i$, $X_t$, $\varepsilon_i$, $\omega$ (noise), $\mathrm{RV}_n$, $n^*$, $K$, $\mathrm{TSRV}$ | Observed and efficient log prices, microstructure noise and its standard deviation, realised variance from $n$ returns, the best $n$, the number of subgrids, and two-scale realised variance (Chapter 72) |
+| $N$ (snipers), $J$, $\lambda_J$, $\lambda_I$, $h$, $\pi$ (sniped), $j$, $e$ (edge), $\tau$ (batch) | Fast traders racing the provider, news jump size and rate, investor order rate, half-spread, probability a jump is sniped, mean reaction jitter, the provider's speed edge, and the batch interval (Chapter 73) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
