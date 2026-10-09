@@ -137,6 +137,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $Q_i$, $L_i$, $\sigma_{\text{vol}}$, $\bar\theta$, $\Spot{S}_{\text{ref}}$ | Vega bought at strike $i$, its daily traded vega, the daily volatility of implied volatility, the share of the half-spread paid when working an order, and a tied order's reference stock price (Chapter 65) |
 | $\Gamma_D$, $\delta F$, $\text{GEX}_K$, $n_K$ | Dealers' net gamma in shares per dollar, the move the stock would make without hedging flows, gamma exposure at strike $K$, and dealers' net contracts there (Chapter 66) |
 | $\sigma_{\text{loc}}(S, t)$, $n$ (pinning) | Local volatility created by hedging feedback, and hedgers' net contracts at the pinning strike (Chapter 67) |
+| $V(t)$, $w(u)$, $\sigma^2_{\text{event}}$, $\sigma_{\text{base}}$ | Variance still to come before expiry, the intraday variance weight, an event's variance, and normal-day volatility (Chapter 68) |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |

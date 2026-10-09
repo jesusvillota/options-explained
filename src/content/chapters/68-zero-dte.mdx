@@ -1,0 +1,200 @@
+---
+title: "Zero-days-to-expiry options and intraday dynamics"
+part: 15
+chapter: 68
+difficulty: 2
+prerequisites: [22, 66]
+summary: "Options in their last day: value, gamma and theta measured per hour, gamma piling up at the strike, volatility that arrives in a U shape through the day, and the variance of a single event read off two expiries."
+---
+import IntradayGamma from '../../components/plots/IntradayGamma';
+import EventVariance from '../../components/plots/EventVariance';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Options that live for a day
+
+Since 2022, options on the S&P 500 expire every trading day, and options bought in the morning to expire that same
+afternoon, **zero-days-to-expiry** or **0DTE** options, have grown to around half of the index's option volume.
+Traders use them to bet on a data release, to hedge a single afternoon, or to sell premium hour by hour.
+
+An option with a few hours to live is a strange object. Its value is tiny, its gamma is enormous, it loses a visible
+part of its value every hour, and how much it loses depends on *which* hour. This chapter zooms in on that last day,
+then zooms out to the term structure, where a single day, an earnings announcement, can carry as much variance as a
+month.
+
+## <span class="section-tag">Intuition</span>A day in the life of an option
+
+Chapter 22 showed that an option's time decay pays for its gamma: the holder loses theta when the stock is still and
+wins on big moves. In the last day, both become extreme. An at-the-money option on a \$100 stock with 20% volatility
+is worth about 50 cents at the open, with gamma of about 0.3 per dollar, sixteen times that of a one-year option.
+By the last half hour, gamma at the strike is about 1 and rising fast, and the option is close to a bet on which side of the strike
+the stock closes.
+
+Time doesn't flow evenly through a trading day, either. Volatility is high after the open, quiet at lunch and picks up
+into the close. An option's clock is the variance still to come, so it decays fastest when the market moves most.
+
+<IntradayGamma client:visible />
+
+<p class="try-this"><strong>Try this:</strong> with the stock at the strike, watch the solid and dashed lines differ.
+With volatility arriving in a U shape, theta per hour at the open is three times what an even clock
+says, then lower through midday. Gamma rises all day and spikes at the close. Now move the stock 1% above the strike:
+gamma rises in the morning, then collapses as the option becomes almost certainly in the money.</p>
+
+## <span class="section-tag">Intuition</span>The variance of one day
+
+Some days carry far more variance than others: earnings announcements, central-bank decisions, elections. The
+options market prices them. An expiry just before an earnings report and one just after differ by the variance of
+that one day, and comparing them reads off the move the market expects.
+
+<EventVariance client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the expiry before the report trades at 25%, the one after at 40%.
+The extra variance implies an earnings-day move of about ±5.6%, more than the stock's normal volatility would produce
+in two weeks. Raise the second expiry's volatility and watch the jump in total variance grow. If you set the normal-day
+volatility above the first expiry's, the implied event variance shrinks: the decomposition depends on that
+assumption.</p>
+
+<Callout type="key" title="Variance time">
+Options don't age in calendar time but in **variance time**: $\sigma^2\tau$ becomes $V(t) = \int_t^T \sigma^2(u)\,du$.
+Within a day that variance arrives in a U shape; across days, one event can add a lump
+$\sigma^2_{\text{event}} = \sigma^2_{T_2}T_2 - \sigma^2_{T_1}T_1 - \sigma^2_{\text{base}}(T_2 - T_1)$.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Greeks per hour and variance time
+
+**At-the-money approximations.** With zero rates and $\Spot{S} = \Strike{K}$, $d_1 = \tfrac12\Vol{\sigma}\sqrt{\tau}$ is
+tiny and $\varphi(d_1) \approx \varphi(0) \approx 0.4$. So
+
+$$
+\begin{aligned}
+\Call{C} &\approx 0.4\,\Spot{S}\Vol{\sigma}\sqrt{\tau}, \\
+\Gamma &\approx \frac{0.4}{\Spot{S}\Vol{\sigma}\sqrt{\tau}}, \\
+\Theta &\approx -\frac{0.4\,\Spot{S}\Vol{\sigma}}{2\sqrt{\tau}} .
+\end{aligned}
+$$
+
+Value shrinks like $\sqrt{\tau}$; gamma and the rate of decay grow like $1/\sqrt{\tau}$. With one day left,
+$\tau = 1/252$: the option is worth $0.4 \times 100 \times 0.2/\sqrt{252} \approx$ 50 cents and gamma is about 0.32.
+
+**Theta pays for gamma.** Chapter 22's relation $\Theta + \tfrac12\Vol{\sigma}^2\Spot{S}^2\Gamma = 0$ (with zero rates)
+holds hour by hour. A seller of 0DTE options collects theta every quiet hour and pays out on every large move. The
+breakeven hourly move is the one where $\tfrac12\Gamma\,\delta \Spot{S}^2$ equals the hour's theta.
+
+**Variance time.** If volatility varies through the day, the variance still to come before expiry is
+$V(t) = \int_t^T \Vol{\sigma}^2(u)\,du$. Black–Scholes then holds with $\Vol{\sigma}^2\tau$ replaced by $V(t)$: replace
+$\Vol{\sigma}\sqrt{\tau}$ by $\sqrt{V}$ in $d_1$, $d_2$ and the formulas above. Theta per hour becomes
+
+$$
+-\frac{\partial \Call{C}}{\partial t} = \frac{\Spot{S}\,\varphi(d_1)}{2\sqrt{V}}\,\Vol{\sigma}^2(t) ,
+$$
+
+proportional to the *instantaneous* variance. In the widget's U-shaped day, the first hour carries about a quarter of
+the day's variance and the last hour almost a fifth, so they also carry the most decay. Pricing a 0DTE option on an
+even clock overstates its value at midday and understates the decay after the open.
+
+**Gamma concentrates.** Near the close, gamma is large only within about $\Spot{S}\sqrt{V}$ of the strike. That's what
+drove pinning in Chapter 67, and it's why 0DTE trading raised concerns about dealer hedging flows. The evidence so far
+is mixed: Dim, Eraker and Vilkov (2024) found that market makers' aggregate 0DTE gamma in the S&P 500 has tended to
+be positive, and no evidence that 0DTE trading amplifies index volatility.
+
+**Event variance.** Suppose an announcement falls between two expiries $T_1 < T_2$, and on normal days the stock's
+volatility is $\sigma_{\text{base}}$. Total implied variance is additive in time, so
+
+$$
+\sigma^2_{T_2}T_2 = \sigma^2_{T_1}T_1 + \sigma^2_{\text{base}}(T_2 - T_1) + \sigma^2_{\text{event}} ,
+$$
+
+and solving for $\sigma^2_{\text{event}}$ gives the formula in the box. The **implied move** is
+$\sigma_{\text{event}}$, one standard deviation of the announcement's return; if the move is normal, its expected size is
+$\sqrt{2/\pi}\,\sigma_{\text{event}} \approx 0.8\,\sigma_{\text{event}}$. That's why traders quote the price of an
+at-the-money straddle, about $0.8\,\Spot{S}\Vol{\sigma}\sqrt{T}$, as "the expected move".
+
+**The term structure around an event.** For any expiry $T$ after the event,
+
+$$
+\sigma_{\text{imp}}(T) = \sqrt{\frac{\sigma^2_{\text{base}}T + \sigma^2_{\text{event}}}{T}} ,
+$$
+
+which jumps just after the event and decays towards $\sigma_{\text{base}}$ as the event's variance is spread over a longer
+life. That hump is how events show up on the volatility surface of Chapter 26.
+
+## <span class="section-tag">Playground</span>The final hours
+
+<IntradayGamma client:visible initialMoneyness={0.5} title="Playground: off the strike" />
+
+<div class="try-this">
+
+- **Gamma's rise and fall.** With the stock 0.5% above the strike, at what time of day does gamma peak? Why does it fall
+  afterwards?
+- **Two clocks.** At 12:00 and at the money, how much is the option worth under each clock? Which hours make the
+  difference?
+- **The last five minutes.** At the money, how much does the option lose in theta in the last hour, and how large a
+  move in the stock would pay for it?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="An at-the-money call on a \$100 stock with 32% volatility expires at today's close, 252 trading days a year. Using the approximation $C \approx 0.4\,S\sigma\sqrt{\tau}$, what's it worth at the open, in dollars?"
+  answer={0.81}
+  tolerance={0.01}
+  explanation="$0.4 \times 100 \times 0.32/\sqrt{252} = 12.8/15.87 \approx 0.81$."
+/>
+
+<Quiz
+  client:visible
+  question="Why does a 0DTE option lose more value in the first hour of trading than around lunchtime?"
+  options={[
+    "Because exchanges charge more in the morning",
+    "Because more of the day's variance arrives after the open, and options decay in variance time",
+    "Because interest accrues in the morning",
+    "It doesn't: decay is the same every hour",
+  ]}
+  answer={1}
+  explanation="Theta is proportional to the instantaneous variance $\sigma^2(t)$. With a U-shaped day, the first hour carries far more variance than midday."
+/>
+
+<NumericQuiz
+  client:visible
+  question="An expiry 5 trading days away, before earnings, trades at 30%; one 10 days away, after earnings, at 45%. Normal-day volatility is 30%. What's the implied earnings move, one standard deviation, in percent? (Use 252 days a year.)"
+  answer={6.7}
+  tolerance={0.1}
+  explanation="$\sigma^2_{\text{event}} = 0.45^2 \times 10/252 - 0.3^2 \times 5/252 - 0.3^2 \times 5/252 = (0.2025 - 0.09) \times 10/252 \approx 0.00446$, and $\sqrt{0.00446} \approx 6.7\%$."
+/>
+
+<Quiz
+  client:visible
+  question="Half an hour before expiry, the stock is 1% above a call's strike. What is the call's gamma doing?"
+  options={[
+    "Exploding, as it does at the strike",
+    "Collapsing towards zero: the option is almost surely in the money, with delta near 1",
+    "Turning negative",
+    "Staying constant",
+  ]}
+  answer={1}
+  explanation="Near expiry, gamma is concentrated within about $S\sqrt{V}$ of the strike. A 1% gap is many times that width half an hour before the close, so delta is pinned near 1 and gamma near 0."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- At the money: $C \approx 0.4\,S\sigma\sqrt{\tau}$, $\Gamma \approx 0.4/(S\sigma\sqrt{\tau})$; in the last day, gamma and
+  theta per hour are huge.
+- Options decay in **variance time** $V(t) = \int_t^T\sigma^2(u)\,du$; with a **U-shaped** intraday volatility, decay is fastest
+  after the open and into the close.
+- Near expiry, **gamma concentrates** at the strike and vanishes elsewhere.
+- **Event variance**: $\sigma^2_{\text{event}} = \sigma^2_{T_2}T_2 - \sigma^2_{T_1}T_1 - \sigma^2_{\text{base}}(T_2 - T_1)$, with implied
+  move $\sigma_{\text{event}}$ and expected absolute move $\approx 0.8\,\sigma_{\text{event}}$.
+
+**Next up:** when hedging and margin calls all push the same way, a fall can become a crash. Chapter 69 looks at
+portfolio insurance in 1987, liquidity spirals and the rebalancing of leveraged products.
+
+### Further reading
+
+- C. Dim, B. Eraker and G. Vilkov, "0DTEs: trading, gamma risk and volatility propagation", working paper (2024).
+- T. G. Andersen and T. Bollerslev, "Intraday periodicity and volatility persistence in financial markets", *Journal of
+  Empirical Finance* 4 (1997).
+- P. Dubinsky, M. Johannes, A. Kaeck and N. J. Seeger, "Option pricing of earnings announcement risks", *Review of
+  Financial Studies* 32 (2019).
+- C. Bennett, *Trading Volatility*, Santander (2014), chapter on event volatility.

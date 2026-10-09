@@ -10,6 +10,7 @@ import {
   realisedVol,
   simulateFeedback,
 } from '../src/lib/feedback/dealerGamma';
+import { eventVariance, impliedMove, ivWithEvent, remainingShare, varianceWeight, zeroDteCall } from '../src/lib/feedback/intraday';
 import { closeHistogram, gammaAt, localMultiplier, pinShare, simulatePinning } from '../src/lib/feedback/pinning';
 
 describe('Chapter 66: dealer gamma and feedback', () => {
@@ -94,5 +95,48 @@ describe('Chapter 67: pinning', () => {
     expect(h.reduce((a, b) => a + b, 0)).toBeCloseTo(0.75, 12);
     expect(h[3]).toBeCloseTo(0.25, 12);
     expect(h[4]).toBeCloseTo(0.25, 12);
+  });
+});
+
+describe('Chapter 68: zero-days-to-expiry options', () => {
+  it('the U-shaped variance weights average to one over the day', () => {
+    expect(remainingShare(0)).toBeCloseTo(1, 4);
+    expect(remainingShare(1)).toBe(0);
+    expect(varianceWeight(0)).toBeGreaterThan(2 * varianceWeight(0.5));
+    expect(varianceWeight(1)).toBeGreaterThan(1.5 * varianceWeight(0.5));
+    expect(remainingShare(0.5, false)).toBe(0.5);
+  });
+
+  it('ATM value ≈ 0.4·S·σ√τ and gamma ≈ φ(0)/(S√V) at the open', () => {
+    const r = zeroDteCall(100, 100, 0.2, 0, false);
+    expect(r.value).toBeCloseTo(0.3989 * 100 * 0.2 / Math.sqrt(252), 2);
+    expect(r.gamma).toBeCloseTo(0.3989 / (100 * 0.2 / Math.sqrt(252)), 2);
+    // Matches Black–Scholes with one day to expiry.
+    const bs = greeks('call', { S: 100, K: 100, T: 1 / 252, r: 0, sigma: 0.2 });
+    expect(r.gamma).toBeCloseTo(bs.gamma, 10);
+  });
+
+  it('gamma explodes at the strike into the close; theta per hour matches the value lost', () => {
+    const early = zeroDteCall(100, 100, 0.2, 0.1), late = zeroDteCall(100, 100, 0.2, 0.99);
+    expect(late.gamma).toBeGreaterThan(5 * early.gamma);
+    // Off the strike, gamma collapses into the close instead.
+    expect(zeroDteCall(101, 100, 0.2, 0.99).gamma).toBeLessThan(zeroDteCall(101, 100, 0.2, 0.5).gamma);
+    // Finite-difference theta over one minute.
+    const u = 0.4, du = 1 / 390;
+    const fd = (zeroDteCall(100, 100, 0.2, u).value - zeroDteCall(100, 100, 0.2, u + du).value) * 60;
+    expect(zeroDteCall(100, 100, 0.2, u + du / 2).thetaPerHour).toBeCloseTo(fd, 4);
+    expect(zeroDteCall(101, 100, 0.2, 1).value).toBe(1);
+  });
+
+  it('event variance from two expiries', () => {
+    const T1 = 3 / 252, T2 = 8 / 252;
+    const v = eventVariance(0.25, T1, 0.4, T2, 0.25);
+    expect(v).toBeCloseTo((0.16 - 0.0625) * T2, 12);
+    // Round trip: the term structure built from v reproduces the second expiry's vol.
+    expect(ivWithEvent(T2, 0.25, v, 3.5 / 252)).toBeCloseTo(0.4, 12);
+    expect(ivWithEvent(T1, 0.25, v, 3.5 / 252)).toBeCloseTo(0.25, 12);
+    const m = impliedMove(v);
+    expect(m.sd).toBeCloseTo(Math.sqrt(v), 12);
+    expect(m.expectedAbs / m.sd).toBeCloseTo(Math.sqrt(2 / Math.PI), 12);
   });
 });
