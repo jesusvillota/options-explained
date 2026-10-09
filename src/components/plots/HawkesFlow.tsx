@@ -62,7 +62,7 @@ export default function HawkesFlow({ title = 'Self-exciting order flow', initial
   );
   const bottom = (
     <div style={{ borderTop: '1px solid var(--border)' }}>
-      <PlotFrame x={[0, SHOW]} y={[0, RATE * 2]} height={90} xTicks={[0, 10, 20, 30, 40, 50, 60]} yTicks={[0, RATE]} formatX={(v) => `${v}s`} formatY={(v) => `${v}/s`} xLabel="seconds" yLabel="Poisson, same average rate" marginLeft={44}>
+      <PlotFrame x={[0, SHOW]} y={[0, RATE * 2.6]} height={110} xTicks={[0, 10, 20, 30, 40, 50, 60]} yTicks={[0, RATE]} formatX={(v) => `${v}s`} formatY={(v) => `${v}/s`} xLabel="seconds" yLabel="Poisson, same average rate" marginLeft={44}>
         <Line.Segment point1={[0, RATE]} point2={[SHOW, RATE]} color="var(--text-muted)" weight={1.5} />
         {shownP.map((t) => <Line.Segment key={t} point1={[t, 0]} point2={[t, tickP]} color="var(--text)" weight={1} />)}
       </PlotFrame>
@@ -75,7 +75,7 @@ export default function HawkesFlow({ title = 'Self-exciting order flow', initial
     <WidgetFrame
       title={title}
       ariaLabel={`A Hawkes process with branching ratio ${n.toFixed(2)}: counts in five-second windows have variance ${dH.toFixed(1)} times their mean, against ${dP.toFixed(1)} for a Poisson process.`}
-      plotHeight={270}
+      plotHeight={290}
       plot={<>{top}{bottom}</>}
       controls={
         <>
