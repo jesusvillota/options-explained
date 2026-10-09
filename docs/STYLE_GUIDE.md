@@ -139,6 +139,7 @@ Use these symbols everywhere. If a chapter needs a new symbol, add it to this ta
 | $\sigma_{\text{loc}}(S, t)$, $n$ (pinning) | Local volatility created by hedging feedback, and hedgers' net contracts at the pinning strike (Chapter 67) |
 | $V(t)$, $w(u)$, $\sigma^2_{\text{event}}$, $\sigma_{\text{base}}$ | Variance still to come before expiry, the intraday variance weight, an event's variance, and normal-day volatility (Chapter 68) |
 | $m$, $N$ (insured shares), $\kappa$ (withdrawal), $L$, $A$ | The spiral's second-round fall per dollar, the shares an insurer protects, how fast liquidity providers retreat, and a daily-rebalanced product's leverage and assets (Chapter 69) |
+| $\lambda(t)$, $\mu$, $\alpha$, $\beta$, $n$, $\Lambda$ (Hawkes) | Intensity, immigrant rate, jump and decay of the excitation, branching ratio $\alpha/\beta$, and mean rate (Chapter 70). Here $\lambda$ is an intensity, not price impact |
 | $\alpha$, $\delta$, $\mu$, $\varepsilon$ (PIN) | Chance of news, chance it's bad, informed and uninformed order rates per day (Chapter 53). Here $\mu$ is not a drift |
 | $\mathcal{D}(p)$, $\mathcal{S}(p)$, $Q(p)$ | Demand, supply and tradable quantity at price $p$ in a call auction (Chapter 45) |
 | $z_i$, $Z$ | Sizes of the orders resting at one price, and their total (Chapter 44) |
