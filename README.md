@@ -17,7 +17,7 @@ Options become easier to understand when you can *see* how they work. Start with
 
 ## What you'll learn
 
-The course contains **73 chapters in 16 progressively more advanced parts**: ten on pricing and hedging in a frictionless market, and six on market microstructure, how options actually trade. Start without mathematical prerequisites, or jump to a topic you want to understand more deeply. Chapters still being written are marked *coming soon*.
+The course contains **73 chapters in 16 progressively more advanced parts**: ten on pricing and hedging in a frictionless market, and six on market microstructure, how options actually trade. Start without mathematical prerequisites, or jump to a topic you want to understand more deeply.
 
 | Part | Explore |
 | --- | --- |
@@ -36,7 +36,7 @@ The course contains **73 chapters in 16 progressively more advanced parts**: ten
 | **XIII. The options market maker** | [Building a surface from quotes, quoting, Avellaneda–Stoikov, book risk, hedging with costs, and demand-based pricing](https://jesusvillota.github.io/options-explained/chapters/55-noisy-quotes-surface/) |
 | **XIV. Price impact and optimal execution** | [The square-root law, Almgren–Chriss, transient impact, execution algorithms, and executing option trades](https://jesusvillota.github.io/options-explained/chapters/61-price-impact/) |
 | **XV. When hedging moves the market** | [Dealer gamma, pinning, zero-day options, and liquidity spirals](https://jesusvillota.github.io/options-explained/chapters/66-dealer-gamma/) |
-| **XVI. High-frequency microstructure** | Hawkes processes, queues and the microprice, microstructure noise, and market design (*coming soon*) |
+| **XVI. High-frequency microstructure** | [Hawkes processes, queues and the microprice, microstructure noise, and market design](https://jesusvillota.github.io/options-explained/chapters/70-hawkes/) |
 
 [**Browse the full course →**](https://jesusvillota.github.io/options-explained/)
 
