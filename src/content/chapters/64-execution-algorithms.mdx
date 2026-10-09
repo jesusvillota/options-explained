@@ -95,9 +95,9 @@ error's variance is $\sigma_{\text{bin}}^2\sum_k (A_k - B_k)^2$: the squared gap
 in the widget's lower panel. With the default volume noise, TWAP's tracking error is about 10 basis points and VWAP's
 about 4.5.
 
-**Participation.** POV buys $n_k = \varphi\,u_k$ with participation rate $\varphi$, chosen so that $\varphi$ times the
+**Participation.** POV buys $n_k = \nu\,u_k$ with participation rate $\nu$, chosen so that $\nu$ times the
 expected daily volume equals $X$. Its weights match the market's exactly, so it has no tracking error while it runs.
-But it buys $\varphi\sum_k u_k$ in total, which is less than $X$ on a quiet day. Then the rest has to be bought at the
+But it buys $\nu\sum_k u_k$ in total, which is less than $X$ on a quiet day. Then the rest has to be bought at the
 close, a large catch-up trade that undoes the tracking; on a busy day it finishes early and misses the rest of the
 day's prices. In the widget, about half the days need a catch-up.
 
