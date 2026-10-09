@@ -10,6 +10,7 @@ import {
   realisedVol,
   simulateFeedback,
 } from '../src/lib/feedback/dealerGamma';
+import { closeHistogram, gammaAt, localMultiplier, pinShare, simulatePinning } from '../src/lib/feedback/pinning';
 
 describe('Chapter 66: dealer gamma and feedback', () => {
   const tau = FEEDBACK_MARKET.tau0;
@@ -60,5 +61,38 @@ describe('Chapter 66: dealer gamma and feedback', () => {
     const dt = 1 / 252, up = Math.exp(0.01);
     const path = [100, 100 * up, 100];
     expect(realisedVol(path, dt)).toBeCloseTo(0.01 * Math.sqrt(252), 12);
+  });
+});
+
+describe('Chapter 67: pinning', () => {
+  it('gamma matches Black–Scholes and explodes at the strike as expiry nears', () => {
+    const g = greeks('call', { S: 101, K: 100, T: 0.1, r: 0, sigma: 0.2 }).gamma;
+    expect(gammaAt(101, 100, 0.2, 0.1)).toBeCloseTo(g, 10);
+    expect(gammaAt(100, 100, 0.2, 1e-6)).toBeGreaterThan(100 * gammaAt(100, 100, 0.2, 0.1));
+    expect(gammaAt(100, 100, 0.2, 0)).toBe(0);
+  });
+
+  it('long gamma freezes volatility at the strike near expiry; short gamma is floored', () => {
+    const near = localMultiplier(100, 1 / 78 / 252, 50000, 4e-7);
+    expect(near).toBeLessThan(0.2);
+    expect(localMultiplier(104, 1 / 78 / 252, 50000, 4e-7)).toBeCloseTo(1, 3);
+    expect(localMultiplier(100, 1 / 78 / 252, -50000, 4e-7)).toBe(4);
+    expect(localMultiplier(100, 0.01, 0, 4e-7)).toBe(1);
+  });
+
+  it('long-gamma hedging pins closes to the strike; short-gamma hedging repels them', () => {
+    const base = simulatePinning({ paths: 1500, seed: 7, contracts: 0, lambda: 4e-7 });
+    expect(base.hedged).toEqual(base.free);
+    const pin = simulatePinning({ paths: 1500, seed: 7, contracts: 50000, lambda: 4e-7 });
+    expect(pinShare(pin.hedged, 0.25)).toBeGreaterThan(1.6 * pinShare(pin.free, 0.25));
+    const anti = simulatePinning({ paths: 1500, seed: 7, contracts: -30000, lambda: 4e-7 });
+    expect(pinShare(anti.hedged, 0.25)).toBeLessThan(0.5 * pinShare(anti.free, 0.25));
+  });
+
+  it('histogram shares sum to the share of closes in range', () => {
+    const h = closeHistogram([99.9, 100.1, 100.3, 120], -1, 1, 8);
+    expect(h.reduce((a, b) => a + b, 0)).toBeCloseTo(0.75, 12);
+    expect(h[3]).toBeCloseTo(0.25, 12);
+    expect(h[4]).toBeCloseTo(0.25, 12);
   });
 });

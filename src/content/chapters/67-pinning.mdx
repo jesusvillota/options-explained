@@ -1,0 +1,161 @@
+---
+title: "Pinning at expiry"
+part: 15
+chapter: 67
+difficulty: 2
+prerequisites: [66]
+summary: "On expiry day, stocks with large open interest tend to close near a strike. Long-gamma hedgers sell every uptick and buy every downtick around the strike, and as gamma explodes into the close the stock's volatility there collapses."
+---
+import PinningHistogram from '../../components/plots/PinningHistogram';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>A suspicious coincidence
+
+Look at where heavily optioned stocks close on the third Friday of the month, when monthly options expire. More often
+than chance would suggest, they finish within a few cents of a strike with large open interest. Traders call it
+**pinning**. Ni, Pearson and Poteshman (2005) confirmed it in the data: on expiration Fridays, the closes of stocks
+with listed options cluster at strike prices, and the closes of stocks without options don't.
+
+Chapter 66 gives the mechanism. It only needs one more fact: in the last hours before expiry, the gamma of an
+at-the-money option becomes enormous.
+
+## <span class="section-tag">Intuition</span>A wall at the strike
+
+Minutes before expiry, an at-the-money call is almost a bet on which side of the strike the stock closes. Its delta
+jumps from near 0 to near 1 as the stock crosses the strike: gamma is huge there, and tiny everywhere else.
+
+Now suppose dealers are **long** those options, because investors sold them covered calls. Each time the stock ticks
+above the strike, the dealers' delta jumps up and they **sell** stock to rehedge; each time it ticks below, they
+**buy**. Near the strike, they behave like a giant market maker leaning against every move. The stock's volatility
+there drops, and the closer the close, the stronger the effect: the stock gets stuck.
+
+If the dealers are **short** the options instead, they chase every move away from the strike, and the stock is pushed
+off it.
+
+<PinningHistogram client:visible />
+
+<p class="try-this"><strong>Try this:</strong> the top panel shows how hedging scales the stock's volatility near the
+strike. Five days out, the dip is shallow and wide; in the last five minutes it's a narrow spike down to a fraction
+of normal volatility. In the bottom panel, the dashed line is where the stock closes without any hedging; the blue
+histogram, with it, has a spike at the strike. Set the position to zero, then make it negative: short-gamma hedgers
+carve a hole where the spike was.</p>
+
+<Callout type="key" title="Why stocks pin">
+At-the-money gamma grows like $1/\sqrt{\tau}$ as expiry nears. Long-gamma hedgers' trades scale the stock's local
+volatility by $1/(1 + \lambda\,n\,\Gamma(S, \tau))$, which collapses in an ever-narrower band around the strike. Paths that
+reach the strike late in the day stay there.
+</Callout>
+
+## <span class="section-tag">Formalisation</span>Local volatility from hedging
+
+**Gamma near expiry.** With $\tau$ the time left, Black–Scholes gamma at the strike is
+
+$$
+\Gamma(K, \tau) = \frac{\varphi(d_1)}{\Spot{S}\Vol{\sigma}\sqrt{\tau}} \approx \frac{\varphi(0)}{\Spot{S}\Vol{\sigma}\sqrt{\tau}} ,
+$$
+
+which grows like $1/\sqrt{\tau}$. The peak is narrow: gamma is large only within about $\Spot{S}\Vol{\sigma}\sqrt{\tau}$ of the
+strike. For a \$100 stock with 20% volatility, an hour before the close that's about 50 cents, and at-the-money gamma
+is about 0.81 per share.
+
+**Hedging feedback.** Let hedgers hold $n$ contracts of 100 options at strike $K$ (positive = long). Chapter 66's
+argument, with gamma now depending on the price and on time, gives a **local volatility**
+
+$$
+\sigma_{\text{loc}}(\Spot{S}, t) = \frac{\Vol{\sigma}}{1 + 100\,\lambda\,n\,\Gamma(\Spot{S}, T - t)} .
+$$
+
+For long hedgers, $\sigma_{\text{loc}}$ dips near $K$, and as $t \to T$ the dip gets deeper and narrower. In the widget,
+50,000 contracts and a price impact of 0.4% per million shares cut volatility at the strike to 61% of normal one day
+before expiry and to 15% in the last five minutes.
+
+**Pinning without drift.** Nothing in the model pulls the stock towards the strike: the hedgers' trades only scale its
+moves. Pinning comes from **stickiness**. A diffusion spends more time where its volatility is low, and paths that
+wander close to the strike in the last hours almost stop moving. Avellaneda and Lipkin (2003) showed this in a model of
+the same form and computed the probability of pinning.
+
+**Short gamma.** With $n < 0$ the denominator is less than one near the strike, and volatility there is
+*amplified*: closes are pushed away. Which way dealers lean depends on who bought the options. Ni, Pearson and
+Poteshman found evidence consistent with both hedge rebalancing by market makers and deliberate trading by firms with
+positions at the strike; Golez and Jackwerth (2012) found pinning in S&P 500 futures around index option expiries.
+
+**Why it matters.** An option that expires with the stock exactly at the strike is a coin toss for whoever holds it:
+the holder must decide whether to exercise with the stock a few cents either side, a **pin risk** that can leave them
+with an unexpected stock position over the weekend (Chapter 46).
+
+## <span class="section-tag">Playground</span>How strong is the pin?
+
+<PinningHistogram client:visible initialContracts={20000} title="Playground: open interest and liquidity" />
+
+<div class="try-this">
+
+- **Open interest.** Raise the position from 20,000 to 100,000 contracts. Does the share of closes near the strike keep
+  growing, or does it saturate? Why?
+- **Liquidity.** Lower the price impact towards zero. What does a deep, liquid market do to pinning?
+- **Short gamma.** At −30,000 contracts, what fraction of closes land within 25 cents of the strike?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A \$100 stock has 20% volatility. One trading hour before expiry ($\tau = 1/(6.5 \times 252)$ years), what's the gamma of an at-the-money option per share? (Two decimals.)"
+  answer={0.81}
+  tolerance={0.01}
+  explanation="$\Gamma \approx \varphi(0)/(S\sigma\sqrt{\tau}) = 0.399/(100 \times 0.2 \times 0.0247) \approx 0.81$."
+/>
+
+<Quiz
+  client:visible
+  question="Near expiry, dealers are short a large number of at-the-money options. Where does the stock tend to close?"
+  options={[
+    "Exactly at the strike",
+    "Away from the strike: short-gamma hedging amplifies moves near it",
+    "At zero",
+    "Hedging has no effect at expiry",
+  ]}
+  answer={1}
+  explanation="Short gamma means buying rallies and selling dips. Near the strike, where gamma is largest, that pushes the stock away."
+/>
+
+<NumericQuiz
+  client:visible
+  question="Hedgers are long 20,000 contracts at the strike, where gamma is 0.8 per share; price impact is $\lambda = 4\times 10^{-7}$ dollars per share. With 20% normal volatility, what's the local volatility at the strike, in percent?"
+  answer={12.2}
+  tolerance={0.1}
+  explanation="$100\,\lambda\,n\,\Gamma = 100 \times 4\times10^{-7} \times 20{,}000 \times 0.8 = 0.64$, so volatility is $20\%/1.64 \approx 12.2\%$."
+/>
+
+<Quiz
+  client:visible
+  question="Why is pinning concentrated in the last hours before expiry?"
+  options={[
+    "Because trading volume is highest then",
+    "Because at-the-money gamma grows like $1/\\sqrt{\\tau}$, so the hedgers' trades near the strike become very large",
+    "Because exchanges halt trading away from the strike",
+    "Because volatility is always zero at expiry",
+  ]}
+  answer={1}
+  explanation="Far from expiry, gamma is spread over a wide range of prices and is small. In the final hours it piles up near the strike, and so do the hedging trades."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- On expiry days, stocks with large open interest tend to close near strikes: **pinning**.
+- At-the-money **gamma explodes** like $1/\sqrt{\tau}$ in a band of width about $S\sigma\sqrt{\tau}$.
+- **Long-gamma** hedgers scale local volatility by $1/(1 + 100\lambda n\Gamma)$, freezing the stock near the strike;
+  **short-gamma** hedgers push it away.
+- Pinning comes from **stickiness**, not from a drift towards the strike.
+
+**Next up:** options expiring the same day now trade in enormous volume. Chapter 68 looks at their final hours: gamma
+and theta per hour, intraday volatility, and the variance of a single event.
+
+### Further reading
+
+- S. X. Ni, N. D. Pearson and A. M. Poteshman, "Stock price clustering on option expiration dates", *Journal of
+  Financial Economics* 78 (2005).
+- M. Avellaneda and M. D. Lipkin, "A market-induced mechanism for stock pinning", *Quantitative Finance* 3 (2003).
+- B. Golez and J. C. Jackwerth, "Pinning in the S&P 500 futures", *Journal of Financial Economics* 106 (2012).
+- S. Krishnan and I. Nelken, "The effect of stock pinning upon option prices", *Risk* (2001).
