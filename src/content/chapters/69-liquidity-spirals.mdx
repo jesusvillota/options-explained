@@ -1,0 +1,199 @@
+---
+title: "Liquidity spirals and volatility crashes"
+part: 15
+chapter: 69
+difficulty: 2
+prerequisites: [46, 66]
+summary: "When many traders must sell as prices fall, and liquidity providers retreat as volatility rises, a fall feeds on itself. Portfolio insurance in 1987, margin and loss spirals, and the daily rebalancing of leveraged and volatility products."
+---
+import PortfolioInsuranceCrash from '../../components/plots/PortfolioInsuranceCrash';
+import LeveragedRebalance from '../../components/plots/LeveragedRebalance';
+import Callout from '../../components/ui/Callout.astro';
+import { Quiz, NumericQuiz } from '../../components/ui/Quiz';
+
+## <span class="section-tag">Hook</span>Black Monday
+
+On Monday 19 October 1987, the S&P 500 fell 20.5% in a single day, with no news to match. The presidential task force
+that investigated, the Brady Commission, pointed at a strategy that had become popular in the years before: **portfolio
+insurance**. Instead of buying puts, large funds *manufactured* them, by selling stock index futures as the market fell
+and buying them back as it rose, exactly as Chapter 24's delta hedger would. On the way down, their programs sold
+billions of dollars of futures and stock into a market that couldn't absorb them.
+
+The crash left a permanent mark on option prices. Before 1987 the S&P 500's implied volatility smile was nearly flat;
+since then it has had the steep skew of Chapter 26. This chapter looks at the mechanics that can turn a fall into a
+crash, then and now.
+
+## <span class="section-tag">Intuition</span>Forced sellers and vanishing buyers
+
+Two things make a fall feed on itself.
+
+- **Mechanical selling.** Some traders must sell *because* the price fell: portfolio insurers replicating puts,
+  leveraged investors meeting margin calls, risk managers cutting positions after losses. Their sales push the price
+  down, which triggers more sales.
+- **Retreating liquidity.** The buyers who normally absorb selling, market makers and other liquidity providers, have
+  limited capital, and their own margins rise when volatility rises. Just when the forced sellers need them, they step
+  back, and each sale moves the price more.
+
+Either alone makes a fall worse. Together, they can turn a 5% drop into something much larger.
+
+<PortfolioInsuranceCrash client:visible />
+
+<p class="try-this"><strong>Try this:</strong> all three paths see the same news, a 5% fall on day 2, and the same
+noise. Without insurers (grey), the market absorbs the shock. With insurers but steady liquidity (blue), the fall is
+somewhat deeper. With liquidity providers retreating as volatility rises (red), the insurers' selling and the shrinking
+depth reinforce each other and the market crashes through the insured floor. Set the withdrawal to zero and raise
+the insured share: the blue path deepens slowly. Then bring withdrawal back: small changes now have large effects.</p>
+
+<Callout type="key" title="The spiral multiplier">
+If each dollar of fall forces sales that cause a further $m$ dollars of fall, the total is
+$1 + m + m^2 + \dots = 1/(1 - m)$. Anything that raises $m$, more forced sellers or thinner markets, raises the
+multiplier, and as $m$ approaches 1 the market becomes unstable.
+</Callout>
+
+## <span class="section-tag">Intuition</span>Rebalancing every evening
+
+Exchange-traded products that promise a multiple of the *daily* return, such as twice the index or minus the index,
+must reset their exposure every evening. After an up day a 2× fund has gained, and its exposure must grow; after a down
+day it must shrink. Surprisingly, an **inverse** fund does the same. After a down day it has gained, so its short
+position must grow: it sells too.
+
+<LeveragedRebalance client:visible />
+
+<p class="try-this"><strong>Try this:</strong> drag the day's return. Every product trades in the direction of the
+move, and the 3× and −2× funds trade identically, as do the 2× and −1×. Now switch to <em>VIX futures</em> and set the
+day's return to +80%. A \$2 billion inverse VIX product must buy \$3.2 billion of VIX futures at the close, in a market
+already rising. On 5 February 2018 the VIX index more than doubled in a day; the inverse products' rebalancing
+pushed VIX futures up further into the close, and the largest of them lost almost all its value and was shut down.</p>
+
+## <span class="section-tag">Formalisation</span>Insurers, margins and leverage
+
+**Synthetic puts are short gamma.** A fund insuring $N$ shares against falls below a floor $\Strike{K}$ wants the payoff of
+stock plus a put, which by put–call parity (Chapter 8) is a call plus a bond. It replicates the call by holding
+$N\,N(d_1)$ shares. After a fall of $\delta \Spot{S}$, it sells $N\,\Gamma\,|\delta \Spot{S}|$ shares, with $\Gamma$ the call's
+gamma: like a dealer short gamma in Chapter 66, it trades with the move.
+
+**The spiral.** With price impact $\lambda$, that sale moves the price by a further $m = \lambda N\Gamma$ per dollar of the
+original move. That move triggers sales too, and so on:
+
+$$
+\begin{aligned}
+\delta \Spot{S}_{\text{total}} &= \delta \Spot{S}\,(1 + m + m^2 + \cdots) \\
+&= \frac{\delta \Spot{S}}{1 - m} .
+\end{aligned}
+$$
+
+This is Chapter 66's multiplier $1/(1 + \lambda\Gamma_D)$ with $\Gamma_D = -N\Gamma$, worked out as a sequence of rounds. In the
+widget, with 10% of the market insured, $m \approx 0.14$ at \$95 and normal liquidity, a multiplier of 1.16. Gamma rises as
+the price approaches the floor, so $m$ grows as the market falls.
+
+**Liquidity spirals.** Brunnermeier and Pedersen (2009) showed why $\lambda$ itself rises in a fall. Liquidity providers
+finance their positions with margin (Chapter 46), and margins grow with volatility. A large move raises margins,
+which forces providers to shrink their positions, so the market becomes less liquid, so moves get bigger: a **margin
+spiral**. Providers that lose money on their inventory have less capital and can absorb less: a **loss spiral**. In
+the widget, impact grows with recent volatility,
+
+$$
+\lambda_t = \lambda_0\Big(1 + \kappa\,\max\Big(0,\ \frac{\sigma_{\text{recent}}}{\sigma} - 1\Big)\Big),
+$$
+
+with $\kappa$ the withdrawal slider. Since $m = \lambda N\Gamma$, the two effects multiply.
+
+**Leveraged rebalancing.** A product with assets $A$ and leverage $L$ holds exposure $LA$. After a return $r$ its
+exposure has become $LA(1 + r)$ and its assets $A(1 + Lr)$, so to restore leverage $L$ it must trade
+
+$$
+\begin{aligned}
+&LA(1 + Lr) - LA(1 + r) \\
+&\qquad = L(L - 1)\,r\,A .
+\end{aligned}
+$$
+
+$L(L - 1)$ is positive for every $L > 1$ and every $L < 0$: leveraged and inverse products alike buy after rises and
+sell after falls, at the close. $L = -1$ gives $2rA$, like a 2× fund; $L = -2$ gives $6rA$, like a 3× fund. Their
+trades are known in advance and concentrated in the last minutes, which is why large daily moves often extend into
+the close.
+
+**Why the skew steepened.** After 1987, the market priced crash risk that Black–Scholes ignores: jumps (Chapter 31),
+volatility that rises as prices fall (Chapter 30), and the demand of investors who now bought real puts instead of
+manufacturing them, absorbed by dealers who can't hedge a gap (Chapter 60). Rubinstein (1994) documented the change:
+the S&P 500 smile went from nearly flat before the crash to steeply skewed after it, and it has stayed that way.
+
+## <span class="section-tag">Playground</span>How fragile is the market?
+
+<PortfolioInsuranceCrash client:visible initialInsured={0.05} title="Playground: insured share and liquidity" />
+
+<div class="try-this">
+
+- **Thresholds.** With withdrawal at 1, raise the insured share in steps of 2%. Is the crash depth proportional to the
+  insured share, or is there a point where it jumps?
+- **Liquidity alone.** Set the insured share to zero and move the withdrawal slider. Why does nothing happen?
+- **The floor.** Watch where the red path crashes relative to the insured floor at \$90. Why does gamma, and so the
+  insurers' selling, peak near the floor?
+
+</div>
+
+## <span class="section-tag">Check yourself</span>Quick questions
+
+<NumericQuiz
+  client:visible
+  question="A shock knocks \$2 off a stock. Each dollar of fall triggers forced sales that push the price down a further \$0.40, and so on. What's the total fall, in dollars? (Two decimals.)"
+  answer={3.33}
+  tolerance={0.01}
+  explanation="$m = 0.4$, so the total is $2/(1 - 0.4) = 2/0.6 \approx 3.33$ dollars."
+/>
+
+<NumericQuiz
+  client:visible
+  question="A 3× leveraged index fund has \$4 billion of assets. The index falls 4% today. How much must the fund sell at the close, in billions of dollars?"
+  answer={0.96}
+  tolerance={0.005}
+  explanation="$L(L - 1)rA = 3 \times 2 \times (-0.04) \times 4 = -0.96$: it sells \$0.96 billion."
+/>
+
+<Quiz
+  client:visible
+  question="The index rises 3% today. What does a −1× inverse fund do at the close?"
+  options={[
+    "Sells the index, because it's short",
+    "Buys the index: it lost money, so its short position is now too big for its assets and must shrink",
+    "Nothing",
+    "Converts into a 1× fund",
+  ]}
+  answer={1}
+  explanation="$L(L - 1)r = (-1)(-2)(0.03) = +0.06$ of its assets: it buys, in the direction of the move, just like a 2× long fund."
+/>
+
+<Quiz
+  client:visible
+  question="Why did the S&P 500's volatility skew become steep after 1987 and stay that way?"
+  options={[
+    "Exchanges changed the tick size",
+    "Investors learned that crashes happen, and the risk of jumps and of hedging failing in a gap is now priced, especially in the demand for puts",
+    "Interest rates rose",
+    "Black–Scholes was banned",
+  ]}
+  answer={1}
+  explanation="The crash revealed that markets can gap. Out-of-the-money puts became valuable insurance, in demand from investors and costly for dealers to supply: the steep skew is the price of crash risk."
+/>
+
+## <span class="section-tag">Recap</span>What to remember
+
+- **Mechanical sellers**, such as portfolio insurers replicating puts, trade with the move: they are short gamma.
+- A fall that triggers further falls of $m$ per dollar has a **spiral multiplier** $1/(1 - m)$, with $m = \lambda N\Gamma$.
+- **Liquidity spirals** (Brunnermeier–Pedersen): margins and losses make liquidity providers retreat as volatility
+  rises, so $\lambda$ grows exactly when forced selling peaks.
+- Daily-rebalanced products trade $L(L - 1)\,r\,A$ at the close, **with the move**, whether leveraged or inverse.
+- Since **1987** the index smile has been steeply skewed: crash risk is priced.
+
+**Next up:** Part XVI goes down to the smallest time scales. Chapter 70 models order flow as a self-exciting point
+process, in which every trade makes the next one more likely.
+
+### Further reading
+
+- Presidential Task Force on Market Mechanisms (the Brady Commission), *Report*, US Government Printing Office (1988).
+- M. K. Brunnermeier and L. H. Pedersen, "Market liquidity and funding liquidity", *Review of Financial Studies* 22
+  (2009).
+- M. Rubinstein, "Implied binomial trees", *Journal of Finance* 49 (1994).
+- G. Gennotte and H. Leland, "Market liquidity, hedging, and crashes", *American Economic Review* 80 (1990).
+- M. Cheng and A. Madhavan, "The dynamics of leveraged and inverse exchange-traded funds", *Journal of Investment
+  Management* 7 (2009).

@@ -11,6 +11,7 @@ import {
   simulateFeedback,
 } from '../src/lib/feedback/dealerGamma';
 import { eventVariance, impliedMove, ivWithEvent, remainingShare, varianceWeight, zeroDteCall } from '../src/lib/feedback/intraday';
+import { CRASH, insuredHolding, insurerGamma, maxDrawdown, rebalanceTrade, simulateCrash, spiralMultiplier } from '../src/lib/feedback/spirals';
 import { closeHistogram, gammaAt, localMultiplier, pinShare, simulatePinning } from '../src/lib/feedback/pinning';
 
 describe('Chapter 66: dealer gamma and feedback', () => {
@@ -138,5 +139,51 @@ describe('Chapter 68: zero-days-to-expiry options', () => {
     const m = impliedMove(v);
     expect(m.sd).toBeCloseTo(Math.sqrt(v), 12);
     expect(m.expectedAbs / m.sd).toBeCloseTo(Math.sqrt(2 / Math.PI), 12);
+  });
+});
+
+
+describe('Chapter 69: liquidity spirals', () => {
+  it('spiral multiplier 1/(1 − m)', () => {
+    expect(spiralMultiplier(0.5)).toBe(2);
+    expect(spiralMultiplier(0)).toBe(1);
+    expect(spiralMultiplier(1)).toBe(Infinity);
+  });
+
+  it('leveraged and inverse products rebalance with the move: L(L − 1) r A', () => {
+    expect(rebalanceTrade(2, -0.05, 1e9)).toBeCloseTo(-1e8, 3);
+    expect(rebalanceTrade(-1, -0.05, 1e9)).toBeCloseTo(-1e8, 3);
+    expect(rebalanceTrade(3, 0.1, 1)).toBeCloseTo(0.6, 12);
+    expect(rebalanceTrade(-2, 0.1, 1)).toBeCloseTo(0.6, 12);
+    expect(rebalanceTrade(1, 0.1, 1)).toBe(0);
+    // Check against the definition: exposure L·A must be restored after the day.
+    const L = -1, A = 100, r = 0.2;
+    const exposureAfter = L * A * (1 + r), assetsAfter = A * (1 + L * r);
+    expect(L * assetsAfter - exposureAfter).toBeCloseTo(rebalanceTrade(L, r, A), 12);
+  });
+
+  it('insurers hold N(d₁) of their shares and sell as the price falls', () => {
+    expect(insuredHolding(200, 1000)).toBeCloseTo(1000, 3);
+    expect(insuredHolding(95, 1000)).toBeLessThan(insuredHolding(100, 1000));
+    const h = 1e-3;
+    expect(insurerGamma(95, 1e6)).toBeCloseTo((insuredHolding(95 + h, 1e6) - insuredHolding(95 - h, 1e6)) / (2 * h), 3);
+  });
+
+  it('crash paths: insurers deepen the fall, withdrawn liquidity deepens it further', () => {
+    let none = 0, deep = 0, thin = 0;
+    for (let s = 0; s < 10; s++) {
+      none += maxDrawdown(simulateCrash({ seed: 200 + s, insuredShare: 0, withdrawal: 1 }).price);
+      deep += maxDrawdown(simulateCrash({ seed: 200 + s, insuredShare: 0.1, withdrawal: 0 }).price);
+      thin += maxDrawdown(simulateCrash({ seed: 200 + s, insuredShare: 0.1, withdrawal: 1 }).price);
+    }
+    expect(deep).toBeGreaterThan(none);
+    expect(thin).toBeGreaterThan(1.5 * deep);
+    const p = simulateCrash({ seed: 1, insuredShare: 0, withdrawal: 0 });
+    expect(p.price).toHaveLength(CRASH.days * CRASH.stepsPerDay + 1);
+    expect(p.sold[p.sold.length - 1]).toBe(0);
+  });
+
+  it('drawdown', () => {
+    expect(maxDrawdown([100, 120, 90, 110, 60, 80])).toBeCloseTo(0.5, 12);
   });
 });
